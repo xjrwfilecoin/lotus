@@ -3,13 +3,13 @@ package full
 import (
 	"context"
 
+	"github.com/ipfs/go-cid"
+	"go.uber.org/fx"
+	"golang.org/x/xerrors"
+
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/store"
 	"github.com/filecoin-project/lotus/chain/types"
-	"golang.org/x/xerrors"
-
-	"github.com/ipfs/go-cid"
-	"go.uber.org/fx"
 )
 
 type ChainAPI struct {
