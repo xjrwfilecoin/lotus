@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/filecoin-project/lotus/chain/actors"
-	"github.com/filecoin-project/lotus/chain/address"
+	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/lotus/chain/types"
 	xerrors "golang.org/x/xerrors"
 )

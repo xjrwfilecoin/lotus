@@ -13,7 +13,7 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 
 	"github.com/filecoin-project/lotus/api"
-	"github.com/filecoin-project/lotus/chain/address"
+	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/lotus/lib/sectorbuilder"
 	"github.com/filecoin-project/lotus/lib/tarutil"
 	"github.com/filecoin-project/lotus/miner"

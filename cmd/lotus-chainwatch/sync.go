@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	actors2 "github.com/filecoin-project/lotus/chain/actors"
-	"github.com/filecoin-project/lotus/chain/address"
+	"github.com/filecoin-project/go-address"
 
 	"github.com/ipfs/go-cid"
 
