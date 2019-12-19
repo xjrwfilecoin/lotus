@@ -25,7 +25,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/vm"
 	"github.com/filecoin-project/lotus/chain/wallet"
-	"github.com/filecoin-project/lotus/lib/crypto"
+	"github.com/filecoin-project/go-crypto"
 )
 
 type StateWrapper struct {

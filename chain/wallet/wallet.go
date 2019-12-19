@@ -15,7 +15,7 @@ import (
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/filecoin-project/lotus/lib/crypto"
+	"github.com/filecoin-project/go-crypto"
 )
 
 var log = logging.Logger("wallet")
