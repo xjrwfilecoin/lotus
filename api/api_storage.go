@@ -33,6 +33,10 @@ const (
 	Faulty        // sector is corrupted or gone for some reason
 	FaultReported // sector has been declared as a fault on chain
 	FaultedFinal  // fault declared on chain
+
+	// TODO: FORK (-ish): Put these in more logical order
+
+	Reseal
 )
 
 var SectorStates = []string{
@@ -56,6 +60,8 @@ var SectorStates = []string{
 	Faulty:        "Faulty",
 	FaultReported: "FaultReported",
 	FaultedFinal:  "FaultedFinal",
+
+	Reseal: "Reseal",
 }
 
 // StorageMiner is a low-level interface to the Filecoin network storage miner node
