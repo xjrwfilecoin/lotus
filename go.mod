@@ -14,7 +14,7 @@ require (
 	github.com/filecoin-project/go-address v0.0.0-20191219011437-af739c490b4f
 	github.com/filecoin-project/go-amt-ipld v0.0.0-20191205011053-79efc22d6cdc
 	github.com/filecoin-project/go-crypto v0.0.0-20191218222705-effae4ea9f03
-	github.com/filecoin-project/go-sectorbuilder v0.0.0-20191220163446-1b44c19a72e9
+	github.com/filecoin-project/go-sectorbuilder v0.0.0-20191220204520-82965a74eaca
 	github.com/filecoin-project/go-statestore v0.0.0-20191220165813-c30fad612418
 	github.com/gbrlsnchs/jwt/v3 v3.0.0-beta.1
 	github.com/go-ole/go-ole v1.2.4 // indirect
