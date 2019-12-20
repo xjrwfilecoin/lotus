@@ -15,6 +15,7 @@ import (
 
 	"github.com/docker/go-units"
 	ffi "github.com/filecoin-project/filecoin-ffi"
+	"github.com/filecoin-project/go-sectorbuilder/paramfetch"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log"
 	"github.com/mitchellh/go-homedir"
