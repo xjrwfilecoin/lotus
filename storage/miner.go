@@ -13,7 +13,6 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/filecoin-project/go-statestore"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
@@ -21,6 +20,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/gen"
 	"github.com/filecoin-project/lotus/chain/store"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 )
 
 var log = logging.Logger("storageminer")
@@ -35,6 +35,7 @@ type Miner struct {
 	maddr  address.Address
 	worker address.Address
 
+	dataTiker *time.Ticker
 	// Sealing
 	sb      *sectorbuilder.SectorBuilder
 	sectors *statestore.StateStore
@@ -102,8 +103,10 @@ func (m *Miner) Run(ctx context.Context) error {
 		actor:  m.maddr,
 		worker: m.worker,
 	}
+	m.dataTiker = time.NewTicker(time.Minute)
 
 	go fps.run(ctx)
+	go m.fillData()
 	if err := m.sectorStateLoop(ctx); err != nil {
 		log.Errorf("%+v", err)
 		return xerrors.Errorf("failed to startup sector state loop: %w", err)
@@ -112,6 +115,15 @@ func (m *Miner) Run(ctx context.Context) error {
 	return nil
 }
 
+func (m *Miner) fillData() {
+
+	for range m.dataTiker.C {
+		if m.sb.GetFreeWorkers() > 0 {
+			log.Info("[qz ] filling data")
+			m.PledgeSector()
+		}
+	}
+}
 func (m *Miner) Stop(ctx context.Context) error {
 	close(m.stop)
 	select {
