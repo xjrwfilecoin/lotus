@@ -13,7 +13,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/ipfs/go-datastore"
 	badger "github.com/ipfs/go-ds-badger"
 	logging "github.com/ipfs/go-log"

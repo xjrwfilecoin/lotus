@@ -7,7 +7,7 @@ import (
 
 	"encoding/json"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	badger "github.com/ipfs/go-ds-badger"
 	logging "github.com/ipfs/go-log"
 	"github.com/mitchellh/go-homedir"

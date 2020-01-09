@@ -31,3 +31,6 @@ build/paramfetch.sh
 bin/ipget
 bin/tmp/*
 .idea
+cmd/lotus-storage-miner/__debug_bin
+        cmd/lotus/__debug_bin
+        dev.gen

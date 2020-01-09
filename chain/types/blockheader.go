@@ -5,7 +5,7 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 
 	block "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
@@ -217,7 +217,7 @@ func IsTicketWinner(partialTicket []byte, ssizeI uint64, snum uint64, totpow Big
 }
 
 func ElectionPostChallengeCount(sectors uint64, faults int) uint64 {
-	return sectorbuilder.ElectionPostChallengeCount(sectors, faults)
+	return sectorbuilder.ElectionPostChallengeCount(sectors, uint64(faults))
 }
 
 func (t *Ticket) Equals(ot *Ticket) bool {

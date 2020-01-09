@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"go.opencensus.io/trace"
 	"golang.org/x/xerrors"
 

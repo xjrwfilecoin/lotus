@@ -3,11 +3,14 @@ package storage
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"math"
 	"math/rand"
+	"os"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/api"
@@ -23,7 +26,7 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	deals := make([]actors.StorageDealProposal, len(sizes))
 	for i, size := range sizes {
 		release := m.sb.RateLimit()
-		commP, err := sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
+		commP, err := m.presealFile(size) //sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
 		release()
 
 		if err != nil {
@@ -84,25 +87,107 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	}
 
 	out := make([]Piece, len(sizes))
+	dataFileName := fmt.Sprintf("/tmp/file%d.dat", sizes[0])
+	file1, err := os.Open(dataFileName)
+	defer file1.Close()
+	if err != nil {
+		for i, size := range sizes {
+			ppi, err := m.sb.AddPiece(size, sectorID, io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), existingPieceSizes)
+			if err != nil {
+				return nil, err
+			}
 
-	for i, size := range sizes {
-		ppi, err := m.sb.AddPiece(size, sectorID, io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), existingPieceSizes)
-		if err != nil {
-			return nil, err
+			existingPieceSizes = append(existingPieceSizes, size)
+
+			out[i] = Piece{
+				DealID: resp.DealIDs[i],
+				Size:   ppi.Size,
+				CommP:  ppi.CommP[:],
+			}
 		}
+	} else {
+		for i, size := range sizes {
+			ppi, err := m.sb.AddPiece(size, sectorID, file1, existingPieceSizes)
+			if err != nil {
+				return nil, err
+			}
 
-		existingPieceSizes = append(existingPieceSizes, size)
+			existingPieceSizes = append(existingPieceSizes, size)
 
-		out[i] = Piece{
-			DealID: resp.DealIDs[i],
-			Size:   ppi.Size,
-			CommP:  ppi.CommP[:],
+			out[i] = Piece{
+				DealID: resp.DealIDs[i],
+				Size:   ppi.Size,
+				CommP:  ppi.CommP[:],
+			}
 		}
 	}
 
 	return out, nil
 }
 
+func (m *Miner) presealFile(size uint64) (commP []byte, err error) {
+	//检查文件是否存在
+	dataFileName := fmt.Sprintf("/tmp/file%d.dat", size)
+	commFileName := fmt.Sprintf("/tmp/comm%d.com", size)
+	if _, err := os.Stat(dataFileName); os.IsNotExist(err) {
+		// path/to/whatever does not exist
+		randReader := io.LimitReader(rand.New(rand.NewSource(42)), int64(size))
+		buffer := make([]byte, size)
+		randReader.Read(buffer)
+		ioutil.WriteFile(dataFileName, buffer, os.ModePerm)
+		//return [ffi.CommitmentBytesLen]byte{}, nil
+		file1, err := os.Open(dataFileName)
+		defer file1.Close()
+		if err != nil {
+			log.Errorf("create temp file failed %v,error is: %v", dataFileName, err)
+			return []byte{}, err
+		}
+		commP3, err3 := sectorbuilder.GeneratePieceCommitment(file1, uint64(size))
+
+		if err3 != nil {
+			log.Errorf("GeneratePieceCommitment failed %v,error is: %v", commFileName, err3)
+			return []byte{}, err3
+		}
+		err3 = ioutil.WriteFile(commFileName, commP3[:], os.ModePerm)
+
+		if err3 != nil {
+			log.Errorf("save commentment to file %v failed,error is: %v", commFileName, err3)
+			return []byte{}, err3
+		}
+
+		return commP3[:], nil
+	}
+
+	if _, err := os.Stat(commFileName); os.IsNotExist(err) {
+		file1, err := os.Open(dataFileName)
+		defer file1.Close()
+		if err != nil {
+			log.Errorf("create temp file failed %v,error is: %v", dataFileName, err)
+			return []byte{}, err
+		}
+		// path/to/whatever does not exist
+		commP3, err3 := sectorbuilder.GeneratePieceCommitment(file1, uint64(size))
+
+		if err3 != nil {
+			log.Errorf("GeneratePieceCommitment failed %v,error is: %v", dataFileName, err3)
+			return []byte{}, err3
+		}
+		err3 = ioutil.WriteFile(commFileName, commP3[:], os.ModePerm)
+
+		if err3 != nil {
+			log.Errorf("save commentment to file %v failed,error is: %v", commFileName, err3)
+			return []byte{}, err3
+		}
+		return commP3[:], nil
+	}
+	bytesval, err := ioutil.ReadFile(commFileName)
+	if err != nil {
+		log.Errorf("fail to read commitment file %v failed,error is: %v", commFileName, err)
+		return []byte{}, err
+	}
+
+	return bytesval, nil
+}
 func (m *Miner) PledgeSector() error {
 	go func() {
 		ctx := context.TODO() // we can't use the context from command which invokes

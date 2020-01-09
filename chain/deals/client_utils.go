@@ -5,7 +5,7 @@ import (
 	"context"
 	"runtime"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/ipfs/go-cid"
 	files "github.com/ipfs/go-ipfs-files"
 	unixfile "github.com/ipfs/go-unixfs/file"

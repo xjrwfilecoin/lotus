@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	badger "github.com/ipfs/go-ds-badger"
 	logging "github.com/ipfs/go-log"
 	"golang.org/x/xerrors"
