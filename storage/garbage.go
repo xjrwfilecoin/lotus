@@ -28,32 +28,23 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 		release := m.sb.RateLimit()
 
 		dataFileName := fmt.Sprintf("/tmp/file%d.dat", sizes[0])
-		file1, err := os.Open(dataFileName)
+	
+	
 		var commP [sectorbuilder.CommLen]byte
 
-		//commP1, err := m.presealFile(size) //sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
-		//copy(commP[:],commP1[:sectorbuilder.CommLen])
+		commP1, err := m.presealFile(size) //sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
+		copy(commP[:],commP1[:sectorbuilder.CommLen])
 	
 
+		release()
 
 		if err != nil {
-			commP, err = sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
-			m.presealFile(size)	
-
-			if err != nil {
-				return nil, err
-			}	
-		}else{
-			commP, err = sectorbuilder.GeneratePieceCommitment(file1,size)
-
-
-			if err != nil {
-				return nil, err
-			}
+			log.Errorf("Unable to create file:%v",dataFileName)
+			return nil, err
+		
 		}
 
-		release()
-		file1.Close()
+
 		sdp := actors.StorageDealProposal{
 			PieceRef:             commP[:],
 			PieceSize:            size,
