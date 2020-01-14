@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"time"
 
 	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
@@ -83,10 +84,13 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	if err != nil {
 		return nil, err
 	}
+	start := time.Now()
+	log.Infof("[qz 1 ] waiting for message: %v",start)
 	r, err := m.api.StateWaitMsg(ctx, smsg.Cid())
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("[qz 1.1] deal message cost: %v",time.Since(start).Milliseconds())
 	if r.Receipt.ExitCode != 0 {
 		log.Error(xerrors.Errorf("publishing deal failed: exit %d", r.Receipt.ExitCode))
 	}
@@ -104,7 +108,7 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	defer file1.Close()
 	if err != nil {
 		for i, size := range sizes {
-			ppi, err := m.sb.AddPiece(size, sectorID, io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), existingPieceSizes)
+			ppi, err := m.sb.AddPiece(size, sectorID, file1, existingPieceSizes)
 			if err != nil {
 				return nil, err
 			}
