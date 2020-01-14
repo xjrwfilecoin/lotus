@@ -59,6 +59,8 @@ type BlockHeader struct {
 	Timestamp uint64
 
 	BlockSig *Signature
+
+	ForkSignaling uint64
 }
 
 func (b *BlockHeader) ToStorageBlock() (block.Block, error) {
@@ -117,6 +119,10 @@ func (blk *BlockHeader) SigningBytes() ([]byte, error) {
 func (blk *BlockHeader) CheckBlockSignature(ctx context.Context, worker address.Address) error {
 	_, span := trace.StartSpan(ctx, "checkBlockSignature")
 	defer span.End()
+
+	if blk.BlockSig == nil {
+		return xerrors.New("block signature not present")
+	}
 
 	sigb, err := blk.SigningBytes()
 	if err != nil {
@@ -216,7 +222,7 @@ func IsTicketWinner(partialTicket []byte, ssizeI uint64, snum uint64, totpow Big
 	return lhs.Cmp(rhs) < 0
 }
 
-func ElectionPostChallengeCount(sectors uint64, faults int) uint64 {
+func ElectionPostChallengeCount(sectors uint64, faults uint64) uint64 {
 	return sectorbuilder.ElectionPostChallengeCount(sectors, faults)
 }
 
