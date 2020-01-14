@@ -31,9 +31,9 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 		file1, err := os.Open(dataFileName)
 		var commP [sectorbuilder.CommLen]byte
 
-		commP1, err := m.presealFile(size) //sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
-		copy(commP[:],commP1[:sectorbuilder.CommLen])
-		release()
+		//commP1, err := m.presealFile(size) //sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
+		//copy(commP[:],commP1[:sectorbuilder.CommLen])
+	
 
 
 		if err != nil {
