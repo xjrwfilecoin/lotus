@@ -22,7 +22,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/var/tmp/filecoin-proof-parameters"},
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/shareData/filecoin-proof-parameters"},
             "buildFlags": "-tags=debug",
             "args": ["daemon", "--lotus-make-random-genesis=dev.gen", "--genesis-presealed-sectors=~/.genesis-sectors/pre-seal-t0101.json","--bootstrap=false" ]
         },
@@ -33,7 +33,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-storage-miner",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/var/tmp/filecoin-proof-parameters"},
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/shareData/filecoin-proof-parameters"},
             "buildFlags": "-tags=debug",
             "args": ["run", "--nosync"]
         },
@@ -46,7 +46,7 @@
             "program": "${workspaceFolder}/cmd/lotus-seal-worker",
             "env": {
                 "WORKER_PATH":"/root/.lotusstorage",
-                "FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters",
+                "FIL_PROOFS_PARAMETER_CACHE":"/shareData/filecoin-proof-parameters",
                 "STORAGE_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.dPIC4hREJLowv82s8cv1Jo43Y3DB_h52XoFs2xJWrKw:/ip4/172.16.8.35/tcp/2345/http"
             },
             "buildFlags": "-tags=debug",
@@ -68,7 +68,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters"},
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/shareData/filecoin-proof-parameters"},
             "buildFlags": "-tags=debug",
             "args": ["daemon"]
         },
@@ -78,7 +78,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-storage-miner",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters"},
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/shareData/filecoin-proof-parameters"},
             "buildFlags": "-tags=debug",
             "args": ["run", ]
         },
@@ -89,7 +89,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-storage-miner",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters"},
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/shareData/filecoin-proof-parameters"},
             "buildFlags": "-tags=debug",
             "args": ["info", ]
         },
