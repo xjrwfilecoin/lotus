@@ -170,16 +170,21 @@ eventLoop:
 
 		blks := make([]*types.BlockMsg, 0)
 
+		wg := sync.WaitGroup{}
+    	wg.Add(len(addrs))
 		for _, addr := range addrs {
-			b, err := m.mineOne(ctx, addr, base)
-			if err != nil {
-				log.Errorf("mining block failed: %+v", err)
-				continue
-			}
-			if b != nil {
-				blks = append(blks, b)
-			}
+			go func(addr address.Address){
+				b, err := m.mineOne(ctx, addr, base)
+				if err != nil {
+					log.Errorf("mining block failed: %+v", err)
+			
+				}else if b != nil {
+					blks = append(blks, b)
+				}
+				wg.Done()
+			}(addr)
 		}
+		wg.Wait()
 
 		if len(blks) != 0 {
 			btime := time.Unix(int64(blks[0].Header.Timestamp), 0)
