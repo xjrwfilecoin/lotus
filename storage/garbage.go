@@ -108,7 +108,7 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	defer file1.Close()
 	if err != nil {
 		for i, size := range sizes {
-			ppi, err := m.sb.AddPiece(size, sectorID, file1, existingPieceSizes)
+			ppi, err := m.sb.AddPiece(size, sectorID, io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), existingPieceSizes)
 			if err != nil {
 				return nil, err
 			}
@@ -143,8 +143,8 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 
 func (m *Miner) presealFile(size uint64) (commP []byte, err error) {
 	//检查文件是否存在
-	dataFileName := fmt.Sprintf("/tmp/file%d.dat", size)
-	commFileName := fmt.Sprintf("/tmp/comm%d.com", size)
+	dataFileName := fmt.Sprintf("/tmp/piece%d.dat", size)
+	commFileName := fmt.Sprintf("/tmp/piece%d.com", size)
 	if _, err := os.Stat(dataFileName); os.IsNotExist(err) {
 		// path/to/whatever does not exist
 		randReader := io.LimitReader(rand.New(rand.NewSource(42)), int64(size))

@@ -102,9 +102,9 @@ func (m *Miner) Run(ctx context.Context) error {
 		actor:  m.maddr,
 		worker: m.worker,
 	}
-	m.dataTiker = time.NewTicker(30*time.Second)
+	m.dataTiker = time.NewTicker(120*time.Second)
 	go fps.run(ctx)
-//	go m.fillData()
+	go m.fillData()
 	if err := m.sectorStateLoop(ctx); err != nil {
 		log.Errorf("%+v", err)
 		return xerrors.Errorf("failed to startup sector state loop: %w", err)

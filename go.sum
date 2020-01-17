@@ -818,6 +818,8 @@ github.com/xjrwfilecoin/go-sectorbuilder v0.1.30 h1:3WQU15Vq3S1YDBEOhp++PxSB4ZQz
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.30/go.mod h1:Xzo9fvuERpqO/oyheoBtMBPphwxzcjY/YkfTx1tKpZc=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.31 h1:jP6OKlyb/ntxsi0hctgpofjjA8ZWrK/OGClswjjjAb4=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.31/go.mod h1:Xzo9fvuERpqO/oyheoBtMBPphwxzcjY/YkfTx1tKpZc=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.34 h1:5H8rStEXkJAh0BK+iiKlID1FQIZl0rsrlWfSOPWJgtI=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.34/go.mod h1:Xzo9fvuERpqO/oyheoBtMBPphwxzcjY/YkfTx1tKpZc=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
