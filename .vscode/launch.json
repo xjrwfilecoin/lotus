@@ -14,7 +14,16 @@
             "buildFlags": "-tags=debug",
             "args": ["pre-seal", "--sector-size", "1024", "--num-sectors","2"]
         },
-        
+        {
+            "name": "bench",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/lotus-bench",
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters"},
+            "buildFlags": "-tags=debug",
+            "args": [ "--sector-size=34359738368","--storage-dir=/mnt/.lotus-bench"]
+        },       
 
         {
             "name": "daemon",
