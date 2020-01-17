@@ -102,7 +102,7 @@ func (m *Miner) Run(ctx context.Context) error {
 		actor:  m.maddr,
 		worker: m.worker,
 	}
-	m.dataTiker = time.NewTicker(30*time.Second)
+	m.dataTiker = time.NewTicker(120*time.Second)
 	go fps.run(ctx)
 	go m.fillData()
 	if err := m.sectorStateLoop(ctx); err != nil {
