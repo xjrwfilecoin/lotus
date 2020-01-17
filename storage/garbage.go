@@ -28,7 +28,7 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	for i, size := range sizes {
 		release := m.sb.RateLimit()
 
-		dataFileName := fmt.Sprintf("/tmp/file%d.dat", sizes[0])
+		dataFileName := fmt.Sprintf("/tmp/piece%d.dat", size)
 	
 	
 		var commP [sectorbuilder.CommLen]byte
@@ -103,7 +103,7 @@ func (m *Miner) pledgeSector(ctx context.Context, sectorID uint64, existingPiece
 	}
 
 	out := make([]Piece, len(sizes))
-	dataFileName := fmt.Sprintf("/tmp/file%d.dat", sizes[0])
+	dataFileName := fmt.Sprintf("/tmp/piece%d.dat", sizes[0])
 	file1, err := os.Open(dataFileName)
 	defer file1.Close()
 	if err != nil {
