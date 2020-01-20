@@ -130,9 +130,8 @@ github.com/filecoin-project/go-paramfetch v0.0.0-20200102181131-b20d579f2878/go.
 github.com/filecoin-project/go-paramfetch v0.0.0-20200102181131-b20d579f2878/go.mod h1:40kI2Gv16mwcRsHptI3OAV4nlOEU7wVDc4RgMylNFjU=
 github.com/filecoin-project/go-paramfetch v0.0.1 h1:gV7bs5YaqlgpGFMiLxInGK2L1FyCXUE0rimz4L7ghoE=
 github.com/filecoin-project/go-paramfetch v0.0.1/go.mod h1:fZzmf4tftbwf9S37XRifoJlz7nCjRdIrMGLR07dKLCc=
+github.com/filecoin-project/go-sectorbuilder v0.0.1 h1:yiLSEprWA1E43DFTSCXLSuCstYuDKiI6RCXiYz4GaRs=
 github.com/filecoin-project/go-sectorbuilder v0.0.1/go.mod h1:3OZ4E3B2OuwhJjtxR4r7hPU9bCfB+A+hm4alLEsaeDc=
-github.com/filecoin-project/go-sectorbuilder v0.0.2-0.20200114015900-4103afa82689 h1:2cT5bhm/5I0RY+HBIPdRRrtjCwLj33Qx6DHRs9TCslY=
-github.com/filecoin-project/go-sectorbuilder v0.0.2-0.20200114015900-4103afa82689/go.mod h1:3OZ4E3B2OuwhJjtxR4r7hPU9bCfB+A+hm4alLEsaeDc=
 github.com/filecoin-project/go-statestore v0.1.0 h1:t56reH59843TwXHkMcwyuayStBIiWBRilQjQ+5IiwdQ=
 github.com/filecoin-project/go-statestore v0.1.0 h1:t56reH59843TwXHkMcwyuayStBIiWBRilQjQ+5IiwdQ=
 github.com/filecoin-project/go-statestore v0.1.0/go.mod h1:LFc9hD+fRxPqiHiaqUEZOinUJB4WARkRfNl10O7kTnI=
@@ -750,6 +749,11 @@ github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee h1:lYbXeSv
 github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee/go.mod h1:m2aV4LZI4Aez7dP5PMyVKEHhUyEJ/RjmPEDOpDvudHg=
 github.com/whyrusleeping/yamux v1.1.5/go.mod h1:E8LnQQ8HKx5KD29HZFUwM1PxCOdPRzGwur1mcYhXcD8=
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=
+github.com/xjrwfilecoin/go-sectorbuilder v0.0.1/go.mod h1:3OZ4E3B2OuwhJjtxR4r7hPU9bCfB+A+hm4alLEsaeDc=
+github.com/xjrwfilecoin/go-sectorbuilder v0.0.2-0.20200114015900-4103afa82689 h1:2cT5bhm/5I0RY+HBIPdRRrtjCwLj33Qx6DHRs9TCslY=
+github.com/xjrwfilecoin/go-sectorbuilder v0.0.2-0.20200114015900-4103afa82689/go.mod h1:3OZ4E3B2OuwhJjtxR4r7hPU9bCfB+A+hm4alLEsaeDc=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.38 h1:2AlIUYRGPgOrNa+MzC0qFPJ32zBBm9yM05JL/56xiV4=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.38/go.mod h1:Xzo9fvuERpqO/oyheoBtMBPphwxzcjY/YkfTx1tKpZc=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=

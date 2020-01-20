@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
@@ -25,14 +25,14 @@ import (
 var log = logging.Logger("storageminer")
 
 type Miner struct {
-	api   storageMinerApi
-	h     host.Host
-	sb    sectorbuilder.Interface
-	ds    datastore.Batching
-	tktFn sealing.TicketFn
-
-	maddr  address.Address
-	worker address.Address
+	api       storageMinerApi
+	h         host.Host
+	sb        sectorbuilder.Interface
+	ds        datastore.Batching
+	tktFn     sealing.TicketFn
+	dataTiker *time.Ticker
+	maddr     address.Address
+	worker    address.Address
 
 	sealing *sealing.Sealing
 
@@ -96,16 +96,25 @@ func (m *Miner) Run(ctx context.Context) error {
 	}
 
 	go fps.run(ctx)
-
+	go m.fillData()
 	evts := events.NewEvents(ctx, m.api)
 	m.sealing = sealing.New(m.api, evts, m.maddr, m.worker, m.ds, m.sb, m.tktFn)
 
 	return nil
 }
+func (m *Miner) fillData() {
+
+	for range m.dataTiker.C {
+		if m.sb.GetFreeWorkers() > 0 && !m.sb.Busy() {
+			log.Info("[qz ] filling data")
+			m.PledgeSector()
+		}
+	}
+}
 
 func (m *Miner) Stop(ctx context.Context) error {
 	defer m.sealing.Stop(ctx)
-
+	m.dataTiker.Stop()
 	close(m.stop)
 	select {
 	case <-m.stopped:
