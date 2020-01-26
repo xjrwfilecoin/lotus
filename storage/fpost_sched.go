@@ -8,7 +8,7 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 
 	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/store"
@@ -34,6 +34,8 @@ type fpostScheduler struct {
 
 	failed uint64 // eps
 	failLk sync.Mutex
+
+	declaredFaults []byte
 }
 
 func (s *fpostScheduler) run(ctx context.Context) {

@@ -3,6 +3,7 @@ package actors_test
 import (
 	"bytes"
 	"context"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"math/rand"
 	"testing"
 

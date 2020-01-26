@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+        "fmt"
 	"time"
 
 	logging "github.com/ipfs/go-log/v2"
@@ -22,7 +23,7 @@ func main() {
 	var database string = "lotus"
 	var reset bool = false
 	var height int64 = 0
-
+        fmt.Println("hello")
 	flag.StringVar(&repo, "repo", repo, "lotus repo path")
 	flag.StringVar(&database, "database", database, "influx database")
 	flag.Int64Var(&height, "height", height, "block height to start syncing from (0 will resume)")
@@ -33,9 +34,8 @@ func main() {
 	influxAddr := os.Getenv(INFLUX_ADDR)
 	influxUser := os.Getenv(INFLUX_USER)
 	influxPass := os.Getenv(INFLUX_PASS)
-
+	log.Info(influxUser)	
 	ctx := context.Background()
-
 	influx, err := InfluxClient(influxAddr, influxUser, influxPass)
 	if err != nil {
 		log.Fatal(err)
@@ -56,16 +56,17 @@ func main() {
 		height = h
 	}
 
+        log.Info("---------")
 	api, closer, err := GetFullNodeAPI(repo)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer closer()
-
+        fmt.Println("start sync ...")
 	if err := WaitForSyncComplete(ctx, api); err != nil {
 		log.Fatal(err)
 	}
-
+        fmt.Println("sync complete ...")
 	tipsetsCh, err := GetTips(ctx, api, uint64(height))
 	if err != nil {
 		log.Fatal(err)
@@ -73,11 +74,11 @@ func main() {
 
 	wq := NewInfluxWriteQueue(ctx, influx)
 	defer wq.Close()
-
+        fmt.Println("start tipset......")
 	for tipset := range tipsetsCh {
 		pl := NewPointList()
 		height := tipset.Height()
-
+                fmt.Println("height: ",height)
 		if err := RecordTipsetPoints(ctx, api, pl, tipset); err != nil {
 			log.Warnw("Failed to record tipset", "height", height, "error", err)
 			continue

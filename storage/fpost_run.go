@@ -1,11 +1,12 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"time"
 
 	ffi "github.com/filecoin-project/filecoin-ffi"
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"go.opencensus.io/trace"
 	"golang.org/x/xerrors"
 
@@ -71,6 +72,9 @@ func (s *fpostScheduler) checkFaults(ctx context.Context, ssi sectorbuilder.Sort
 		if aerr != nil {
 			return nil, xerrors.Errorf("could not serialize declare faults parameters: %w", aerr)
 		}
+		if bytes.Compare(enc, s.declaredFaults) == 0 {
+			return faultIDs, xerrors.Errorf("faults has beend declared!")
+		}
 
 		msg := &types.Message{
 			To:       s.actor,
@@ -95,6 +99,7 @@ func (s *fpostScheduler) checkFaults(ctx context.Context, ssi sectorbuilder.Sort
 		if rec.Receipt.ExitCode != 0 {
 			return nil, xerrors.Errorf("declare faults exit %d", rec.Receipt.ExitCode)
 		}
+		s.declaredFaults = enc
 		log.Infof("Faults declared successfully")
 	}
 

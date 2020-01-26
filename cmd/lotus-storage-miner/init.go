@@ -16,7 +16,7 @@ import (
 	"github.com/filecoin-project/go-fil-markets/storagemarket"
 	deals "github.com/filecoin-project/go-fil-markets/storagemarket/impl"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	badger "github.com/ipfs/go-ds-badger2"

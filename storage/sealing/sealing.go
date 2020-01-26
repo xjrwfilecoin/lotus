@@ -5,7 +5,8 @@ import (
 	"io"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/lotus/lib/padreader"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
