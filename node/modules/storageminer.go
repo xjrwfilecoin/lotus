@@ -13,7 +13,7 @@ import (
 	deals "github.com/filecoin-project/go-fil-markets/storagemarket/impl"
 	storageimpl "github.com/filecoin-project/go-fil-markets/storagemarket/impl"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/filecoin-project/go-statestore"
 	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-bitswap/network"

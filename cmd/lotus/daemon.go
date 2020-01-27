@@ -9,7 +9,7 @@ import (
 	"runtime/pprof"
 
 	paramfetch "github.com/filecoin-project/go-paramfetch"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	"github.com/multiformats/go-multiaddr"
 	"golang.org/x/xerrors"

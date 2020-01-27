@@ -7,7 +7,7 @@ import (
 	"math"
 	"math/rand"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/chain/actors"

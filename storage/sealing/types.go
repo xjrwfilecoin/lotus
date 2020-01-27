@@ -1,7 +1,7 @@
 package sealing
 
 import (
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/ipfs/go-cid"
 )
