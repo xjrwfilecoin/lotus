@@ -740,6 +740,16 @@ github.com/whyrusleeping/yamux v1.1.5/go.mod h1:E8LnQQ8HKx5KD29HZFUwM1PxCOdPRzGw
 github.com/x-cray/logrus-prefixed-formatter v0.5.2/go.mod h1:2duySbKsL6M18s5GU7VPsoEPHyzalCE06qoARUCeBBE=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.38 h1:2AlIUYRGPgOrNa+MzC0qFPJ32zBBm9yM05JL/56xiV4=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.38/go.mod h1:Xzo9fvuERpqO/oyheoBtMBPphwxzcjY/YkfTx1tKpZc=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.39 h1:8sCsWESRREByGVymC5zgpfF3KTMHpqxwgK84MBdn04U=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.39/go.mod h1:Xzo9fvuERpqO/oyheoBtMBPphwxzcjY/YkfTx1tKpZc=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.40 h1:AoOiRt8QTEt1Jq2bOVoM2JGd1oeihjuMD7waP8kbYPQ=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.40/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.41 h1:QX+7fD6CEXn8+ASUwM21h3sggiBrzZHpq/2qALa3uSc=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.41/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.42 h1:OxqnL1HrXVawgpvFRi7DRNxY7nVqQCDzRdsiaohsaGM=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.42/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.43 h1:uwifs1tYWRVnEGsSglp9frOlJUDbG8bJ/CxopuhxKOs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.43/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=

@@ -14,7 +14,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 )
 
-func (m *Sealing) pledgeSector(ctx context.Context, sectorID uint64, existingPieceSizes []uint64, sizes ...uint64) ([]Piece, error) {
+func (m *Sealing) pledgeSectorbak(ctx context.Context, sectorID uint64, existingPieceSizes []uint64, sizes ...uint64) ([]Piece, error) {
 	if len(sizes) == 0 {
 		return nil, nil
 	}

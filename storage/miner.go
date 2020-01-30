@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/api"
@@ -36,6 +36,8 @@ type Miner struct {
 	worker address.Address
 
 	sealing *sealing.Sealing
+
+	dataTiker *time.Ticker
 }
 
 type storageMinerApi interface {
@@ -75,7 +77,7 @@ func NewMiner(api storageMinerApi, addr address.Address, h host.Host, ds datasto
 
 		maddr: addr,
 	}
-
+	m.dataTiker = time.NewTicker(120 * time.Second)
 	return m, nil
 }
 
@@ -93,7 +95,7 @@ func (m *Miner) Run(ctx context.Context) error {
 	}
 
 	go fps.run(ctx)
-
+	go m.fillData()
 	evts := events.NewEvents(ctx, m.api)
 	m.sealing = sealing.New(m.api, evts, m.maddr, m.worker, m.ds, m.sb, m.tktFn)
 
