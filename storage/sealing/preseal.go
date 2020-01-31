@@ -27,7 +27,7 @@ func (m *Sealing) pledgeSector(ctx context.Context, sectorID uint64, existingPie
 	for i, size := range sizes {
 		release := m.sb.RateLimit()
 
-		dataFileName := fmt.Sprintf("/tmp/piece%d.dat", size)
+		dataFileName :=  fmt.Sprintf("%s/piece%d.dat",os.TempDir(), size)
 
 		var commP [sectorbuilder.CommLen]byte
 
@@ -99,7 +99,7 @@ func (m *Sealing) pledgeSector(ctx context.Context, sectorID uint64, existingPie
 	}
 
 	out := make([]Piece, len(sizes))
-	dataFileName := fmt.Sprintf("/tmp/piece%d.dat", sizes[0])
+	dataFileName := fmt.Sprintf("%s/piece%d.dat", os.TempDir(),sizes[0])
 	file1, err := os.Open(dataFileName)
 	defer file1.Close()
 	if err != nil {
@@ -138,8 +138,8 @@ func (m *Sealing) pledgeSector(ctx context.Context, sectorID uint64, existingPie
 }
 func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 	//检查文件是否存在
-	dataFileName := fmt.Sprintf("/tmp/piece%d.dat", size)
-	commFileName := fmt.Sprintf("/tmp/piece%d.com", size)
+	dataFileName :=  fmt.Sprintf("%s/piece%d.dat", os.TempDir(),size)
+	commFileName :=  fmt.Sprintf("%s/piece%d.com", os.TempDir(),size)
 	if _, err := os.Stat(dataFileName); os.IsNotExist(err) {
 		// path/to/whatever does not exist
 		randReader := io.LimitReader(rand.New(rand.NewSource(42)), int64(size))
