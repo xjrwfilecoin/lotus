@@ -33,7 +33,7 @@
             "program": "${workspaceFolder}/cmd/lotus",
             "env": {"FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters","LOTUS_PATH":"/root/.lotus-dev"},
             "buildFlags": "-tags=debug",
-            "args": ["daemon", "--lotus-make-random-genesis=dev.gen", "--genesis-presealed-sectors=~/.genesis-sectors/pre-seal-t0101.json","--bootstrap=false" ]
+            "args": ["daemon", "--genesis=/mnt/genesis.car", "--bootstrap=false" ]
         },
  
         {
@@ -87,7 +87,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-storage-miner",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters"},
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters","LOTUS_STORAGE_PATH":"/mnt/.lotusstorage"},
             "buildFlags": "-tags=debug",
             "args": ["run", ]
         },

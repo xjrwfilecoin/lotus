@@ -142,6 +142,7 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 	commFileName :=  fmt.Sprintf("%s/piece%d.com", os.TempDir(),size)
 	if _, err := os.Stat(dataFileName); os.IsNotExist(err) {
 		// path/to/whatever does not exist
+		log.Infof("[qz 2], %v not exists, creating....",dataFileName)
 		randReader := io.LimitReader(rand.New(rand.NewSource(42)), int64(size))
 		buffer := make([]byte, size)
 		randReader.Read(buffer)
@@ -153,12 +154,15 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 			log.Errorf("create temp file failed %v,error is: %v", dataFileName, err)
 			return []byte{}, err
 		}
+
+		log.Infof("[qz 2.1], generating commitment of %v ....",dataFileName)
 		commP3, err3 := sectorbuilder.GeneratePieceCommitment(file1, uint64(size))
 
 		if err3 != nil {
 			log.Errorf("GeneratePieceCommitment failed %v,error is: %v", commFileName, err3)
 			return []byte{}, err3
 		}
+
 		err3 = ioutil.WriteFile(commFileName, commP3[:], os.ModePerm)
 
 		if err3 != nil {
@@ -176,6 +180,8 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 			log.Errorf("create temp file failed %v,error is: %v", dataFileName, err)
 			return []byte{}, err
 		}
+		log.Infof("[qz 2.2], generating commitment of %v ....",dataFileName)
+
 		// path/to/whatever does not exist
 		commP3, err3 := sectorbuilder.GeneratePieceCommitment(file1, uint64(size))
 		if err3 != nil {
@@ -190,6 +196,7 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 		}
 		return commP3[:], nil
 	}
+	log.Infof("[qz 2.3], loading  commitment of %v from presealed file",dataFileName)
 	bytesval, err := ioutil.ReadFile(commFileName)
 	if err != nil {
 		log.Errorf("fail to read commitment file %v failed,error is: %v", commFileName, err)
