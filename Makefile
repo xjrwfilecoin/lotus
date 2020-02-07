@@ -66,6 +66,13 @@ lotus-storage-miner: $(BUILD_DEPS)
 .PHONY: lotus-storage-miner
 BINS+=lotus-storage-miner
 
+lotus-miner-agent: $(BUILD_DEPS)
+	rm -f lotus-miner-agent
+	go build $(GOFLAGS) -o lotus-miner-agent ./cmd/lotus-miner-agent
+	go run github.com/GeertJohan/go.rice/rice append --exec lotus-miner-agent -i ./build
+.PHONY: lotus-miner-agent
+BINS+=lotus-miner-agent
+
 lotus-seal-worker: $(BUILD_DEPS)
 	rm -f lotus-seal-worker
 	go build $(GOFLAGS) -o lotus-seal-worker ./cmd/lotus-seal-worker

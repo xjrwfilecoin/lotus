@@ -175,7 +175,12 @@ func (sb *SBMock) SealPreCommit(ctx context.Context, sid uint64, ticket sectorbu
 		CommR: commDR(commd[:]),
 	}, nil
 }
-
+func (sb *SBMock) Busy() bool{
+	return false
+}
+func (sb *SBMock) GetFreeWorkers() int {
+	return 1
+}
 func (sb *SBMock) SealCommit(ctx context.Context, sid uint64, ticket sectorbuilder.SealTicket, seed sectorbuilder.SealSeed, pieces []sectorbuilder.PublicPieceInfo, precommit sectorbuilder.RawSealPreCommitOutput) ([]byte, error) {
 	sb.lk.Lock()
 	ss, ok := sb.sectors[sid]

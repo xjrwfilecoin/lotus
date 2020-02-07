@@ -5,11 +5,11 @@ import (
 	"io"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/api"
@@ -61,12 +61,12 @@ type Sealing struct {
 	maddr  address.Address
 	worker address.Address
 
-	sb      sectorbuilder.Interface
+	sb      SealAgent
 	sectors *statemachine.StateGroup
 	tktFn   TicketFn
 }
 
-func New(api sealingApi, events *events.Events, maddr address.Address, worker address.Address, ds datastore.Batching, sb sectorbuilder.Interface, tktFn TicketFn) *Sealing {
+func New(api sealingApi, events *events.Events, maddr address.Address, worker address.Address, ds datastore.Batching, sb SealAgent, tktFn TicketFn) *Sealing {
 	s := &Sealing{
 		api:    api,
 		events: events,
@@ -112,7 +112,7 @@ func (m *Sealing) AllocatePiece(size uint64) (sectorID uint64, offset uint64, er
 func (m *Sealing) SealPiece(ctx context.Context, size uint64, r io.Reader, sectorID uint64, dealID uint64) error {
 	log.Infof("Seal piece for deal %d", dealID)
 
-	ppi, err := m.sb.AddPiece(size, sectorID, r, []uint64{})
+	ppi, err := m.sb.AddRemotePiece(size, sectorID, []uint64{})
 	if err != nil {
 		return xerrors.Errorf("adding piece to sector: %w", err)
 	}

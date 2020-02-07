@@ -1,0 +1,12 @@
+package sealing
+
+type SealCommitArgs struct{
+	SectorID uint64,
+	Ticket SealTicket,
+	Seed SealSeed,
+	PPIs []sectorbuilder.PublicPieceInfo
+	Rspco sectorbuilder.RawSealPreCommitOutput
+}
+type SealCommitReply struct {
+	CommR []byte
+}

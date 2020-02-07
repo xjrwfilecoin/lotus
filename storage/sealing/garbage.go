@@ -90,7 +90,7 @@ func (m *Sealing) pledgeSectorbak(ctx context.Context, sectorID uint64, existing
 	out := make([]Piece, len(sizes))
 
 	for i, size := range sizes {
-		ppi, err := m.sb.AddPiece(size, sectorID, m.pledgeReader(size, uint64(runtime.NumCPU())), existingPieceSizes)
+		ppi, err := m.sb.AddRemotePiece(size, sectorID, existingPieceSizes)
 		if err != nil {
 			return nil, err
 		}

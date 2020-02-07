@@ -1,7 +1,6 @@
 package sealing
 
 import (
-	"github.com/filecoin-project/lotus/storage/sbmock"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,6 +44,7 @@ func TestFillersFromRem(t *testing.T) {
 	}
 }
 
+/*
 func TestFastPledge(t *testing.T) {
 	sz := uint64(16 << 20)
 
@@ -53,3 +53,4 @@ func TestFastPledge(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 }
+*/

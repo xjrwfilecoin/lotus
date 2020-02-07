@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"math"
-	"math/rand"
 	"os"
 	"time"
 
@@ -25,16 +22,16 @@ func (m *Sealing) pledgeSector(ctx context.Context, sectorID uint64, existingPie
 
 	deals := make([]actors.StorageDealProposal, len(sizes))
 	for i, size := range sizes {
-		release := m.sb.RateLimit()
+		//	release := m.sb.RateLimit()
 
-		dataFileName :=  fmt.Sprintf("%s/piece%d.dat",os.TempDir(), size)
+		dataFileName := fmt.Sprintf("%s/piece%d.dat", os.TempDir(), size)
 
 		var commP [sectorbuilder.CommLen]byte
 
-		commP1, err := m.presealFile(size) //sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
-		copy(commP[:], commP1[:sectorbuilder.CommLen])
+		ffi, err := m.sb.AddRemotePiece(size, sectorID, sizes) //sectorbuilder.GeneratePieceCommitment(io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), size)
+		copy(commP[:], ffi.CommP[:sectorbuilder.CommLen])
 
-		release()
+		//	release()
 
 		if err != nil {
 			log.Errorf("Unable to create file:%v", dataFileName)
@@ -99,51 +96,33 @@ func (m *Sealing) pledgeSector(ctx context.Context, sectorID uint64, existingPie
 	}
 
 	out := make([]Piece, len(sizes))
-	dataFileName := fmt.Sprintf("%s/piece%d.dat", os.TempDir(),sizes[0])
-	file1, err := os.Open(dataFileName)
-	defer file1.Close()
-	if err != nil {
-		for i, size := range sizes {
-			ppi, err := m.sb.AddPiece(size, sectorID, io.LimitReader(rand.New(rand.NewSource(42)), int64(size)), existingPieceSizes)
-			if err != nil {
-				return nil, err
-			}
-
-			existingPieceSizes = append(existingPieceSizes, size)
-
-			out[i] = Piece{
-				DealID: resp.DealIDs[i],
-				Size:   ppi.Size,
-				CommP:  ppi.CommP[:],
-			}
+	for i, size := range sizes {
+		ppi, err := m.sb.AddRemotePiece(size, sectorID, existingPieceSizes)
+		if err != nil {
+			return nil, err
 		}
-	} else {
-		for i, size := range sizes {
-			ppi, err := m.sb.AddPiece(size, sectorID, file1, existingPieceSizes)
-			if err != nil {
-				return nil, err
-			}
 
-			existingPieceSizes = append(existingPieceSizes, size)
+		existingPieceSizes = append(existingPieceSizes, size)
 
-			out[i] = Piece{
-				DealID: resp.DealIDs[i],
-				Size:   ppi.Size,
-				CommP:  ppi.CommP[:],
-			}
+		out[i] = Piece{
+			DealID: resp.DealIDs[i],
+			Size:   ppi.Size,
+			CommP:  ppi.CommP[:],
 		}
 	}
 
 	return out, nil
 }
+
+/*
 func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 	//检查文件是否存在
-	dataFileName :=  fmt.Sprintf("%s/piece%d.dat", os.TempDir(),size)
-	commFileName :=  fmt.Sprintf("%s/piece%d.com", os.TempDir(),size)
+	dataFileName := fmt.Sprintf("%s/piece%d.dat", os.TempDir(), size)
+	commFileName := fmt.Sprintf("%s/piece%d.com", os.TempDir(), size)
 	if _, err := os.Stat(dataFileName); os.IsNotExist(err) {
 		// path/to/whatever does not exist
-		log.Infof("[qz 2], %v not exists, creating....",dataFileName)
-		randReader := io.LimitReader(rand.New(rand.NewSource(42)), int64(size))
+		log.Infof("[qz 2], %v not exists, creating....", dataFileName)
+		randReader := NewLimitedDummyReader(int64(size))
 		buffer := make([]byte, size)
 		randReader.Read(buffer)
 		ioutil.WriteFile(dataFileName, buffer, os.ModePerm)
@@ -155,7 +134,7 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 			return []byte{}, err
 		}
 
-		log.Infof("[qz 2.1], generating commitment of %v ....",dataFileName)
+		log.Infof("[qz 2.1], generating commitment of %v ....", dataFileName)
 		commP3, err3 := sectorbuilder.GeneratePieceCommitment(file1, uint64(size))
 
 		if err3 != nil {
@@ -180,7 +159,7 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 			log.Errorf("create temp file failed %v,error is: %v", dataFileName, err)
 			return []byte{}, err
 		}
-		log.Infof("[qz 2.2], generating commitment of %v ....",dataFileName)
+		log.Infof("[qz 2.2], generating commitment of %v ....", dataFileName)
 
 		// path/to/whatever does not exist
 		commP3, err3 := sectorbuilder.GeneratePieceCommitment(file1, uint64(size))
@@ -196,7 +175,7 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 		}
 		return commP3[:], nil
 	}
-	log.Infof("[qz 2.3], loading  commitment of %v from presealed file",dataFileName)
+	log.Infof("[qz 2.3], loading  commitment of %v from presealed file", dataFileName)
 	bytesval, err := ioutil.ReadFile(commFileName)
 	if err != nil {
 		log.Errorf("fail to read commitment file %v failed,error is: %v", commFileName, err)
@@ -205,3 +184,4 @@ func (m *Sealing) presealFile(size uint64) (commP []byte, err error) {
 
 	return bytesval, nil
 }
+*/
