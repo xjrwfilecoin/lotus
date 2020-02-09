@@ -38,7 +38,7 @@ require (
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.3-0.20190908200855-f22eea50656c
 	github.com/ipfs/go-car v0.0.3-0.20200121013634-f188c0e24291
-	github.com/ipfs/go-cid v0.0.4
+	github.com/ipfs/go-cid v0.0.5
 	github.com/ipfs/go-datastore v0.3.1
 	github.com/ipfs/go-ds-badger2 v0.0.0-20200123200730-d75eb2678a5d
 	github.com/ipfs/go-filestore v0.0.2
@@ -73,16 +73,16 @@ require (
 	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/libp2p/go-libp2p-peerstore v0.1.4
 	github.com/libp2p/go-libp2p-pubsub v0.2.3
-	github.com/libp2p/go-libp2p-quic-transport v0.2.3
+	github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66
 
 	github.com/libp2p/go-libp2p-record v0.1.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.1.0
 	github.com/libp2p/go-libp2p-secio v0.2.1
-	github.com/libp2p/go-libp2p-tls v0.1.2
+	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/libp2p/go-libp2p-yamux v0.2.1
 	github.com/libp2p/go-maddr-filter v0.0.5
-
-	github.com/marten-seemann/qtls v0.7.0 // indirect
+	github.com/lucas-clemente/quic-go v0.14.3
+	github.com/marten-seemann/quic-conn v0.0.0-20191204020628-6e719687462b // indirect
 
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
@@ -91,15 +91,15 @@ require (
 	github.com/multiformats/go-base32 v0.0.3
 	github.com/multiformats/go-multiaddr v0.2.0
 	github.com/multiformats/go-multiaddr-dns v0.2.0
-	github.com/multiformats/go-multiaddr-net v0.1.1
-	github.com/multiformats/go-multihash v0.0.10
-	github.com/multiformats/go-varint v0.0.2
+	github.com/multiformats/go-multiaddr-net v0.1.2
+	github.com/multiformats/go-multihash v0.0.13
+	github.com/multiformats/go-varint v0.0.5
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/polydawn/refmt v0.0.0-20190809202753-05966cbd336a
 	github.com/prometheus/common v0.6.0
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
-	github.com/smallnest/rpcx v0.0.0-20200122090133-1e0a1c423d70
+	github.com/smallnest/rpcx v0.0.0-20200208135515-207ef3c938f2
 	github.com/stretchr/testify v1.4.0
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/tjfoc/gmsm v1.2.0 // indirect
@@ -118,7 +118,7 @@ require (
 	go.uber.org/multierr v1.4.0
 	go.uber.org/zap v1.13.0
 	go4.org v0.0.0-20190313082347-94abd6928b1d // indirect
-	golang.org/x/crypto v0.0.0-20200204104054-c9f3fb736b72 // indirect
+	golang.org/x/crypto v0.0.0-20200208060501-ecb85df21340 // indirect
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
 	golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5 // indirect
@@ -137,3 +137,5 @@ replace github.com/golangci/golangci-lint => github.com/golangci/golangci-lint v
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
 
 replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
+
+replace github.com/libp2p/go-libp2p-quic-transport v0.2.3 => github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66

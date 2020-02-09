@@ -5,15 +5,19 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"strconv"
 	"sync"
 
+	"github.com/filecoin-project/lotus/node/config"
+	"github.com/ipfs/go-datastore"
+	ktds "github.com/ipfs/go-datastore/keytransform"
 	client "github.com/smallnest/rpcx/client"
 	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
 )
 
 type BySectorIdSelector struct {
-	sectors sync.Map
+	ds *ktds.Datastore
 }
 
 func (s *BySectorIdSelector) Select(ctx context.Context, servicePath, serviceMethod string, args interface{}) string {
@@ -23,11 +27,11 @@ func (s *BySectorIdSelector) Select(ctx context.Context, servicePath, serviceMet
 	elem := obj.Elem()
 	sectorID := elem.FieldByName("sectorID")
 	if sectorID.Kind() == reflect.Uint64 {
-		sectorId := sectorID.Uint()
-		if sectorId != 0 {
-			result, ok := s.sectors.Load(sectorId)
-			if ok {
-				return result.(string)
+		secID := sectorID.Uint()
+		if secID != 0 {
+			result, ok := s.ds.Get(datastore.NewKey(strconv.FormatUint(secID, 10)))
+			if ok == nil {
+				return string(result) //.(string)
 			}
 		}
 	}
@@ -36,6 +40,17 @@ func (s *BySectorIdSelector) Select(ctx context.Context, servicePath, serviceMet
 
 func (s *BySectorIdSelector) UpdateServer(servers map[string]string) {
 
+}
+
+func (s *BySectorIdSelector) Update(sectorID uint64, server string) {
+	err := xerrors.Errorf("persist data store error")
+	if s.ds != nil {
+		err = s.ds.Put(datastore.NewKey(strconv.FormatUint(sectorID, 10)), []byte(server))
+	}
+
+	if err != nil {
+		log.Errorf("Error in update sector store info")
+	}
 }
 
 var _ sectorbuilder.Interface = &SealAgent{}
@@ -47,20 +62,22 @@ type SealAgent struct {
 	freeWorkers sync.Map
 	ip          string
 	port        int
+	selector    *BySectorIdSelector
 }
 
 func (sa *SealAgent) getSectorDealer(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, "Hello, world!\n")
 }
 
-func NewSealAgent(sb sectorbuilder.Interface, cfg ServiceConfig) *SealAgent {
+func NewSealAgent(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, ds *ktds.Datastore) *SealAgent {
 
 	sa := &SealAgent{
 		sb:        sb,
 		discovery: client.NewEtcdDiscovery(basePath, "AgentService", cfg.EtcdAddrs, nil),
 		//	freeWorkers:make( map[string]int)
-		ip:   cfg.ServeIP,
-		port: cfg.ServePort,
+		ip:       cfg.ServeIP,
+		port:     cfg.ServePort,
+		selector: &BySectorIdSelector{ds},
 	}
 
 	mux := http.NewServeMux()
@@ -68,6 +85,7 @@ func NewSealAgent(sb sectorbuilder.Interface, cfg ServiceConfig) *SealAgent {
 
 	go http.ListenAndServe("127.0.0.1:33221", mux)
 	//创建一个更新sectorID的服务
+
 	return sa
 }
 func (sa SealAgent) RateLimit() func() {
@@ -206,7 +224,8 @@ func (sa SealAgent) AcquireSectorId() (uint64, error) {
 	reply := &AccquireSectorReply{}
 	err = xclient.Fork(context.Background(), "AccquireSectorID", args, reply)
 	if err == nil {
-		sa.freeWorkers.Store(reply.SectorID, reply.ServerAddr)
+		//sa.freeWorkers.Store(reply.SectorID, reply.ServerAddr)
+		sa.selector.Update(reply.SectorID, reply.ServerAddr)
 		return reply.SectorID, nil
 	}
 	return 0, err

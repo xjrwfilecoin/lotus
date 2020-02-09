@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -16,6 +15,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	record "github.com/libp2p/go-libp2p-record"
 	"github.com/multiformats/go-multiaddr"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 
@@ -245,6 +245,7 @@ func Online() Option {
 		// Storage miner
 		ApplyIf(func(s *Settings) bool { return s.nodeType == repo.StorageMiner },
 			Override(new(sectorbuilder.Interface), modules.SectorBuilder),
+			Override(new(sealing.SealAgent), modules.MinerAgent),
 			Override(new(*sectorblocks.SectorBlocks), sectorblocks.NewSectorBlocks),
 			Override(new(sealing.TicketFn), modules.SealTicketGen),
 			Override(new(*storage.Miner), modules.StorageMiner),
@@ -264,6 +265,15 @@ func Online() Option {
 			Override(HandleDealsKey, modules.HandleDeals),
 			Override(new(gen.ElectionPoStProver), storage.NewElectionPoStProver),
 			Override(new(*miner.Miner), modules.SetupBlockProducer),
+		),
+
+		// Storage miner
+		ApplyIf(func(s *Settings) bool { return s.nodeType == repo.MinerAgent },
+			Override(new(sectorbuilder.Interface), modules.SectorBuilder),
+
+			Override(new(*storage.Miner), modules.StorageMiner),
+
+			Override(GetParamsKey, modules.GetParams),
 		),
 	)
 }
@@ -354,6 +364,7 @@ func ConfigStorageMiner(c interface{}, lr repo.LockedRepo) Option {
 			cfg.SectorBuilder.WorkerCount,
 			cfg.SectorBuilder.DisableLocalPreCommit,
 			cfg.SectorBuilder.DisableLocalCommit)),
+		Override(new(*config.CfgSealAgent), modules.ExtractSealAgent(cfg)),
 	)
 }
 
@@ -454,5 +465,28 @@ func Test() Option {
 	return Options(
 		Unset(RunPeerMgrKey),
 		Unset(new(*peermgr.PeerMgr)),
+	)
+}
+
+func MinerAgent(out *api.StorageMiner) Option {
+	return Options(
+		ApplyIf(func(s *Settings) bool { return s.Config },
+			Error(errors.New("the StorageMiner option must be set before Config option")),
+		),
+		ApplyIf(func(s *Settings) bool { return s.Online },
+			Error(errors.New("the StorageMiner option must be set before Online option")),
+		),
+
+		func(s *Settings) error {
+			s.nodeType = repo.MinerAgent
+			return nil
+		},
+
+		func(s *Settings) error {
+			resAPI := &impl.StorageMinerAPI{}
+			s.invokes[ExtractApiKey] = fx.Extract(resAPI)
+			*out = resAPI
+			return nil
+		},
 	)
 }

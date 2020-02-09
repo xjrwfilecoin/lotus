@@ -35,14 +35,23 @@
             "buildFlags": "-tags=debug",
             "args": ["daemon", "--genesis=/mnt/genesis.car", "--bootstrap=false" ]
         },
- 
         {
-            "name": "miner",
+            "name": "initminer",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-storage-miner",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters","LOTUS_PATH":"/root/.lotus-dev","LOTUS_STORAGE_PATH":"/root/.lotusstorage"},
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters","TRUST_PARAMS":1,"LOTUS_PATH":"/root/.lotus-dev","LOTUS_STORAGE_PATH":"/root/.lotusstorage"},
+            "buildFlags": "-tags=debug",
+            "args": ["init", "--genesis-miner","--actor=t0101" ,"--sector-size=1024" ,"--pre-sealed-sectors=~/.genesis-sectors" ,"--nosync"]
+        },
+        {
+            "name": "miner",
+t            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/lotus-storage-miner",
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters","LOTUS_PATH":"/root/.lotus-dev","LOTUS_STORAGE_PATH":"/root/.lotusstorage"},
             "buildFlags": "-tags=debug",
             "args": ["run", "--nosync"]
         },

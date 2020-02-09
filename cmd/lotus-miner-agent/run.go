@@ -66,11 +66,12 @@ var runCmd = &cli.Command{
 
 		log.Info("Checking full node sync status")
 
-		/*if !cctx.Bool("nosync") {
-			if err := lcli.SyncWait(ctx, nodeApi); err != nil {
-				return xerrors.Errorf("sync wait: %w", err)
+		/*	if !cctx.Bool("nosync") {
+				if err := lcli.SyncWait(ctx, nodeApi); err != nil {
+					return xerrors.Errorf("sync wait: %w", err)
+				}
 			}
-		}*/
+		*/
 
 		storageRepoPath := cctx.String(FlagStorageRepo)
 		r, err := repo.NewFS(storageRepoPath)
@@ -88,7 +89,7 @@ var runCmd = &cli.Command{
 
 		var minerapi api.StorageMiner
 		stop, err := node.New(ctx,
-			node.StorageMiner(&minerapi),
+			node.MinerAgent(&minerapi),
 			node.Online(),
 			node.Repo(r),
 
@@ -113,7 +114,7 @@ var runCmd = &cli.Command{
 		}
 
 		// Bootstrap with full node
-		/*remoteAddrs, err := nodeApi.NetAddrsListen(ctx)
+		remoteAddrs, err := nodeApi.NetAddrsListen(ctx)
 		if err != nil {
 			return err
 		}
@@ -122,7 +123,7 @@ var runCmd = &cli.Command{
 			return err
 		}
 
-		log.Infof("Remote version %s", v)*/
+		log.Infof("Remote version %s", v)
 
 		lst, err := manet.Listen(endpoint)
 		if err != nil {

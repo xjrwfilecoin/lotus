@@ -45,6 +45,7 @@ type ServiceConfig struct {
 	ServePort int
 	EtcdAddrs []string
 }
+
 const (
 	basePath        = "/SealAgent"
 	agentClientAddr = ":33223"

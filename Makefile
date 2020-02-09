@@ -49,7 +49,7 @@ deps: $(BUILD_DEPS)
 .PHONY: deps
 
 debug: GOFLAGS+=-tags=debug
-debug: lotus lotus-storage-miner lotus-seal-worker lotus-seed
+debug: lotus lotus-storage-miner lotus-seal-worker lotus-seed lotus-miner-agent
 
 lotus: $(BUILD_DEPS)
 	rm -f lotus
@@ -87,7 +87,7 @@ lotus-shed: $(BUILD_DEPS)
 .PHONY: lotus-seal-worker
 BINS+=lotus-seal-worker
 
-build: lotus lotus-storage-miner lotus-seal-worker
+build: lotus lotus-storage-miner lotus-seal-worker lotus-miner-agent
 	@[[ $$(type -P "lotus") ]] && echo "Caution: you have \
 an existing lotus binary in your PATH. This may cause problems if you don't run 'sudo make install'" || true
 

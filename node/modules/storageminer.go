@@ -13,7 +13,6 @@ import (
 	deals "github.com/filecoin-project/go-fil-markets/storagemarket/impl"
 	storageimpl "github.com/filecoin-project/go-fil-markets/storagemarket/impl"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/filecoin-project/go-statestore"
 	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-bitswap/network"
@@ -29,6 +28,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/mitchellh/go-homedir"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 
@@ -37,6 +37,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/gen"
 	"github.com/filecoin-project/lotus/markets/retrievaladapter"
 	"github.com/filecoin-project/lotus/miner"
+	"github.com/filecoin-project/lotus/node/config"
 	"github.com/filecoin-project/lotus/node/modules/dtypes"
 	"github.com/filecoin-project/lotus/node/modules/helpers"
 	"github.com/filecoin-project/lotus/node/repo"
@@ -98,7 +99,7 @@ func SectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit
 	}
 }
 
-func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h host.Host, ds dtypes.MetadataDS, sb sectorbuilder.Interface, tktFn sealing.TicketFn) (*storage.Miner, error) {
+func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h host.Host, ds dtypes.MetadataDS, sb sealing.SealAgent, tktFn sealing.TicketFn) (*storage.Miner, error) {
 	maddr, err := minerAddrFromDS(ds)
 	if err != nil {
 		return nil, err
@@ -277,4 +278,15 @@ func StorageProvider(ds dtypes.MetadataDS, dag dtypes.StagingDAG, dataTransfer d
 func RetrievalProvider(sblks *sectorblocks.SectorBlocks, full api.FullNode) retrievalmarket.RetrievalProvider {
 	adapter := retrievaladapter.NewRetrievalProviderNode(sblks, full)
 	return retrievalimpl.NewProvider(adapter)
+}
+
+func MinerAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.SealAgent, error) {
+	sa := sealing.NewSealAgent(sb, cfg, namespace.Wrap(ds, datastore.NewKey("/sealagent")))
+
+	return sa, nil
+}
+
+func ExtractSealAgent(cfg *config.StorageMiner) *config.CfgSealAgent {
+	cfgFile := cfg.SealAgent
+	return &cfgFile
 }

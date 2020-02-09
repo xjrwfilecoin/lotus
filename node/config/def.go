@@ -24,6 +24,8 @@ type StorageMiner struct {
 	Common
 
 	SectorBuilder SectorBuilder
+
+	SealAgent CfgSealAgent
 }
 
 // API contains configs for API endpoint
@@ -41,6 +43,11 @@ type Libp2p struct {
 	ConnMgrLow   uint
 	ConnMgrHigh  uint
 	ConnMgrGrace Duration
+}
+type CfgSealAgent struct {
+	EtcdAddrs []string
+	ServeIP   string
+	ServePort int
 }
 
 // // Full Node
