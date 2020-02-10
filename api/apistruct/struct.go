@@ -160,6 +160,9 @@ type StorageMinerStruct struct {
 		WorkerDone  func(ctx context.Context, task uint64, res sectorbuilder.SealRes) error                         `perm:"admin"`
 	}
 }
+type MinerAgentStruct struct {
+	CommonStruct
+}
 
 func (c *CommonStruct) AuthVerify(ctx context.Context, token string) ([]api.Permission, error) {
 	return c.Internal.AuthVerify(ctx, token)

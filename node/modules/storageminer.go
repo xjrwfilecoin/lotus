@@ -62,7 +62,42 @@ func GetParams(sbc *sectorbuilder.Config) error {
 
 	return nil
 }
+func RawSectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS) (*sectorbuilder.Config, error) {
+	return func(ds dtypes.MetadataDS) (*sectorbuilder.Config, error) {
+		minerAddr, err := minerAddrFromDS(ds)
+		if err != nil {
+			return nil, err
+		}
 
+		//TODO ploto update from config file
+		ssize := uint64(1024) //, err := api.StateMinerSectorSize(context.TODO(), minerAddr, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		sp, err := homedir.Expand(storagePath)
+		if err != nil {
+			return nil, err
+		}
+
+		if threads > math.MaxUint8 {
+			return nil, xerrors.Errorf("too many sectorbuilder threads specified: %d, max allowed: %d", threads, math.MaxUint8)
+		}
+
+		sb := &sectorbuilder.Config{
+			Miner:      minerAddr,
+			SectorSize: ssize,
+
+			WorkerThreads: uint8(threads),
+			NoPreCommit:   noprecommit,
+			NoCommit:      nocommit,
+
+			Dir: sp,
+		}
+
+		return sb, nil
+	}
+}
 func SectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS, api.FullNode) (*sectorbuilder.Config, error) {
 	return func(ds dtypes.MetadataDS, api api.FullNode) (*sectorbuilder.Config, error) {
 		minerAddr, err := minerAddrFromDS(ds)
@@ -99,7 +134,7 @@ func SectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit
 	}
 }
 
-func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h host.Host, ds dtypes.MetadataDS, sb sealing.SealAgent, tktFn sealing.TicketFn) (*storage.Miner, error) {
+func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h host.Host, ds dtypes.MetadataDS, sb *sealing.SealAgent, tktFn sealing.TicketFn) (*storage.Miner, error) {
 	maddr, err := minerAddrFromDS(ds)
 	if err != nil {
 		return nil, err
@@ -280,8 +315,14 @@ func RetrievalProvider(sblks *sectorblocks.SectorBlocks, full api.FullNode) retr
 	return retrievalimpl.NewProvider(adapter)
 }
 
-func MinerAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.SealAgent, error) {
+func SealAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.SealAgent, error) {
 	sa := sealing.NewSealAgent(sb, cfg, namespace.Wrap(ds, datastore.NewKey("/sealagent")))
+
+	return sa, nil
+}
+
+func MinerAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.AgentService, error) {
+	sa := sealing.NewAgentService(sb, cfg)
 
 	return sa, nil
 }

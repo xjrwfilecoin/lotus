@@ -35,7 +35,12 @@ func PermissionedStorMinerAPI(a api.StorageMiner) api.StorageMiner {
 	permissionedAny(a, &out.CommonStruct.Internal)
 	return &out
 }
-
+func PermissionedMinerAgentAPI(a api.MinerAgent) api.MinerAgent {
+	var out MinerAgentStruct
+	permissionedAny(a, &out.Internal)
+	permissionedAny(a, &out.CommonStruct.Internal)
+	return &out
+}
 func PermissionedFullAPI(a api.FullNode) api.FullNode {
 	var out FullNodeStruct
 	permissionedAny(a, &out.Internal)

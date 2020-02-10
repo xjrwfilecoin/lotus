@@ -33,7 +33,9 @@ func Error(err error) Option {
 
 func ApplyIf(check func(s *Settings) bool, opts ...Option) Option {
 	return func(s *Settings) error {
+		//fmt.Printf("check s:%v\n", s.nodeType)
 		if check(s) {
+			//	fmt.Printf("check setting return true: %v\n", s.nodeType)
 			return Options(opts...)(s)
 		}
 		return nil

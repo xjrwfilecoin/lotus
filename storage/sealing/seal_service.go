@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/filecoin-project/lotus/node/config"
 	"github.com/rcrowley/go-metrics"
 	server "github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
@@ -61,7 +62,7 @@ type AgentService struct {
 	port     int
 }
 
-func NewAgentService(sb sectorbuilder.Interface, cfg ServiceConfig) *AgentService {
+func NewAgentService(sb sectorbuilder.Interface, cfg *config.CfgSealAgent) *AgentService {
 	agent := &AgentService{
 		sb:       sb,
 		etcAddrs: cfg.EtcdAddrs,

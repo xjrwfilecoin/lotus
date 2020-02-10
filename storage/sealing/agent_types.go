@@ -40,12 +40,6 @@ type AccquireSectorReply struct {
 	ServerAddr string
 }
 
-type ServiceConfig struct {
-	ServeIP   string
-	ServePort int
-	EtcdAddrs []string
-}
-
 const (
 	basePath        = "/SealAgent"
 	agentClientAddr = ":33223"

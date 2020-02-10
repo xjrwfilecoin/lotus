@@ -28,7 +28,7 @@ var log = logging.Logger("storageminer")
 type Miner struct {
 	api   storageMinerApi
 	h     host.Host
-	sb    sealing.SealAgent
+	sb    *sealing.SealAgent
 	ds    datastore.Batching
 	tktFn sealing.TicketFn
 
@@ -67,7 +67,7 @@ type storageMinerApi interface {
 	WalletHas(context.Context, address.Address) (bool, error)
 }
 
-func NewMiner(api storageMinerApi, addr address.Address, h host.Host, ds datastore.Batching, sb sealing.SealAgent, tktFn sealing.TicketFn) (*Miner, error) {
+func NewMiner(api storageMinerApi, addr address.Address, h host.Host, ds datastore.Batching, sb *sealing.SealAgent, tktFn sealing.TicketFn) (*Miner, error) {
 	m := &Miner{
 		api:   api,
 		h:     h,

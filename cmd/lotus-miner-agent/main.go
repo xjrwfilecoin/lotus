@@ -62,8 +62,8 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:    FlagStorageRepo,
-				EnvVars: []string{"LOTUS_STORAGE_PATH"},
-				Value:   "~/.lotusstorage", // TODO: Consider XDG_DATA_HOME
+				EnvVars: []string{"LOTUS_AGENT_PATH"},
+				Value:   "~/.agentstorage", // TODO: Consider XDG_DATA_HOME
 			},
 		},
 

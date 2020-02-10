@@ -16,12 +16,10 @@ import (
 
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/apistruct"
-	"github.com/filecoin-project/lotus/build"
 	lcli "github.com/filecoin-project/lotus/cli"
 	"github.com/filecoin-project/lotus/lib/auth"
 	"github.com/filecoin-project/lotus/lib/jsonrpc"
 	"github.com/filecoin-project/lotus/node"
-	"github.com/filecoin-project/lotus/node/impl"
 	"github.com/filecoin-project/lotus/node/repo"
 )
 
@@ -48,29 +46,29 @@ var runCmd = &cli.Command{
 			os.Setenv("BELLMAN_NO_GPU", "true")
 		}
 
-		nodeApi, ncloser, err := lcli.GetFullNodeAPI(cctx)
-		if err != nil {
-			return err
-		}
-		defer ncloser()
-		ctx := lcli.DaemonContext(cctx)
-
-		v, err := nodeApi.Version(ctx)
-		if err != nil {
-			return err
-		}
-
-		if v.APIVersion != build.APIVersion {
-			return xerrors.Errorf("lotus-daemon API version doesn't match: local: %s", api.Version{APIVersion: build.APIVersion})
-		}
-
-		log.Info("Checking full node sync status")
-
-		/*	if !cctx.Bool("nosync") {
-				if err := lcli.SyncWait(ctx, nodeApi); err != nil {
-					return xerrors.Errorf("sync wait: %w", err)
-				}
+		/*	nodeApi, ncloser, err := lcli.GetFullNodeAPI(cctx)
+			if err != nil {
+				return err
 			}
+			defer ncloser()
+			ctx := lcli.DaemonContext(cctx)
+
+			v, err := nodeApi.Version(ctx)
+			if err != nil {
+				return err
+			}
+
+			if v.APIVersion != build.APIVersion {
+				return xerrors.Errorf("lotus-daemon API version doesn't match: local: %s", api.Version{APIVersion: build.APIVersion})
+			}
+
+			log.Info("Checking full node sync status")
+
+			if !cctx.Bool("nosync") {
+					if err := lcli.SyncWait(ctx, nodeApi); err != nil {
+						return xerrors.Errorf("sync wait: %w", err)
+					}
+				}
 		*/
 
 		storageRepoPath := cctx.String(FlagStorageRepo)
@@ -87,7 +85,8 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("repo at '%s' is not initialized, run 'lotus-storage-miner init' to set it up", storageRepoPath)
 		}
 
-		var minerapi api.StorageMiner
+		var minerapi api.MinerAgent
+		ctx := lcli.ReqContext(cctx)
 		stop, err := node.New(ctx,
 			node.MinerAgent(&minerapi),
 			node.Online(),
@@ -102,7 +101,7 @@ var runCmd = &cli.Command{
 					}
 					return lr.SetAPIEndpoint(apima)
 				})),
-			node.Override(new(api.FullNode), nodeApi),
+		//	node.Override(new(api.FullNode), nodeApi),
 		)
 		if err != nil {
 			return err
@@ -114,17 +113,17 @@ var runCmd = &cli.Command{
 		}
 
 		// Bootstrap with full node
-		remoteAddrs, err := nodeApi.NetAddrsListen(ctx)
-		if err != nil {
-			return err
-		}
+		/*	remoteAddrs, err := nodeApi.NetAddrsListen(ctx)
+			if err != nil {
+				return err
+			}
 
-		if err := minerapi.NetConnect(ctx, remoteAddrs); err != nil {
-			return err
-		}
+			if err := minerapi.NetConnect(ctx, remoteAddrs); err != nil {
+				return err
+			}
 
-		log.Infof("Remote version %s", v)
-
+			log.Infof("Remote version %s", v)
+		*/
 		lst, err := manet.Listen(endpoint)
 		if err != nil {
 			return xerrors.Errorf("could not listen: %w", err)
@@ -133,10 +132,10 @@ var runCmd = &cli.Command{
 		mux := mux.NewRouter()
 
 		rpcServer := jsonrpc.NewServer()
-		rpcServer.Register("Filecoin", apistruct.PermissionedStorMinerAPI(minerapi))
+		rpcServer.Register("Filecoin", apistruct.PermissionedMinerAgentAPI(minerapi))
 
 		mux.Handle("/rpc/v0", rpcServer)
-		mux.PathPrefix("/remote").HandlerFunc(minerapi.(*impl.StorageMinerAPI).ServeRemote)
+		//	mux.PathPrefix("/remote").HandlerFunc(minerapi.(*impl.StorageMinerAPI).ServeRemote)
 		mux.PathPrefix("/").Handler(http.DefaultServeMux) // pprof
 
 		ah := &auth.Handler{

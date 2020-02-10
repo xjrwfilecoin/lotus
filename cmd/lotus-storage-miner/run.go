@@ -99,6 +99,7 @@ var runCmd = &cli.Command{
 					if err != nil {
 						return err
 					}
+					log.Infof("starting %v,....", apima.String())
 					return lr.SetAPIEndpoint(apima)
 				})),
 			node.Override(new(api.FullNode), nodeApi),

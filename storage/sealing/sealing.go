@@ -61,12 +61,12 @@ type Sealing struct {
 	maddr  address.Address
 	worker address.Address
 
-	sb      SealAgent
+	sb      *SealAgent
 	sectors *statemachine.StateGroup
 	tktFn   TicketFn
 }
 
-func New(api sealingApi, events *events.Events, maddr address.Address, worker address.Address, ds datastore.Batching, sb SealAgent, tktFn TicketFn) *Sealing {
+func New(api sealingApi, events *events.Events, maddr address.Address, worker address.Address, ds datastore.Batching, sb *SealAgent, tktFn TicketFn) *Sealing {
 	s := &Sealing{
 		api:    api,
 		events: events,

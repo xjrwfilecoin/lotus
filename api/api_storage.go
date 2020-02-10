@@ -108,6 +108,11 @@ type StorageMiner interface {
 	WorkerDone(ctx context.Context, task uint64, res sectorbuilder.SealRes) error
 }
 
+type MinerAgent interface {
+	Common
+	//SectorsUpdate(context.Context, uint64, SectorState) error
+}
+
 type SectorLog struct {
 	Kind      string
 	Timestamp uint64

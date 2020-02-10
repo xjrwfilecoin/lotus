@@ -3,6 +3,7 @@ package node
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
@@ -170,7 +171,10 @@ func libp2p() Option {
 }
 
 func isType(t repo.RepoType) func(s *Settings) bool {
-	return func(s *Settings) bool { return s.nodeType == t }
+	return func(s *Settings) bool {
+		fmt.Printf("node type:%d, dest type:%v, is true:%v \n", s.nodeType, t, s.nodeType == t)
+		return s.nodeType == t
+	}
 }
 
 // Online sets up basic libp2p node
@@ -245,7 +249,7 @@ func Online() Option {
 		// Storage miner
 		ApplyIf(func(s *Settings) bool { return s.nodeType == repo.StorageMiner },
 			Override(new(sectorbuilder.Interface), modules.SectorBuilder),
-			Override(new(sealing.SealAgent), modules.MinerAgent),
+			Override(new(*sealing.SealAgent), modules.SealAgent),
 			Override(new(*sectorblocks.SectorBlocks), sectorblocks.NewSectorBlocks),
 			Override(new(sealing.TicketFn), modules.SealTicketGen),
 			Override(new(*storage.Miner), modules.StorageMiner),
@@ -267,11 +271,11 @@ func Online() Option {
 			Override(new(*miner.Miner), modules.SetupBlockProducer),
 		),
 
-		// Storage miner
+		// agent service
 		ApplyIf(func(s *Settings) bool { return s.nodeType == repo.MinerAgent },
 			Override(new(sectorbuilder.Interface), modules.SectorBuilder),
 
-			Override(new(*storage.Miner), modules.StorageMiner),
+			Override(new(*sealing.AgentService), modules.MinerAgent),
 
 			Override(GetParamsKey, modules.GetParams),
 		),
@@ -330,6 +334,7 @@ func ConfigCommon(cfg *config.Common) Option {
 }
 
 func ConfigFullNode(c interface{}) Option {
+	//fmt.Println("Full node configured")
 	cfg, ok := c.(*config.FullNode)
 	if !ok {
 		return Error(xerrors.Errorf("invalid config from repo, got: %T", c))
@@ -347,6 +352,7 @@ func ConfigFullNode(c interface{}) Option {
 }
 
 func ConfigStorageMiner(c interface{}, lr repo.LockedRepo) Option {
+	//fmt.Println("Storage miner")
 	cfg, ok := c.(*config.StorageMiner)
 	if !ok {
 		return Error(xerrors.Errorf("invalid config from repo, got: %T", c))
@@ -368,6 +374,50 @@ func ConfigStorageMiner(c interface{}, lr repo.LockedRepo) Option {
 	)
 }
 
+func ConfigSealAgent(c interface{}, lr repo.LockedRepo) Option {
+	cfg, ok := c.(*config.StorageMiner)
+	if !ok {
+		return Error(xerrors.Errorf("invalid config from repo, got: %T", c))
+	}
+
+	path := cfg.SectorBuilder.Path
+	if path == "" {
+		path = lr.Path()
+	}
+
+	return Options(
+		ConfigCommon(&cfg.Common),
+
+		Override(new(*sectorbuilder.Config), modules.SectorBuilderConfig(path,
+			cfg.SectorBuilder.WorkerCount,
+			cfg.SectorBuilder.DisableLocalPreCommit,
+			cfg.SectorBuilder.DisableLocalCommit)),
+		Override(new(*config.CfgSealAgent), modules.ExtractSealAgent(cfg)),
+	)
+}
+
+func ConfigMinerAgent(c interface{}, lr repo.LockedRepo) Option {
+	cfg, ok := c.(*config.StorageMiner)
+	if !ok {
+		return Error(xerrors.Errorf("invalid config from repo, got: %T", c))
+	}
+
+	path := cfg.SectorBuilder.Path
+	if path == "" {
+		path = lr.Path()
+	}
+
+	return Options(
+		ConfigCommon(&cfg.Common),
+
+		Override(new(*sectorbuilder.Config), modules.RawSectorBuilderConfig(path,
+			cfg.SectorBuilder.WorkerCount,
+			cfg.SectorBuilder.DisableLocalPreCommit,
+			cfg.SectorBuilder.DisableLocalCommit)),
+		Override(new(*config.CfgSealAgent), modules.ExtractSealAgent(cfg)),
+	)
+}
+
 func Repo(r repo.Repo) Option {
 	return func(settings *Settings) error {
 		lr, err := r.Lock(settings.nodeType)
@@ -382,9 +432,11 @@ func Repo(r repo.Repo) Option {
 		return Options(
 			Override(new(repo.LockedRepo), modules.LockedRepo(lr)), // module handles closing
 
-			ApplyIf(isType(repo.FullNode), ConfigFullNode(c)),
-			ApplyIf(isType(repo.StorageMiner), ConfigStorageMiner(c, lr)),
+			ApplyIf(isType(repo.StorageMiner), ConfigFullNode(c)),
 
+			ApplyIf(isType(repo.StorageMiner), ConfigStorageMiner(c, lr)),
+			ApplyIf(isType(repo.SealAgent), ConfigSealAgent(c, lr)),
+			ApplyIf(isType(repo.MinerAgent), ConfigMinerAgent(c, lr)),
 			Override(new(dtypes.MetadataDS), modules.Datastore),
 			Override(new(dtypes.ChainBlockstore), modules.ChainBlockstore),
 
@@ -468,7 +520,30 @@ func Test() Option {
 	)
 }
 
-func MinerAgent(out *api.StorageMiner) Option {
+func SealAgent(out *api.StorageMiner) Option {
+	return Options(
+		ApplyIf(func(s *Settings) bool { return s.Config },
+			Error(errors.New("the StorageMiner option must be set before Config option")),
+		),
+		ApplyIf(func(s *Settings) bool { return s.Online },
+			Error(errors.New("the StorageMiner option must be set before Online option")),
+		),
+
+		func(s *Settings) error {
+			s.nodeType = repo.SealAgent
+			return nil
+		},
+
+		func(s *Settings) error {
+			resAPI := &impl.StorageMinerAPI{}
+			s.invokes[ExtractApiKey] = fx.Extract(resAPI)
+			*out = resAPI
+			return nil
+		},
+	)
+}
+
+func MinerAgent(out *api.MinerAgent) Option {
 	return Options(
 		ApplyIf(func(s *Settings) bool { return s.Config },
 			Error(errors.New("the StorageMiner option must be set before Config option")),
@@ -483,7 +558,7 @@ func MinerAgent(out *api.StorageMiner) Option {
 		},
 
 		func(s *Settings) error {
-			resAPI := &impl.StorageMinerAPI{}
+			resAPI := &impl.MinerAgentAPI{}
 			s.invokes[ExtractApiKey] = fx.Extract(resAPI)
 			*out = resAPI
 			return nil
