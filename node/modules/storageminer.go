@@ -2,6 +2,7 @@ package modules
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"reflect"
 
@@ -56,6 +57,7 @@ func minerAddrFromDS(ds dtypes.MetadataDS) (address.Address, error) {
 }
 
 func GetParams(sbc *sectorbuilder.Config) error {
+	fmt.Println("create parameters")
 	if err := paramfetch.GetParams(build.ParametersJson(), sbc.SectorSize); err != nil {
 		return xerrors.Errorf("fetching proof parameters: %w", err)
 	}
@@ -316,12 +318,14 @@ func RetrievalProvider(sblks *sectorblocks.SectorBlocks, full api.FullNode) retr
 }
 
 func SealAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.SealAgent, error) {
+	fmt.Println("call seal agent")
 	sa := sealing.NewSealAgent(sb, cfg, namespace.Wrap(ds, datastore.NewKey("/sealagent")))
 
 	return sa, nil
 }
 
 func MinerAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.AgentService, error) {
+	fmt.Println("Miner agent ")
 	sa := sealing.NewAgentService(sb, cfg)
 
 	return sa, nil

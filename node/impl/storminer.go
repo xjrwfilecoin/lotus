@@ -18,6 +18,7 @@ import (
 	"github.com/filecoin-project/lotus/lib/tarutil"
 	"github.com/filecoin-project/lotus/miner"
 	"github.com/filecoin-project/lotus/storage"
+	"github.com/filecoin-project/lotus/storage/sealing"
 	"github.com/filecoin-project/lotus/storage/sectorblocks"
 	"github.com/xjrwfilecoin/go-sectorbuilder"
 )
@@ -28,10 +29,10 @@ type StorageMinerAPI struct {
 	SectorBuilderConfig *sectorbuilder.Config
 	SectorBuilder       sectorbuilder.Interface
 	SectorBlocks        *sectorblocks.SectorBlocks
-
-	Miner      *storage.Miner
-	BlockMiner *miner.Miner
-	Full       api.FullNode
+	AgentClient         *sealing.SealAgent
+	Miner               *storage.Miner
+	BlockMiner          *miner.Miner
+	Full                api.FullNode
 }
 
 type MinerAgentAPI struct {
@@ -39,6 +40,7 @@ type MinerAgentAPI struct {
 
 	SectorBuilderConfig *sectorbuilder.Config
 	SectorBuilder       sectorbuilder.Interface
+	AgentService        *sealing.AgentService
 	//SectorBlocks        *sectorblocks.SectorBlocks
 
 	//Miner      *storage.Miner

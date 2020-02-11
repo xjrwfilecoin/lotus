@@ -25,7 +25,7 @@ func (s *BySectorIdSelector) Select(ctx context.Context, servicePath, serviceMet
 	obj := reflect.ValueOf(args)
 
 	elem := obj.Elem()
-	sectorID := elem.FieldByName("sectorID")
+	sectorID := elem.FieldByName("SectorID")
 	if sectorID.Kind() == reflect.Uint64 {
 		secID := sectorID.Uint()
 		if secID != 0 {
@@ -97,6 +97,7 @@ func (sa SealAgent) AddPiece(size uint64, sectorID uint64, reader io.Reader, siz
 }
 func (sa SealAgent) AddRemotePiece(size uint64, sectorID uint64, sizes []uint64) (sectorbuilder.PublicPieceInfo, error) {
 	xclient := client.NewXClient("AgentService", client.Failtry, client.SelectByUser, sa.discovery, client.DefaultOption)
+	xclient.SetSelector(sa.selector)
 	defer xclient.Close()
 	args := &AddPieceArgs{
 		Size:     size,
@@ -143,6 +144,7 @@ func (sa SealAgent) ComputeElectionPoSt(sectorInfo sectorbuilder.SortedPublicSec
 }
 func (sa SealAgent) SealPreCommit(ctx context.Context, sectorID uint64, ticket sectorbuilder.SealTicket, ppi []sectorbuilder.PublicPieceInfo) (sectorbuilder.RawSealPreCommitOutput, error) {
 	xclient := client.NewXClient("AgentService", client.Failtry, client.SelectByUser, sa.discovery, client.DefaultOption)
+	xclient.SetSelector(sa.selector)
 	defer xclient.Close()
 	args := &SealPreCommitArgs{
 		SectorID: sectorID,
@@ -158,6 +160,7 @@ func (sa SealAgent) SealPreCommit(ctx context.Context, sectorID uint64, ticket s
 }
 func (sa SealAgent) SealCommit(ctx context.Context, sectorId uint64, ticket sectorbuilder.SealTicket, seed sectorbuilder.SealSeed, ppi []sectorbuilder.PublicPieceInfo, rspco sectorbuilder.RawSealPreCommitOutput) ([]byte, error) {
 	xclient := client.NewXClient("AgentService", client.Failtry, client.SelectByUser, sa.discovery, client.DefaultOption)
+	xclient.SetSelector(sa.selector)
 	defer xclient.Close()
 	args := &SealCommitArgs{
 		SectorID: sectorId,
