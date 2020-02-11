@@ -432,7 +432,7 @@ func Repo(r repo.Repo) Option {
 		return Options(
 			Override(new(repo.LockedRepo), modules.LockedRepo(lr)), // module handles closing
 
-			ApplyIf(isType(repo.StorageMiner), ConfigFullNode(c)),
+			ApplyIf(isType(repo.FullNode), ConfigFullNode(c)),
 
 			ApplyIf(isType(repo.StorageMiner), ConfigStorageMiner(c, lr)),
 			ApplyIf(isType(repo.SealAgent), ConfigSealAgent(c, lr)),

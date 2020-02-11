@@ -5,6 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/filecoin-project/lotus/node/config"
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/namespace"
+	badger "github.com/ipfs/go-ds-badger2"
 	"go.etcd.io/etcd/client"
 )
 
@@ -43,14 +47,21 @@ func TestEtcd(t *testing.T) {
 
 }
 func TestSimpleRPC(t *testing.T) {
-	servCfg := ServiceConfig{"127.0.0.1", 40000, []string{"172.16.8.40:2379", "172.16.8.37:2379", "172.16.8.39:2379"}}
-	go NewAgentService(nil, servCfg)
+	servCfg := &config.CfgSealAgent{[]string{"172.16.8.40:2379", "172.16.8.37:2379", "172.16.8.39:2379"}, "127.0.0.1", 40000}
+	NewAgentService(nil, servCfg)
 
 	timer := time.NewTimer(5 * time.Second)
 	<-timer.C
-	clientCfg := ServiceConfig{"127.0.0.1", 40001, []string{"172.16.8.40:2379", "172.16.8.37:2379", "172.16.8.39:2379"}}
+	clientCfg := &config.CfgSealAgent{[]string{"172.16.8.40:2379", "172.16.8.37:2379", "172.16.8.39:2379"}, "127.0.0.1", 40001}
+	opts := badger.DefaultOptions
+	opts.Truncate = true
 
-	client := NewSealAgent(nil, clientCfg)
+	ds, err := badger.NewDatastore("/tmp", &opts)
+	/*if fsr.dsErr == nil {
+		fsr.ds = datastore.NewLogDatastore(fsr.ds, "fsrepo")
+	}*/
+	dsw := namespace.Wrap(ds, datastore.NewKey("test"))
+	client := NewSealAgent(nil, clientCfg, dsw)
 
 	ret, err := client.AcquireSectorId()
 	if err == nil {

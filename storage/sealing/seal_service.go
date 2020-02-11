@@ -69,7 +69,7 @@ func NewAgentService(sb sectorbuilder.Interface, cfg *config.CfgSealAgent) *Agen
 		ip:       cfg.ServeIP,
 		port:     cfg.ServePort,
 	}
-	agent.start()
+	go agent.start()
 	return agent
 }
 
