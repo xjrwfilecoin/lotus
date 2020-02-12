@@ -15,3 +15,15 @@ For instructions on how to build lotus from source, please visit [https://docs.l
 ## License
 
 Dual-licensed under [MIT](https://github.com/filecoin-project/lotus/blob/master/LICENSE-MIT) + [Apache 2.0](https://github.com/filecoin-project/lotus/blob/master/LICENSE-APACHE)
+
+
+## 使用修改过的filecoin-ffi
+```shell
+ cd extern/filecoin-ffi
+ git remote add xjrw https://github.com/xjrwfilecoin/filecoin-ffi
+ git fetch xjrw
+ git checkout -b qzopt xjrw/qzopt
+ FFI_BUILD_FROM_SOURCE=1 make clean all
+ cd ../..
+ make 
+``
