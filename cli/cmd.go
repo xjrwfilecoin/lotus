@@ -58,6 +58,8 @@ func flagForRepo(t repo.RepoType) string {
 		return "repo"
 	case repo.StorageMiner:
 		return "storagerepo"
+	case repo.MinerAgent:
+		return "repo"
 	default:
 		panic(fmt.Sprintf("Unknown repo type: %v", t))
 	}
@@ -69,6 +71,8 @@ func envForRepo(t repo.RepoType) string {
 		return "FULLNODE_API_INFO"
 	case repo.StorageMiner:
 		return "STORAGE_API_INFO"
+	case repo.MinerAgent:
+		return "AGENT_API_INFO"
 	default:
 		panic(fmt.Sprintf("Unknown repo type: %v", t))
 	}
@@ -169,6 +173,14 @@ func GetStorageMinerAPI(ctx *cli.Context) (api.StorageMiner, jsonrpc.ClientClose
 	}
 
 	return client.NewStorageMinerRPC(addr, headers)
+}
+func GetMinerAgentAPI(ctx *cli.Context) (api.MinerAgent, jsonrpc.ClientCloser, error) {
+	addr, headers, err := GetRawAPI(ctx, repo.MinerAgent)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return client.NewMinerAgentRPC(addr, headers)
 }
 
 func DaemonContext(cctx *cli.Context) context.Context {

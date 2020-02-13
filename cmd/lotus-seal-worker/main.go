@@ -9,6 +9,7 @@ import (
 	"golang.org/x/xerrors"
 	"gopkg.in/urfave/cli.v2"
 
+	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
 	lcli "github.com/filecoin-project/lotus/cli"
@@ -36,12 +37,17 @@ func main() {
 			&cli.StringFlag{
 				Name:    "repo",
 				EnvVars: []string{"WORKER_PATH"},
-				Value:   "~/.lotusworker", // TODO: Consider XDG_DATA_HOME
+				Value:   "~/.agentstorage", // TODO: Consider XDG_DATA_HOME
 			},
 			&cli.StringFlag{
-				Name:    "storagerepo",
-				EnvVars: []string{"LOTUS_STORAGE_PATH"},
-				Value:   "~/.lotusstorage", // TODO: Consider XDG_DATA_HOME
+				Name:    "mineraddr",
+				EnvVars: []string{"MINER_ADDR"},
+				//			Value:   "~/.lotusstorage", // TODO: Consider XDG_DATA_HOME
+			},
+			&cli.Uint64Flag{
+				Name:    "sectorsize",
+				EnvVars: []string{"SECTOR_SIZE"},
+				Value:   34359738368, // TODO: Consider XDG_DATA_HOME
 			},
 			&cli.BoolFlag{
 				Name:  "enable-gpu-proving",
@@ -59,7 +65,7 @@ func main() {
 		Commands: local,
 	}
 	app.Setup()
-	app.Metadata["repoType"] = repo.StorageMiner
+	app.Metadata["repoType"] = repo.MinerAgent
 
 	if err := app.Run(os.Args); err != nil {
 		log.Warnf("%+v", err)
@@ -74,15 +80,27 @@ var runCmd = &cli.Command{
 		if !cctx.Bool("enable-gpu-proving") {
 			os.Setenv("BELLMAN_NO_GPU", "true")
 		}
+		sectorsize := cctx.Uint64("sectorsize")
+		if sectorsize == 0 {
+			sectorsize = 34359738368
+		}
 
-		nodeApi, closer, err := lcli.GetStorageMinerAPI(cctx)
+		mineraddr := cctx.String("mineraddr")
+		if mineraddr == "" {
+			return xerrors.Errorf("miner addr should set first")
+		}
+		actorAddr, err := address.NewFromString(mineraddr)
+		if err != nil {
+			return xerrors.Errorf("convert miner addr %v, error:%v", mineraddr, err)
+		}
+		nodeApi, closer, err := lcli.GetMinerAgentAPI(cctx)
 		if err != nil {
 			return xerrors.Errorf("getting miner api: %w", err)
 		}
 		defer closer()
 		ctx := lcli.ReqContext(cctx)
 
-		ainfo, err := lcli.GetAPIInfo(cctx, repo.StorageMiner)
+		ainfo, err := lcli.GetAPIInfo(cctx, repo.MinerAgent)
 		if err != nil {
 			return xerrors.Errorf("could not get api info: %w", err)
 		}
@@ -98,7 +116,7 @@ var runCmd = &cli.Command{
 			return err
 		}
 		if v.APIVersion != build.APIVersion {
-			return xerrors.Errorf("lotus-storage-miner API version doesn't match: local: ", api.Version{APIVersion: build.APIVersion})
+			return xerrors.Errorf("lotus-miner-agent API version doesn't match: local: ", api.Version{APIVersion: build.APIVersion})
 		}
 
 		go func() {
@@ -106,6 +124,6 @@ var runCmd = &cli.Command{
 			log.Warn("Shutting down..")
 		}()
 
-		return acceptJobs(ctx, nodeApi, "http://"+storageAddr, ainfo.AuthHeader(), r, cctx.Bool("no-precommit"), cctx.Bool("no-commit"))
+		return acceptJobs(ctx, actorAddr, sectorsize, nodeApi, "http://"+storageAddr, ainfo.AuthHeader(), r, cctx.Bool("no-precommit"), cctx.Bool("no-commit"))
 	},
 }

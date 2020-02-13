@@ -1,6 +1,9 @@
 package sealing
 
-import sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+import (
+	ffi "github.com/filecoin-project/filecoin-ffi"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+)
 
 type AddPieceArgs struct {
 	Size     uint64
@@ -30,7 +33,15 @@ type SealPreCommitArgs struct {
 type SealPreCommitReply struct {
 	Rspco sectorbuilder.RawSealPreCommitOutput
 }
+type ScrubArgs struct {
+	SectorID uint64
+	CommR    [ffi.CommitmentBytesLen]byte
+}
+type ScrubReply struct {
+	SectorID uint64
 
+	Err error
+}
 type AccquireSectorArg struct {
 	SectorID uint64
 }

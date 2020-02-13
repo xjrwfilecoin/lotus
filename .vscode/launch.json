@@ -56,15 +56,37 @@
             "args": ["run", "--nosync"]
         },
         {
-            "name": "agent",
+            "name": "agent run",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-miner-agent",
-            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters","LOTUS_PATH":"/root/.lotus-dev","LOTUS_STORAGE_PATH":"/root/.lotusstorage"},
+            "env": {
+                "FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters",
+                "LOTUS_PATH":"/root/.lotus-dev",
+                "LOTUS_AGENT_PATH":"/root/.agentstorage",
+                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8AMxMXNoFBQdE3iqT4krfr8NyqeDCV_6V-LL-K-qACo:/ip4/127.0.0.1/tcp/23456/http"
+
+            },
             "buildFlags": "",
             "args": ["run", "--nosync"]
         },
+        {
+            "name": "agent info",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/lotus-miner-agent",
+            "env": {
+                "FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters",
+                "LOTUS_PATH":"/root/.lotus-dev",
+                "LOTUS_AGENT_PATH":"/root/.agentstorage",
+                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8AMxMXNoFBQdE3iqT4krfr8NyqeDCV_6V-LL-K-qACo:/ip4/127.0.0.1/tcp/23456/http"
+
+            },
+            "buildFlags": "",
+            "args": ["info"]
+        },        
         {
             "name": "worker",
             "type": "go",
@@ -72,9 +94,10 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-seal-worker",
             "env": {
-                "WORKER_PATH":"/root/.lotusstorage",
-                "FIL_PROOFS_PARAMETER_CACHE":"/mnt/filecoin-proof-parameters",
-                "STORAGE_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.dPIC4hREJLowv82s8cv1Jo43Y3DB_h52XoFs2xJWrKw:/ip4/172.16.8.35/tcp/2345/http"
+                "WORKER_PATH":"/root/.agentstorage",
+                "FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters",
+                "MINER_ADDR":"t3qn7bpgkunh6yldpftud377fmtmbok2tvp4wpjjijrrks5nujba3gwtooyryzzd4fstyo6hqfrdtfuavm5clq",
+                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8AMxMXNoFBQdE3iqT4krfr8NyqeDCV_6V-LL-K-qACo:/ip4/127.0.0.1/tcp/23456/http"
             },
             "buildFlags": "-tags=debug",
             "args": ["run"]

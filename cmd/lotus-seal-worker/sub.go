@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/filecoin-project/go-address"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
 	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
@@ -13,7 +14,7 @@ import (
 )
 
 type worker struct {
-	api           lapi.StorageMiner
+	api           lapi.MinerAgent
 	minerEndpoint string
 	repo          string
 	auth          http.Header
@@ -21,15 +22,7 @@ type worker struct {
 	sb *sectorbuilder.SectorBuilder
 }
 
-func acceptJobs(ctx context.Context, api lapi.StorageMiner, endpoint string, auth http.Header, repo string, noprecommit, nocommit bool) error {
-	act, err := api.ActorAddress(ctx)
-	if err != nil {
-		return err
-	}
-	ssize, err := api.ActorSectorSize(ctx, act)
-	if err != nil {
-		return err
-	}
+func acceptJobs(ctx context.Context, act address.Address, ssize uint64, api lapi.MinerAgent, endpoint string, auth http.Header, repo string, noprecommit, nocommit bool) error {
 
 	sb, err := sectorbuilder.NewStandalone(&sectorbuilder.Config{
 		SectorSize:    ssize,

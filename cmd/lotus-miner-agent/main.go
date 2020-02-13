@@ -70,7 +70,7 @@ func main() {
 		Commands: append(local, lcli.Commands...),
 	}
 	app.Setup()
-	app.Metadata["repoType"] = repo.StorageMiner
+	app.Metadata["repoType"] = repo.MinerAgent
 
 	if err := app.Run(os.Args); err != nil {
 		log.Warnf("%+v", err)

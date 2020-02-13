@@ -2,11 +2,11 @@ package sealing
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"reflect"
 	"strconv"
-	"sync"
 
 	"github.com/filecoin-project/lotus/node/config"
 	"github.com/ipfs/go-datastore"
@@ -39,7 +39,7 @@ func (s *BySectorIdSelector) Select(ctx context.Context, servicePath, serviceMet
 }
 
 func (s *BySectorIdSelector) UpdateServer(servers map[string]string) {
-
+	fmt.Printf("update servers:%v\n", servers)
 }
 
 func (s *BySectorIdSelector) Update(sectorID uint64, server string) {
@@ -58,11 +58,10 @@ var _ sectorbuilder.Interface = &SealAgent{}
 type SealAgent struct {
 	sb sectorbuilder.Interface
 	//注册服务器的地址
-	discovery   client.ServiceDiscovery
-	freeWorkers sync.Map
-	ip          string
-	port        int
-	selector    *BySectorIdSelector
+	discovery client.ServiceDiscovery
+	ip        string
+	port      int
+	selector  *BySectorIdSelector
 }
 
 func (sa *SealAgent) getSectorDealer(w http.ResponseWriter, r *http.Request) {
@@ -74,10 +73,9 @@ func NewSealAgent(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, ds *ktds
 	sa := &SealAgent{
 		sb:        sb,
 		discovery: client.NewEtcdDiscovery(basePath, "AgentService", cfg.EtcdAddrs, nil),
-		//	freeWorkers:make( map[string]int)
-		ip:       cfg.ServeIP,
-		port:     cfg.ServePort,
-		selector: &BySectorIdSelector{ds},
+		ip:        cfg.ServeIP,
+		port:      cfg.ServePort,
+		selector:  &BySectorIdSelector{ds},
 	}
 
 	mux := http.NewServeMux()
@@ -119,15 +117,33 @@ func (sa SealAgent) SectorSize() uint64 {
 
 func (sa SealAgent) Scrub(ssInfo sectorbuilder.SortedPublicSectorInfo) []*sectorbuilder.Fault {
 
-	return sa.sb.Scrub(ssInfo)
+	faults := make([]*sectorbuilder.Fault, 0)
+	for _, info := range ssInfo.Values() {
+		xclient := client.NewXClient("AgentService", client.Failtry, client.SelectByUser, sa.discovery, client.DefaultOption)
+		xclient.SetSelector(sa.selector)
+		defer xclient.Close()
+		args := &ScrubArgs{
+			SectorID: info.SectorID,
+			CommR:    info.CommR,
+		}
+		reply := &ScrubReply{}
+		err := xclient.Call(context.Background(), "Scrub", args, reply)
+		if err == nil {
+			if reply.Err != nil {
+				faults = append(faults, &sectorbuilder.Fault{reply.SectorID, reply.Err})
+			}
+		}
+
+	}
+	if len(faults) > 0 {
+		return faults
+	} else {
+		return nil
+	}
+
 }
 func (sa SealAgent) GetFreeWorkers() int {
-	freeNum := int(0)
-	sa.freeWorkers.Range(func(key, val interface{}) bool {
-		freeNum += val.(int)
-		return true
-	})
-	return freeNum
+	return 0
 }
 
 func (sa SealAgent) Busy() bool {
@@ -185,6 +201,7 @@ func (sa SealAgent) GetPath(typename string, sname string) (string, error) {
 	return sa.sb.GetPath(typename, sname)
 }
 func (sa SealAgent) WorkerStats() sectorbuilder.WorkerStats {
+
 	return sa.sb.WorkerStats()
 }
 func (sa SealAgent) AddWorker(context.Context, sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error) {
@@ -195,20 +212,6 @@ func (sa SealAgent) TaskDone(context.Context, uint64, sectorbuilder.SealRes) err
 }
 func (sa SealAgent) UpdateSectorInfo(context.Context, uint64, sectorbuilder.SealRes) error {
 	return xerrors.Errorf("not implemented")
-}
-
-type WorkerInfoArgs struct {
-	AgentID    string
-	FreeWorker int
-}
-type WorkerInfoReply struct {
-	err error
-}
-
-func (sa SealAgent) UpdateWorkerInfo(ctx context.Context, args WorkerInfoArgs, reply WorkerInfoReply) error {
-	sa.freeWorkers.Store(args.AgentID, args.FreeWorker)
-	reply.err = nil
-	return nil
 }
 
 func (sa SealAgent) AcquireSectorId() (uint64, error) {

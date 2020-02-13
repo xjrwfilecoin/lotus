@@ -162,6 +162,13 @@ type StorageMinerStruct struct {
 }
 type MinerAgentStruct struct {
 	CommonStruct
+
+	Internal struct {
+		WorkerStats func(context.Context) (sectorbuilder.WorkerStats, error) `perm:"read"`
+
+		WorkerQueue func(ctx context.Context, cfg sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error) `perm:"admin"` // TODO: worker perm
+		WorkerDone  func(ctx context.Context, task uint64, res sectorbuilder.SealRes) error                         `perm:"admin"`
+	}
 }
 
 func (c *CommonStruct) AuthVerify(ctx context.Context, token string) ([]api.Permission, error) {
@@ -577,3 +584,15 @@ func (c *StorageMinerStruct) WorkerDone(ctx context.Context, task uint64, res se
 var _ api.Common = &CommonStruct{}
 var _ api.FullNode = &FullNodeStruct{}
 var _ api.StorageMiner = &StorageMinerStruct{}
+var _ api.MinerAgent = &MinerAgentStruct{}
+
+func (c *MinerAgentStruct) WorkerQueue(ctx context.Context, cfg sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error) {
+	return c.Internal.WorkerQueue(ctx, cfg)
+}
+func (c *MinerAgentStruct) WorkerDone(ctx context.Context, task uint64, res sectorbuilder.SealRes) error {
+	return c.Internal.WorkerDone(ctx, task, res)
+}
+
+func (c *MinerAgentStruct) WorkerStats(ctx context.Context) (sectorbuilder.WorkerStats, error) {
+	return c.Internal.WorkerStats(ctx)
+}

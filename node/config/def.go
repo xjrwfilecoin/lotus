@@ -28,6 +28,15 @@ type StorageMiner struct {
 	SealAgent CfgSealAgent
 }
 
+// StorageMiner is a storage miner config
+type MinerAgent struct {
+	Common
+
+	SectorBuilder SectorBuilder
+
+	SealAgent CfgSealAgent
+}
+
 // API contains configs for API endpoint
 type API struct {
 	ListenAddress string
@@ -45,6 +54,12 @@ type Libp2p struct {
 	ConnMgrGrace Duration
 }
 type CfgSealAgent struct {
+	EtcdAddrs []string
+	ServeIP   string
+	ServePort int
+}
+
+type CfgSealService struct {
 	EtcdAddrs []string
 	ServeIP   string
 	ServePort int

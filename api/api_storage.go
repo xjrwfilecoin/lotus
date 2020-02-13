@@ -111,6 +111,12 @@ type StorageMiner interface {
 type MinerAgent interface {
 	Common
 	//SectorsUpdate(context.Context, uint64, SectorState) error
+	WorkerStats(context.Context) (sectorbuilder.WorkerStats, error)
+
+	// WorkerQueue registers a remote worker
+	WorkerQueue(context.Context, sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error)
+
+	WorkerDone(ctx context.Context, task uint64, res sectorbuilder.SealRes) error
 }
 
 type SectorLog struct {

@@ -243,3 +243,17 @@ func (sm *StorageMinerAPI) WorkerDone(ctx context.Context, task uint64, res sect
 }
 
 var _ api.StorageMiner = &StorageMinerAPI{}
+
+func (sm *MinerAgentAPI) WorkerQueue(ctx context.Context, cfg sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error) {
+	return sm.SectorBuilder.AddWorker(ctx, cfg)
+}
+
+func (sm *MinerAgentAPI) WorkerDone(ctx context.Context, task uint64, res sectorbuilder.SealRes) error {
+	return sm.SectorBuilder.TaskDone(ctx, task, res)
+}
+func (sm *MinerAgentAPI) WorkerStats(context.Context) (sectorbuilder.WorkerStats, error) {
+	stat := sm.SectorBuilder.WorkerStats()
+	return stat, nil
+}
+
+var _ api.MinerAgent = &MinerAgentAPI{}
