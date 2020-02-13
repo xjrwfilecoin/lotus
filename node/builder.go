@@ -374,28 +374,6 @@ func ConfigStorageMiner(c interface{}, lr repo.LockedRepo) Option {
 	)
 }
 
-func ConfigSealAgent(c interface{}, lr repo.LockedRepo) Option {
-	cfg, ok := c.(*config.StorageMiner)
-	if !ok {
-		return Error(xerrors.Errorf("invalid config from repo, got: %T", c))
-	}
-
-	path := cfg.SectorBuilder.Path
-	if path == "" {
-		path = lr.Path()
-	}
-
-	return Options(
-		ConfigCommon(&cfg.Common),
-
-		Override(new(*sectorbuilder.Config), modules.SectorBuilderConfig(path,
-			cfg.SectorBuilder.WorkerCount,
-			cfg.SectorBuilder.DisableLocalPreCommit,
-			cfg.SectorBuilder.DisableLocalCommit)),
-		Override(new(*config.CfgSealAgent), modules.ExtractSealAgent(cfg)),
-	)
-}
-
 func ConfigMinerAgent(c interface{}, lr repo.LockedRepo) Option {
 	cfg, ok := c.(*config.StorageMiner)
 	if !ok {
@@ -435,7 +413,6 @@ func Repo(r repo.Repo) Option {
 			ApplyIf(isType(repo.FullNode), ConfigFullNode(c)),
 
 			ApplyIf(isType(repo.StorageMiner), ConfigStorageMiner(c, lr)),
-			ApplyIf(isType(repo.SealAgent), ConfigSealAgent(c, lr)),
 			ApplyIf(isType(repo.MinerAgent), ConfigMinerAgent(c, lr)),
 			Override(new(dtypes.MetadataDS), modules.Datastore),
 			Override(new(dtypes.ChainBlockstore), modules.ChainBlockstore),
@@ -530,7 +507,7 @@ func SealAgent(out *api.StorageMiner) Option {
 		),
 
 		func(s *Settings) error {
-			s.nodeType = repo.SealAgent
+			s.nodeType = repo.StorageMiner
 			return nil
 		},
 

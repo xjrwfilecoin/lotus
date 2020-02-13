@@ -56,6 +56,16 @@
             "args": ["run", "--nosync"]
         },
         {
+            "name": "miner PledgeSector",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/lotus-storage-miner",
+            "env": {"FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters","LOTUS_PATH":"/root/.lotus-dev","LOTUS_STORAGE_PATH":"/root/.lotusstorage"},
+            "buildFlags": "",
+            "args": ["pledge-sector"]
+        },
+        {
             "name": "agent run",
             "type": "go",
             "request": "launch",

@@ -117,17 +117,6 @@ func DefaultStorageMiner() *StorageMiner {
 		SectorBuilder: SectorBuilder{
 			WorkerCount: 5,
 		},
-	}
-	cfg.Common.API.ListenAddress = "/ip4/127.0.0.1/tcp/2345/http"
-	return cfg
-}
-func DefaultSealAgent() *StorageMiner {
-	cfg := &StorageMiner{
-		Common: defCommon(),
-
-		SectorBuilder: SectorBuilder{
-			WorkerCount: 5,
-		},
 		SealAgent: CfgSealAgent{
 			ServePort: 33140,
 		},
