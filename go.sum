@@ -1053,6 +1053,10 @@ github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 h1:eY9dn8+vbi4tKz5
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.51 h1:UMzEV8uUSTy5RrtF2yDS9iC6kmUOLklvhS4TvC4W1Xk=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.51/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.52 h1:S5SXys2pItisICO/pFtrobdz2D+VTeegGbeS0T8EXjA=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.52/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.53 h1:46FindJGDx5ONM9MqcJUJan1vegU/WT63bPVr24S6Gw=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.53/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/xtaci/kcp-go v5.4.4+incompatible h1:QIJ0a0Q0N1G20yLHL2+fpdzyy2v/Cb3PI+xiwx/KK9c=
 github.com/xtaci/kcp-go v5.4.4+incompatible/go.mod h1:bN6vIwHQbfHaHtFpEssmWsN45a+AZwO7eyRCmEIbtvE=

@@ -324,9 +324,9 @@ func SealAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.M
 	return sa, nil
 }
 
-func MinerAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.AgentService, error) {
+func MinerAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS, scfg *sectorbuilder.Config) (*sealing.AgentService, error) {
 	fmt.Println("Miner agent ")
-	sa := sealing.NewAgentService(sb, cfg)
+	sa := sealing.NewAgentService(sb, cfg, scfg)
 
 	return sa, nil
 }

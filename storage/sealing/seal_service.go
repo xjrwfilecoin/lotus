@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	ffi "github.com/filecoin-project/filecoin-ffi"
 	"github.com/filecoin-project/lotus/node/config"
 	"github.com/rcrowley/go-metrics"
 	server "github.com/smallnest/rpcx/server"
@@ -60,14 +61,19 @@ type AgentService struct {
 	etcAddrs []string
 	ip       string
 	port     int
+	//for remote sector builder
+	dataDir string
+	miner   string
 }
 
-func NewAgentService(sb sectorbuilder.Interface, cfg *config.CfgSealAgent) *AgentService {
+func NewAgentService(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, scfg *sectorbuilder.Config) *AgentService {
 	agent := &AgentService{
 		sb:       sb,
 		etcAddrs: cfg.EtcdAddrs,
 		ip:       cfg.ServeIP,
 		port:     cfg.ServePort,
+		dataDir:  scfg.Dir,
+		miner:    scfg.Miner.String(),
 	}
 	go agent.start()
 	return agent
@@ -130,6 +136,12 @@ func (as *AgentService) start() {
 	s.RegisterName("AgentService", as, "")
 
 	s.Serve("tcp", fmt.Sprintf("%v:%v", as.ip, as.port))
+	//启动rust-fil-proofs 的rpc server
+	listenAddr := fmt.Sprintf("%v:%v", as.ip, as.port+1)
+	sealedPath := fmt.Sprintf("%v/%v", as.dataDir, "sealed")
+	cachePath := fmt.Sprintf("%v/%v", as.dataDir, "cache")
+	fmt.Printf("sealed path is:%v,and cache path is :%v", sealedPath, cachePath)
+	ffi.StartRPCServer(listenAddr, sealedPath, cachePath, as.miner)
 }
 
 func (as *AgentService) SealPreCommit(ctx context.Context, args *SealPreCommitArgs, reply *SealPreCommitReply) error {

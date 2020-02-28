@@ -107,7 +107,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20200121162646-b63bacf5eaf8
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/pubsub v0.0.0-20131020042734-02de8aa2db3d
-	github.com/xjrwfilecoin/go-sectorbuilder v0.1.51
+	github.com/xjrwfilecoin/go-sectorbuilder v0.1.53
 	github.com/xtaci/kcp-go v5.4.20+incompatible // indirect
 	go.etcd.io/etcd v3.3.18+incompatible
 	go.opencensus.io v0.22.3

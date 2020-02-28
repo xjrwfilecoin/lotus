@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 
+	ffi "github.com/filecoin-project/filecoin-ffi"
 	"github.com/filecoin-project/lotus/node/config"
 	"github.com/ipfs/go-datastore"
 	ktds "github.com/ipfs/go-datastore/keytransform"
@@ -38,6 +39,13 @@ func (s *BySectorIdSelector) Select(ctx context.Context, servicePath, serviceMet
 	return ""
 }
 
+func (s *BySectorIdSelector) Get(sectorID uint64) string {
+	result, ok := s.ds.Get(datastore.NewKey(strconv.FormatUint(sectorID, 10)))
+	if ok == nil {
+		return string(result) //.(string)
+	}
+	return string("")
+}
 func (s *BySectorIdSelector) UpdateServer(servers map[string]string) {
 	fmt.Printf("update servers:%v\n", servers)
 }
@@ -65,7 +73,14 @@ type SealAgent struct {
 }
 
 func (sa *SealAgent) getSectorDealer(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "Hello, world!\n")
+	//从request中获取到的sectorID
+	sectorID := r.URL.Query().Get("id")
+
+	val, err := strconv.ParseInt(sectorID, 10, 64)
+	if err == nil {
+		io.WriteString(w, sa.selector.Get(uint64(val)))
+	}
+	io.WriteString(w, "")
 }
 
 func NewSealAgent(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, ds *ktds.Datastore) *SealAgent {
@@ -79,10 +94,12 @@ func NewSealAgent(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, ds *ktds
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/sector", sa.getSectorDealer)
+	mux.HandleFunc("/sectorId", sa.getSectorDealer)
 
-	go http.ListenAndServe("127.0.0.1:33221", mux)
-	//创建一个更新sectorID的服务
+	//创建一个查询sectorID的服务
+	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%v", cfg.ServePort+100), mux)
+
+	ffi.SetupRPCResolvePort(int32(cfg.ServePort + 100))
 
 	return sa
 }
