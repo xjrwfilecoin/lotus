@@ -70,11 +70,7 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-miner-agent",
             "env": {
-                "FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters",
-                "LOTUS_PATH":"/root/.lotus-dev",
-                "LOTUS_AGENT_PATH":"/root/.agentstorage",
-                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8AMxMXNoFBQdE3iqT4krfr8NyqeDCV_6V-LL-K-qACo:/ip4/127.0.0.1/tcp/23456/http"
-
+                "ETCDCTL_API":"2"
             },
             "buildFlags": "",
             "args": ["run", "--nosync"]
