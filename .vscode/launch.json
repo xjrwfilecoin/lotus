@@ -82,10 +82,9 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-miner-agent",
             "env": {
-                "FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters",
-                "LOTUS_PATH":"/root/.lotus-dev",
+                 "LOTUS_PATH":"/root/.lotus-dev",
                 "LOTUS_AGENT_PATH":"/root/.agentstorage",
-                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8AMxMXNoFBQdE3iqT4krfr8NyqeDCV_6V-LL-K-qACo:/ip4/127.0.0.1/tcp/23456/http"
+                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.dmpSw9_udNf5EtGwfgsf2mK0IkOqgl7ktwInXB89V-A:/ip4/127.0.0.1/tcp/23456/http"
 
             },
             "buildFlags": "",
@@ -98,10 +97,9 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lotus-seal-worker",
             "env": {
-                "WORKER_PATH":"/root/.agentstorage",
-                "FIL_PROOFS_PARAMETER_CACHE":"/dev/shm/tmp/filecoin-proof-parameters",
-                "MINER_ADDR":"t3qn7bpgkunh6yldpftud377fmtmbok2tvp4wpjjijrrks5nujba3gwtooyryzzd4fstyo6hqfrdtfuavm5clq",
-                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.8AMxMXNoFBQdE3iqT4krfr8NyqeDCV_6V-LL-K-qACo:/ip4/127.0.0.1/tcp/23456/http"
+        
+                "MINER_ADDR":"t3qkymqyh2vzfodcxd7bwbylq4v6l7sghvemn53sndj5bjnaxmay2twkije4wcrhzdf72x5gyhncycebohhq6a",
+                "AGENT_API_INFO":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBbGxvdyI6WyJyZWFkIiwid3JpdGUiLCJzaWduIiwiYWRtaW4iXX0.dmpSw9_udNf5EtGwfgsf2mK0IkOqgl7ktwInXB89V-A:/ip4/127.0.0.1/tcp/23456/http"
             },
             "buildFlags": "-tags=debug",
             "args": ["run"]

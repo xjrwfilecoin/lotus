@@ -94,7 +94,7 @@ func NewSealAgent(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, ds *ktds
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/sectorId", sa.getSectorDealer)
+	mux.HandleFunc("/sectorid", sa.getSectorDealer)
 
 	//创建一个查询sectorID的服务
 	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%v", cfg.ServePort+100), mux)
