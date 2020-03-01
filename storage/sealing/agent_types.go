@@ -10,7 +10,17 @@ type AddPieceArgs struct {
 	SectorID uint64
 	Sizes    []uint64
 }
-
+type FreeWorkersArg struct {
+	Client      string
+	FreeWorkers int
+}
+type WorkerArgs struct {
+	Client     string
+	Workstates sectorbuilder.WorkerStats
+}
+type NoneReply struct {
+	success bool
+}
 type AddPieceReply struct {
 	PPI sectorbuilder.PublicPieceInfo
 }

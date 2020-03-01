@@ -7,12 +7,17 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"time"
 
+	"github.com/bluele/gcache"
 	ffi "github.com/filecoin-project/filecoin-ffi"
 	"github.com/filecoin-project/lotus/node/config"
 	"github.com/ipfs/go-datastore"
 	ktds "github.com/ipfs/go-datastore/keytransform"
+	"github.com/rcrowley/go-metrics"
 	client "github.com/smallnest/rpcx/client"
+	server "github.com/smallnest/rpcx/server"
+	"github.com/smallnest/rpcx/serverplugin"
 	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 	"golang.org/x/xerrors"
 )
@@ -63,6 +68,65 @@ func (s *BySectorIdSelector) Update(sectorID uint64, server string) {
 
 var _ sectorbuilder.Interface = &SealAgent{}
 
+type WorkStatsService struct {
+	freeWorkers  gcache.Cache
+	workerstates gcache.Cache
+}
+
+func NewWorkStatsService() *WorkStatsService {
+
+	return &WorkStatsService{
+		freeWorkers:  gcache.New(200).LRU().Build(),
+		workerstates: gcache.New(200).LRU().Build(),
+	}
+}
+
+func (ws *WorkStatsService) ReportFreeWorkers(ctx context.Context, args *FreeWorkersArg, reply *NoneReply) error {
+	ws.freeWorkers.SetWithExpire(args.Client, args.FreeWorkers, 10*time.Minute)
+	reply.success = true
+	return nil
+}
+func (ws WorkStatsService) getFreeWorkers() int {
+	ret := 0
+	for _, result := range ws.freeWorkers.GetALL(true) {
+		ret += result.(int)
+	}
+	return ret
+}
+
+func (ws *WorkStatsService) ReportWorkStats(ctx context.Context, args *WorkerArgs, reply *NoneReply) error {
+	ws.workerstates.SetWithExpire(args.Client, args.Workstates, 10*time.Minute)
+	reply.success = true
+	return nil
+}
+func (ws WorkStatsService) getWorkerStats() map[string]sectorbuilder.WorkerStats {
+	ret := make(map[string]sectorbuilder.WorkerStats)
+	stats := ws.workerstates.GetALL(true)
+	for key, val := range stats {
+		ret[key.(string)] = val.(sectorbuilder.WorkerStats)
+	}
+	return ret
+}
+func (ws WorkStatsService) start(ip string, port int, etcAddrs []string) {
+	s := server.NewServer()
+	r := &serverplugin.EtcdRegisterPlugin{
+		ServiceAddress: fmt.Sprintf("tcp@%v:%v", ip, port),
+		EtcdServers:    etcAddrs,
+		BasePath:       basePath,
+		Metrics:        metrics.NewRegistry(),
+		UpdateInterval: time.Minute,
+	}
+	err := r.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.Plugins.Add(r)
+
+	s.RegisterName("WorkStatsService", ws, "")
+
+	go s.Serve("tcp", fmt.Sprintf("%v:%v", ip, port))
+}
+
 type SealAgent struct {
 	sb sectorbuilder.Interface
 	//注册服务器的地址
@@ -70,6 +134,7 @@ type SealAgent struct {
 	ip        string
 	port      int
 	selector  *BySectorIdSelector
+	ws        *WorkStatsService
 }
 
 func (sa *SealAgent) getSectorDealer(w http.ResponseWriter, r *http.Request) {
@@ -84,13 +149,15 @@ func (sa *SealAgent) getSectorDealer(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewSealAgent(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, ds *ktds.Datastore) *SealAgent {
-
+	ws := NewWorkStatsService()
+	ws.start(cfg.ServeIP, cfg.ServePort+1, cfg.EtcdAddrs)
 	sa := &SealAgent{
 		sb:        sb,
 		discovery: client.NewEtcdDiscovery(basePath, "AgentService", cfg.EtcdAddrs, nil),
 		ip:        cfg.ServeIP,
 		port:      cfg.ServePort,
 		selector:  &BySectorIdSelector{ds},
+		ws:        ws,
 	}
 
 	mux := http.NewServeMux()
@@ -160,7 +227,7 @@ func (sa SealAgent) Scrub(ssInfo sectorbuilder.SortedPublicSectorInfo) []*sector
 
 }
 func (sa SealAgent) GetFreeWorkers() int {
-	return 0
+	return sa.ws.getFreeWorkers()
 }
 
 func (sa SealAgent) Busy() bool {
@@ -218,8 +285,34 @@ func (sa SealAgent) GetPath(typename string, sname string) (string, error) {
 	return sa.sb.GetPath(typename, sname)
 }
 func (sa SealAgent) WorkerStats() sectorbuilder.WorkerStats {
+	ret := sa.sb.WorkerStats()
+	for _, value := range sa.ws.getWorkerStats() {
+		ret.AddPieceWait += value.AddPieceWait
+		ret.CommitWait += value.CommitWait
+		ret.FreeCommittee += value.FreeCommittee
+		ret.FreePreCommittee += value.FreePreCommittee
+		ret.LocalFree += value.LocalFree
+		ret.LocalReserved += value.LocalReserved
+		ret.LocalTotal += value.LocalTotal
+		ret.PendingCommit += value.PendingCommit
+		ret.PreCommitWait += value.PreCommitWait
+		ret.RemotesFree += value.RemotesFree
+		ret.RemotesTotal += value.RemotesTotal
+		ret.UnsealWait += value.UnsealWait
+		ret.WaitingPiece += value.WaitingPiece
+	}
+	return ret
+}
 
-	return sa.sb.WorkerStats()
+func (sa SealAgent) DetailedWorkerStats() map[string]sectorbuilder.WorkerStats {
+
+	ret := sa.ws.getWorkerStats()
+	if len(ret) == 0 {
+		ret = make(map[string]sectorbuilder.WorkerStats)
+	}
+	ret["Local"] = sa.sb.WorkerStats()
+	return ret
+
 }
 func (sa SealAgent) AddWorker(context.Context, sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error) {
 	return nil, xerrors.Errorf("not implemented")

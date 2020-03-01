@@ -102,6 +102,8 @@ type StorageMiner interface {
 
 	WorkerStats(context.Context) (sectorbuilder.WorkerStats, error)
 
+	DetailedWorkerStats(context.Context) (map[string]sectorbuilder.WorkerStats, error)
+
 	// WorkerQueue registers a remote worker
 	WorkerQueue(context.Context, sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error)
 

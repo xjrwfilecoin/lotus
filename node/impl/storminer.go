@@ -147,7 +147,11 @@ func (sm *StorageMinerAPI) remotePutSector(w http.ResponseWriter, r *http.Reques
 }
 
 func (sm *StorageMinerAPI) WorkerStats(context.Context) (sectorbuilder.WorkerStats, error) {
-	stat := sm.SectorBuilder.WorkerStats()
+	stat := sm.AgentClient.WorkerStats()
+	return stat, nil
+}
+func (sm *StorageMinerAPI) DetailedWorkerStats(context.Context) (map[string]sectorbuilder.WorkerStats, error) {
+	stat := sm.AgentClient.DetailedWorkerStats()
 	return stat, nil
 }
 

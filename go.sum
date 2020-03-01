@@ -74,6 +74,8 @@ github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+Ce
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
+github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833 h1:yCfXxYaelOyqnia8F/Yng47qhmfC9nKTRIbYRrRueq4=
+github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833/go.mod h1:8c4/i2VlovMO2gBnHGQPN5EJw+H0lx1u/5p+cgsXtCk=
 github.com/bradfitz/iter v0.0.0-20140124041915-454541ec3da2/go.mod h1:PyRFw1Lt2wKX4ZVSQ2mk+PeDa1rxyObEDlApuIsUKuo=
 github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c h1:FUUopH4brHNO2kJoNN3pV+OBEYmgraLT/KHZrMM69r0=
 github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c/go.mod h1:PyRFw1Lt2wKX4ZVSQ2mk+PeDa1rxyObEDlApuIsUKuo=
@@ -1057,6 +1059,16 @@ github.com/xjrwfilecoin/go-sectorbuilder v0.1.52 h1:S5SXys2pItisICO/pFtrobdz2D+V
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.52/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.53 h1:46FindJGDx5ONM9MqcJUJan1vegU/WT63bPVr24S6Gw=
 github.com/xjrwfilecoin/go-sectorbuilder v0.1.53/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.56 h1:CvuNXXiP9BP3ugNylf+qUPWgikyIeAy0w0fYW8ttews=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.56/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.57 h1:bsePGdXWpzJGA0wnwVELH5agXVB/pomPP/9cLe9EjZU=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.57/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.58 h1:M9+J+lNzBf677sRAoxSyOSDXFZ5csY1/pX0VEDqUUiY=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.58/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.59 h1:bvnzpYTUcjZlnFc/o49KXG21V1kB6DWGji/k+SYAUZY=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.59/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.61 h1:lVdl2pHF0JfPdnTRco4RZT4dSAt+QS/EgFZ7+khgyKY=
+github.com/xjrwfilecoin/go-sectorbuilder v0.1.61/go.mod h1:pSgR7uywlA8SBeYyYQI9FvmbxWKB8tJ58+BOIEuRZHs=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 github.com/xtaci/kcp-go v5.4.4+incompatible h1:QIJ0a0Q0N1G20yLHL2+fpdzyy2v/Cb3PI+xiwx/KK9c=
 github.com/xtaci/kcp-go v5.4.4+incompatible/go.mod h1:bN6vIwHQbfHaHtFpEssmWsN45a+AZwO7eyRCmEIbtvE=

@@ -9,6 +9,7 @@ import (
 	ffi "github.com/filecoin-project/filecoin-ffi"
 	"github.com/filecoin-project/lotus/node/config"
 	"github.com/rcrowley/go-metrics"
+	client "github.com/smallnest/rpcx/client"
 	server "github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
 	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
@@ -64,18 +65,28 @@ type AgentService struct {
 	//for remote sector builder
 	dataDir string
 	miner   string
+	//上报服务器的地址
+	discovery client.ServiceDiscovery
 }
 
 func NewAgentService(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, scfg *sectorbuilder.Config) *AgentService {
 	agent := &AgentService{
-		sb:       sb,
-		etcAddrs: cfg.EtcdAddrs,
-		ip:       cfg.ServeIP,
-		port:     cfg.ServePort,
-		dataDir:  scfg.Dir,
-		miner:    scfg.Miner.String(),
+		sb:        sb,
+		etcAddrs:  cfg.EtcdAddrs,
+		ip:        cfg.ServeIP,
+		port:      cfg.ServePort,
+		dataDir:   scfg.Dir,
+		miner:     scfg.Miner.String(),
+		discovery: client.NewEtcdDiscovery(basePath, "WorkStatsService", cfg.EtcdAddrs, nil),
 	}
 	go agent.start()
+	go func() {
+		agent.reportFreeWorksToMiner()
+		ticker := time.NewTicker(time.Minute)
+		for range ticker.C {
+			agent.reportFreeWorksToMiner()
+		}
+	}()
 	return agent
 }
 
@@ -166,4 +177,36 @@ func (as *AgentService) AccquireSectorID(ctx context.Context, args *AccquireSect
 	reply.SectorID = args.SectorID
 	reply.ServerAddr = fmt.Sprintf("tcp@%v:%v", as.ip, as.port) //serveAddr
 	return nil
+}
+
+func (as *AgentService) reportFreeWorksToMiner() error {
+
+	var err error
+
+	clientID := fmt.Sprintf("tcp@%v:%v", as.ip, as.port)
+	freeWorker := as.sb.GetFreeWorkers()
+
+	workerStats := as.sb.WorkerStats()
+	xclient := client.NewXClient("WorkStatsService", client.Failtry, client.RandomSelect, as.discovery, client.DefaultOption)
+	defer xclient.Close()
+	args := &FreeWorkersArg{
+		Client:      clientID,
+		FreeWorkers: freeWorker,
+	}
+
+	reply := &NoneReply{}
+	err = xclient.Fork(context.Background(), "ReportFreeWorkers", args, reply)
+	if err == nil {
+		xclient2 := client.NewXClient("WorkStatsService", client.Failtry, client.RandomSelect, as.discovery, client.DefaultOption)
+		defer xclient2.Close()
+		args := &WorkerArgs{
+			Client:     clientID,
+			Workstates: workerStats,
+		}
+
+		reply := &NoneReply{}
+		err = xclient2.Fork(context.Background(), "ReportFreeWorkers", args, reply)
+		return err
+	}
+	return err
 }

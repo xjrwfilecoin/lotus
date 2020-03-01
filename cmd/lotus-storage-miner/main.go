@@ -25,6 +25,7 @@ func main() {
 		runCmd,
 		initCmd,
 		infoCmd,
+		infoAllCmd,
 		pledgeSectorCmd,
 		sectorsCmd,
 	}

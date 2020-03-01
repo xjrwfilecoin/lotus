@@ -35,6 +35,9 @@ var infoCmd = &cli.Command{
 		fmt.Printf("\tPreCommit: %d\n", wstat.PreCommitWait)
 		fmt.Printf("\tCommit: %d\n", wstat.CommitWait)
 		fmt.Printf("\tUnseal: %d\n", wstat.UnsealWait)
+		fmt.Printf("\tFreeCommittee: %d\n", wstat.FreeCommittee)
+		fmt.Printf("\tFreePreCommittee: %d\n", wstat.FreePreCommittee)
+		fmt.Printf("\tPendingCommit: %d\n", wstat.PendingCommit)
 
 		// TODO: grab actr state / info
 		//  * Sealed sectors (count / bytes)
