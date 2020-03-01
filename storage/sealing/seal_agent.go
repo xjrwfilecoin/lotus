@@ -86,7 +86,7 @@ func (ws *WorkStatsService) ReportFreeWorkers(ctx context.Context, args *FreeWor
 	reply.success = true
 	return nil
 }
-func (ws WorkStatsService) getFreeWorkers() int {
+func (ws *WorkStatsService) getFreeWorkers() int {
 	ret := 0
 	for _, result := range ws.freeWorkers.GetALL(true) {
 		ret += result.(int)
@@ -99,7 +99,7 @@ func (ws *WorkStatsService) ReportWorkStats(ctx context.Context, args *WorkerArg
 	reply.success = true
 	return nil
 }
-func (ws WorkStatsService) getWorkerStats() map[string]sectorbuilder.WorkerStats {
+func (ws *WorkStatsService) getWorkerStats() map[string]sectorbuilder.WorkerStats {
 	ret := make(map[string]sectorbuilder.WorkerStats)
 	stats := ws.workerstates.GetALL(true)
 	for key, val := range stats {
@@ -107,7 +107,7 @@ func (ws WorkStatsService) getWorkerStats() map[string]sectorbuilder.WorkerStats
 	}
 	return ret
 }
-func (ws WorkStatsService) start(ip string, port int, etcAddrs []string) {
+func (ws *WorkStatsService) start(ip string, port int, etcAddrs []string) {
 	s := server.NewServer()
 	r := &serverplugin.EtcdRegisterPlugin{
 		ServiceAddress: fmt.Sprintf("tcp@%v:%v", ip, port),

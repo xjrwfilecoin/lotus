@@ -185,6 +185,7 @@ func (as *AgentService) reportFreeWorksToMiner() error {
 
 	clientID := fmt.Sprintf("tcp@%v:%v", as.ip, as.port)
 	freeWorker := as.sb.GetFreeWorkers()
+	log.Infof("free worker:%v\n", freeWorker)
 
 	workerStats := as.sb.WorkerStats()
 	xclient := client.NewXClient("WorkStatsService", client.Failtry, client.RandomSelect, as.discovery, client.DefaultOption)
@@ -195,7 +196,7 @@ func (as *AgentService) reportFreeWorksToMiner() error {
 	}
 
 	reply := &NoneReply{}
-	err = xclient.Fork(context.Background(), "ReportFreeWorkers", args, reply)
+	err = xclient.Broadcast(context.Background(), "ReportFreeWorkers", args, reply)
 	if err == nil {
 		xclient2 := client.NewXClient("WorkStatsService", client.Failtry, client.RandomSelect, as.discovery, client.DefaultOption)
 		defer xclient2.Close()
@@ -205,8 +206,8 @@ func (as *AgentService) reportFreeWorksToMiner() error {
 		}
 
 		reply := &NoneReply{}
-		err = xclient2.Fork(context.Background(), "ReportFreeWorkers", args, reply)
-		return err
+		err = xclient2.Broadcast(context.Background(), "ReportWorkStats", args, reply)
+
 	}
 	return err
 }
