@@ -151,7 +151,7 @@ func (as *AgentService) start() {
 	listenAddr := fmt.Sprintf("%v:%v", as.ip, as.port+1)
 	sealedPath := fmt.Sprintf("%v/%v", as.dataDir, "sealed")
 	cachePath := fmt.Sprintf("%v/%v", as.dataDir, "cache")
-	fmt.Printf("sealed path is:%v,and cache path is :%v", sealedPath, cachePath)
+	fmt.Printf("sealed path is:%v,and cache path is :%v\n", sealedPath, cachePath)
 	ffi.StartRPCServer(listenAddr, sealedPath, cachePath, as.miner)
 }
 

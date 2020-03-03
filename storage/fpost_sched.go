@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"sync"
+	"time"
 
 	"go.opencensus.io/trace"
 	"golang.org/x/xerrors"
@@ -37,6 +38,8 @@ type fpostScheduler struct {
 }
 
 func (s *fpostScheduler) run(ctx context.Context) {
+	delayStart := time.NewTimer(10 * time.Minute)
+	<-delayStart.C
 	notifs, err := s.api.ChainNotify(ctx)
 	if err != nil {
 		return
