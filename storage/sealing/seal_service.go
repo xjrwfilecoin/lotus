@@ -148,7 +148,7 @@ func (as *AgentService) start() {
 
 	s.Serve("tcp", fmt.Sprintf("%v:%v", as.ip, as.port))
 	//启动rust-fil-proofs 的rpc server
-	listenAddr := fmt.Sprintf("%v:%v", as.ip, as.port+1)
+	listenAddr := fmt.Sprintf("%v:%v", "0.0.0.0", as.port+1)
 	sealedPath := fmt.Sprintf("%v/%v", as.dataDir, "sealed")
 	cachePath := fmt.Sprintf("%v/%v", as.dataDir, "cache")
 	fmt.Printf("sealed path is:%v,and cache path is :%v\n", sealedPath, cachePath)
