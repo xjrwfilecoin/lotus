@@ -2,7 +2,7 @@ package sealing
 
 import (
 	ffi "github.com/filecoin-project/filecoin-ffi"
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
 )
 
 type AddPieceArgs struct {

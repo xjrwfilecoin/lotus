@@ -4,14 +4,13 @@ go 1.13
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
+	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Gurpartap/async v0.0.0-20180927173644-4f7f499dd9ee
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/anacrolix/sync v0.2.0 // indirect
-	github.com/apache/thrift v0.13.0 // indirect
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
-	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
+	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/docker/go-units v0.4.0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/filecoin-project/chain-validation v0.0.3
@@ -24,6 +23,9 @@ require (
 	github.com/filecoin-project/go-data-transfer v0.0.0-20191219005021-4accf56bd2ce
 	github.com/filecoin-project/go-fil-markets v0.0.0-20200114015428-74d100f305f8
 	github.com/filecoin-project/go-paramfetch v0.0.1
+
+	github.com/filecoin-project/go-sectorbuilder v0.0.2-0.20200203173614-42d67726bb62
+
 	github.com/filecoin-project/go-statestore v0.1.0
 	github.com/gbrlsnchs/jwt/v3 v3.0.0-beta.1
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -32,8 +34,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/hashicorp/golang-lru v0.5.3
-	github.com/huandu/xstrings v1.3.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
 	github.com/ipfs/go-bitswap v0.1.8
 	github.com/ipfs/go-block-format v0.0.2
@@ -73,13 +74,13 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.2.1
 	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/libp2p/go-libp2p-peerstore v0.1.4
-	github.com/libp2p/go-libp2p-pubsub v0.2.3
-	github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66
-
+	github.com/libp2p/go-libp2p-pubsub v0.2.6
+	github.com/libp2p/go-libp2p-quic-transport v0.1.1
 	github.com/libp2p/go-libp2p-record v0.1.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.1.0
 	github.com/libp2p/go-libp2p-secio v0.2.1
-	github.com/libp2p/go-libp2p-tls v0.1.3
+	github.com/libp2p/go-libp2p-swarm v0.2.2
+	github.com/libp2p/go-libp2p-tls v0.1.0
 	github.com/libp2p/go-libp2p-yamux v0.2.1
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/lucas-clemente/quic-go v0.14.3
@@ -108,7 +109,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20200121162646-b63bacf5eaf8
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/pubsub v0.0.0-20131020042734-02de8aa2db3d
-	github.com/xjrwfilecoin/go-sectorbuilder v0.1.61
+
 	github.com/xtaci/kcp-go v5.4.20+incompatible // indirect
 	go.etcd.io/etcd v3.3.18+incompatible
 	go.opencensus.io v0.22.3
@@ -136,7 +137,3 @@ require (
 replace github.com/golangci/golangci-lint => github.com/golangci/golangci-lint v1.18.0
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
-
-replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
-
-replace github.com/libp2p/go-libp2p-quic-transport v0.2.3 => github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66

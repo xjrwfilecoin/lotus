@@ -2,7 +2,7 @@ package modules
 
 import (
 	"context"
-	"fmt"
+	"github.com/filecoin-project/lotus/chain/types"
 	"math"
 	"reflect"
 
@@ -14,6 +14,8 @@ import (
 	deals "github.com/filecoin-project/go-fil-markets/storagemarket/impl"
 	storageimpl "github.com/filecoin-project/go-fil-markets/storagemarket/impl"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
+	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder/fs"
 	"github.com/filecoin-project/go-statestore"
 	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-bitswap/network"
@@ -29,7 +31,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/mitchellh/go-homedir"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 
@@ -85,7 +87,6 @@ func RawSectorBuilderConfig(storagePath string, threads uint, noprecommit, nocom
 		if threads > math.MaxUint8 {
 			return nil, xerrors.Errorf("too many sectorbuilder threads specified: %d, max allowed: %d", threads, math.MaxUint8)
 		}
-
 		sb := &sectorbuilder.Config{
 			Miner:      minerAddr,
 			SectorSize: ssize,
@@ -100,21 +101,23 @@ func RawSectorBuilderConfig(storagePath string, threads uint, noprecommit, nocom
 		return sb, nil
 	}
 }
-func SectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS, api.FullNode) (*sectorbuilder.Config, error) {
+func SectorBuilderConfig(storage []fs.PathConfig, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS, api.FullNode) (*sectorbuilder.Config, error) {
 	return func(ds dtypes.MetadataDS, api api.FullNode) (*sectorbuilder.Config, error) {
 		minerAddr, err := minerAddrFromDS(ds)
 		if err != nil {
 			return nil, err
 		}
 
-		ssize, err := api.StateMinerSectorSize(context.TODO(), minerAddr, nil)
+		ssize, err := api.StateMinerSectorSize(context.TODO(), minerAddr, types.EmptyTSK)
 		if err != nil {
 			return nil, err
 		}
 
-		sp, err := homedir.Expand(storagePath)
-		if err != nil {
-			return nil, err
+		for i := range storage {
+			storage[i].Path, err = homedir.Expand(storage[i].Path)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		if threads > math.MaxUint8 {
@@ -129,7 +132,7 @@ func SectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit
 			NoPreCommit:   noprecommit,
 			NoCommit:      nocommit,
 
-			Dir: sp,
+			Paths: storage,
 		}
 
 		return sb, nil
@@ -142,15 +145,23 @@ func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h 
 		return nil, err
 	}
 
-	sm, err := storage.NewMiner(api, maddr, h, ds, sb, tktFn)
+	ctx := helpers.LifecycleCtx(mctx, lc)
+
+	worker, err := api.StateMinerWorker(ctx, maddr, types.EmptyTSK)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := helpers.LifecycleCtx(mctx, lc)
+	fps := storage.NewFPoStScheduler(api, sb, maddr, worker)
+
+	sm, err := storage.NewMiner(api, maddr, worker, h, ds, sb, tktFn)
+	if err != nil {
+		return nil, err
+	}
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
+			go fps.Run(ctx)
 			return sm.Run(ctx)
 		},
 		OnStop: sm.Stop,

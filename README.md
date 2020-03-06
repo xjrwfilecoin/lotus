@@ -2,7 +2,7 @@
 
 # Project Lotus - 莲
 
-Lotus is an experimental implementation of the Filecoin Distributed Storage Network. For more details about Filecoin, check out the [Filecoin Spec](https://github.com/filecoin-project/specs).
+Lotus is an implementation of the Filecoin Distributed Storage Network. For more details about Filecoin, check out the [Filecoin Spec](https://github.com/filecoin-project/specs).
 
 ## Development
 
@@ -21,7 +21,7 @@ Dual-licensed under [MIT](https://github.com/filecoin-project/lotus/blob/master/
 ## 使用修改过的filecoin-ffi
 ```shell
  cd extern/filecoin-ffi
- git remote add xjrw https://github.com/xjrwfilecoin/filecoin-ffi
+ git remote add xjrw https://github.com/filecoin-project/filecoin-ffi
  git fetch xjrw
  git checkout -b qzopt xjrw/qzopt
  FFI_BUILD_FROM_SOURCE=1 make clean all

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 )
 
 // alias because cbor-gen doesn't like non-alias types
@@ -22,9 +22,9 @@ const (
 	WaitSeed      // waiting for seed
 	Committing
 	CommitWait // waiting for message to land on chain
+	FinalizeSector
 	Proving
 	_ // reserved
-	_
 	_
 	_
 
@@ -64,6 +64,7 @@ var SectorStates = []string{
 	WaitSeed:             "WaitSeed",
 	Committing:           "Committing",
 	CommitWait:           "CommitWait",
+	FinalizeSector:       "FinalizeSector",
 	Proving:              "Proving",
 
 	SealFailed:       "SealFailed",

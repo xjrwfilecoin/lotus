@@ -11,7 +11,7 @@ import (
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/actors"
 	"github.com/filecoin-project/lotus/chain/types"
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
 	xerrors "golang.org/x/xerrors"
 )
 

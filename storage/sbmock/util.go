@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 )
 
 func randB(n uint64) []byte {

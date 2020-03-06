@@ -9,9 +9,13 @@ import (
 	"runtime/pprof"
 
 	paramfetch "github.com/filecoin-project/go-paramfetch"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	"github.com/mitchellh/go-homedir"
 	"github.com/multiformats/go-multiaddr"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 	"gopkg.in/urfave/cli.v2"
 
@@ -20,6 +24,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/stmgr"
 	"github.com/filecoin-project/lotus/chain/store"
 	"github.com/filecoin-project/lotus/chain/vm"
+	"github.com/filecoin-project/lotus/metrics"
 	"github.com/filecoin-project/lotus/node"
 	"github.com/filecoin-project/lotus/node/modules"
 	"github.com/filecoin-project/lotus/node/modules/testing"
@@ -89,8 +94,16 @@ var DaemonCmd = &cli.Command{
 			defer pprof.StopCPUProfile()
 		}
 
-		ctx := context.Background()
-		log.Infof("lotus repo: %s", cctx.String("repo"))
+		ctx, _ := tag.New(context.Background(), tag.Insert(metrics.Version, build.BuildVersion), tag.Insert(metrics.Commit, build.CurrentCommit))
+		{
+			dir, err := homedir.Expand(cctx.String("repo"))
+			if err != nil {
+				log.Warnw("could not expand repo location", "error", err)
+			} else {
+				log.Infof("lotus repo: %s", dir)
+			}
+		}
+
 		r, err := repo.NewFS(cctx.String("repo"))
 		if err != nil {
 			return xerrors.Errorf("opening fs repo: %w", err)
@@ -161,6 +174,16 @@ var DaemonCmd = &cli.Command{
 		if err != nil {
 			return xerrors.Errorf("initializing node: %w", err)
 		}
+
+		// Register all metric views
+		if err = view.Register(
+			metrics.DefaultViews...,
+		); err != nil {
+			log.Fatalf("Cannot register the view: %v", err)
+		}
+
+		// Set the metric to one so it is published to the exporter
+		stats.Record(ctx, metrics.LotusInfo.M(1))
 
 		endpoint, err := r.APIEndpoint()
 		if err != nil {

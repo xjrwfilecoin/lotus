@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/api"
@@ -29,23 +29,23 @@ type TicketFn func(context.Context) (*sectorbuilder.SealTicket, error)
 
 type sealingApi interface { // TODO: trim down
 	// Call a read only method on actors (no interaction with the chain required)
-	StateCall(context.Context, *types.Message, *types.TipSet) (*api.MethodCall, error)
-	StateMinerWorker(context.Context, address.Address, *types.TipSet) (address.Address, error)
-	StateMinerElectionPeriodStart(ctx context.Context, actor address.Address, ts *types.TipSet) (uint64, error)
-	StateMinerSectors(context.Context, address.Address, *types.TipSet) ([]*api.ChainSectorInfo, error)
-	StateMinerProvingSet(context.Context, address.Address, *types.TipSet) ([]*api.ChainSectorInfo, error)
-	StateMinerSectorSize(context.Context, address.Address, *types.TipSet) (uint64, error)
+	StateCall(context.Context, *types.Message, types.TipSetKey) (*api.MethodCall, error)
+	StateMinerWorker(context.Context, address.Address, types.TipSetKey) (address.Address, error)
+	StateMinerElectionPeriodStart(ctx context.Context, actor address.Address, tsk types.TipSetKey) (uint64, error)
+	StateMinerSectors(context.Context, address.Address, types.TipSetKey) ([]*api.ChainSectorInfo, error)
+	StateMinerProvingSet(context.Context, address.Address, types.TipSetKey) ([]*api.ChainSectorInfo, error)
+	StateMinerSectorSize(context.Context, address.Address, types.TipSetKey) (uint64, error)
 	StateWaitMsg(context.Context, cid.Cid) (*api.MsgWait, error) // TODO: removeme eventually
-	StateGetActor(ctx context.Context, actor address.Address, ts *types.TipSet) (*types.Actor, error)
-	StateGetReceipt(context.Context, cid.Cid, *types.TipSet) (*types.MessageReceipt, error)
-	StateMarketStorageDeal(context.Context, uint64, *types.TipSet) (*actors.OnChainDeal, error)
+	StateGetActor(ctx context.Context, actor address.Address, tsk types.TipSetKey) (*types.Actor, error)
+	StateGetReceipt(context.Context, cid.Cid, types.TipSetKey) (*types.MessageReceipt, error)
+	StateMarketStorageDeal(context.Context, uint64, types.TipSetKey) (*actors.OnChainDeal, error)
 
 	MpoolPushMessage(context.Context, *types.Message) (*types.SignedMessage, error)
 
 	ChainHead(context.Context) (*types.TipSet, error)
 	ChainNotify(context.Context) (<-chan []*store.HeadChange, error)
 	ChainGetRandomness(context.Context, types.TipSetKey, int64) ([]byte, error)
-	ChainGetTipSetByHeight(context.Context, uint64, *types.TipSet) (*types.TipSet, error)
+	ChainGetTipSetByHeight(context.Context, uint64, types.TipSetKey) (*types.TipSet, error)
 	ChainGetBlockMessages(context.Context, cid.Cid) (*api.BlockMessages, error)
 	ChainReadObj(context.Context, cid.Cid) ([]byte, error)
 
@@ -112,7 +112,8 @@ func (m *Sealing) AllocatePiece(size uint64) (sectorID uint64, offset uint64, er
 func (m *Sealing) SealPiece(ctx context.Context, size uint64, r io.Reader, sectorID uint64, dealID uint64) error {
 	log.Infof("Seal piece for deal %d", dealID)
 
-	ppi, err := m.sb.AddRemotePiece(size, sectorID, []uint64{})
+	// TODO QZ ppi, err := m.sb.AddRemotePiece(size, sectorID, []uint64{})
+	ppi, err := m.sb.AddPiece(ctx, size, sectorID, r, []uint64{})
 	if err != nil {
 		return xerrors.Errorf("adding piece to sector: %w", err)
 	}
@@ -121,6 +122,7 @@ func (m *Sealing) SealPiece(ctx context.Context, size uint64, r io.Reader, secto
 }
 
 func (m *Sealing) newSector(ctx context.Context, sid uint64, dealID uint64, ppi sectorbuilder.PublicPieceInfo) error {
+	log.Infof("Start sealing %d", sid)
 	return m.sectors.Send(sid, SectorStart{
 		id: sid,
 		pieces: []Piece{

@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	badger "github.com/ipfs/go-ds-badger2"
@@ -32,7 +32,7 @@ func PreSeal(maddr address.Address, ssize uint64, offset uint64, sectors int, sb
 		Miner:          maddr,
 		SectorSize:     ssize,
 		FallbackLastID: offset,
-		Dir:            sbroot,
+		Paths:          sectorbuilder.SimplePath(sbroot),
 		WorkerThreads:  2,
 	}
 
@@ -59,7 +59,7 @@ func PreSeal(maddr address.Address, ssize uint64, offset uint64, sectors int, sb
 			return nil, err
 		}
 
-		pi, err := sb.AddPiece(size, sid, rand.Reader, nil)
+		pi, err := sb.AddPiece(context.TODO(), size, sid, rand.Reader, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +76,7 @@ func PreSeal(maddr address.Address, ssize uint64, offset uint64, sectors int, sb
 			return nil, xerrors.Errorf("commit: %w", err)
 		}
 
-		if err := sb.TrimCache(sid); err != nil {
+		if err := sb.TrimCache(context.TODO(), sid); err != nil {
 			return nil, xerrors.Errorf("trim cache: %w", err)
 		}
 

@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/xjrwfilecoin/go-sectorbuilder"
-
 	block "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/minio/sha256-simd"
@@ -34,31 +32,31 @@ type EPostProof struct {
 }
 
 type BlockHeader struct {
-	Miner address.Address
+	Miner address.Address // 0
 
-	Ticket *Ticket
+	Ticket *Ticket // 1
 
-	EPostProof EPostProof
+	EPostProof EPostProof // 2
 
-	Parents []cid.Cid
+	Parents []cid.Cid // 3
 
-	ParentWeight BigInt
+	ParentWeight BigInt // 4
 
-	Height uint64
+	Height uint64 // 5
 
-	ParentStateRoot cid.Cid
+	ParentStateRoot cid.Cid // 6
 
-	ParentMessageReceipts cid.Cid
+	ParentMessageReceipts cid.Cid // 7
 
-	Messages cid.Cid
+	Messages cid.Cid // 8
 
-	BLSAggregate Signature
+	BLSAggregate Signature // 9
 
-	Timestamp uint64
+	Timestamp uint64 // 10
 
-	BlockSig *Signature
+	BlockSig *Signature // 11
 
-	ForkSignaling uint64
+	ForkSignaling uint64 // 12
 }
 
 func (b *BlockHeader) ToStorageBlock() (block.Block, error) {
@@ -205,7 +203,11 @@ func IsTicketWinner(partialTicket []byte, ssizeI uint64, snum uint64, totpow Big
 }
 
 func ElectionPostChallengeCount(sectors uint64, faults uint64) uint64 {
-	return sectorbuilder.ElectionPostChallengeCount(sectors, faults)
+	if sectors-faults == 0 {
+		return 0
+	}
+	// ceil(sectors / SectorChallengeRatioDiv)
+	return (sectors-faults-1)/build.SectorChallengeRatioDiv + 1
 }
 
 func (t *Ticket) Equals(ot *Ticket) bool {

@@ -6,36 +6,36 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"github.com/filecoin-project/lotus/chain/vm"
 	"io/ioutil"
 	"sync/atomic"
 
-	ffi "github.com/filecoin-project/filecoin-ffi"
-
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	block "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-car"
+	"github.com/ipfs/go-cid"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/ipfs/go-merkledag"
 	peer "github.com/libp2p/go-libp2p-core/peer"
-	"go.opencensus.io/trace"
-	"golang.org/x/xerrors"
 
+	ffi "github.com/filecoin-project/filecoin-ffi"
 	"github.com/filecoin-project/go-address"
+	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/stmgr"
 	"github.com/filecoin-project/lotus/chain/store"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/vm"
 	"github.com/filecoin-project/lotus/chain/wallet"
 	"github.com/filecoin-project/lotus/cmd/lotus-seed/seed"
 	"github.com/filecoin-project/lotus/genesis"
+	"github.com/filecoin-project/lotus/lib/sigs"
 	"github.com/filecoin-project/lotus/node/repo"
 
-	block "github.com/ipfs/go-block-format"
-	"github.com/ipfs/go-cid"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	logging "github.com/ipfs/go-log/v2"
+	"go.opencensus.io/trace"
+	"golang.org/x/xerrors"
 )
 
 var log = logging.Logger("gen")
@@ -55,6 +55,8 @@ type ChainGen struct {
 	CurTipset *store.FullTipSet
 
 	Timestamper func(*types.TipSet, uint64) uint64
+
+	GetMessages func(*ChainGen) ([]*types.SignedMessage, error)
 
 	w *wallet.Wallet
 
@@ -210,10 +212,11 @@ func NewGenerator() (*ChainGen, error) {
 		genesis:      genb.Genesis,
 		w:            w,
 
-		Miners:    minercfg.MinerAddrs,
-		eppProvs:  mgen,
-		banker:    banker,
-		receivers: receievers,
+		GetMessages: getRandomMessages,
+		Miners:      minercfg.MinerAddrs,
+		eppProvs:    mgen,
+		banker:      banker,
+		receivers:   receievers,
 
 		CurTipset: gents,
 
@@ -222,6 +225,14 @@ func NewGenerator() (*ChainGen, error) {
 	}
 
 	return gen, nil
+}
+
+func (cg *ChainGen) SetStateManager(sm *stmgr.StateManager) {
+	cg.sm = sm
+}
+
+func (cg *ChainGen) ChainStore() *store.ChainStore {
+	return cg.cs
 }
 
 func (cg *ChainGen) Genesis() *types.BlockHeader {
@@ -295,7 +306,7 @@ func (cg *ChainGen) NextTipSet() (*MinedTipSet, error) {
 func (cg *ChainGen) NextTipSetFromMiners(base *types.TipSet, miners []address.Address) (*MinedTipSet, error) {
 	var blks []*types.FullBlock
 
-	msgs, err := cg.getRandomMessages()
+	msgs, err := cg.GetMessages(cg)
 	if err != nil {
 		return nil, xerrors.Errorf("get random messages: %w", err)
 	}
@@ -359,7 +370,15 @@ func (cg *ChainGen) ResyncBankerNonce(ts *types.TipSet) error {
 	return nil
 }
 
-func (cg *ChainGen) getRandomMessages() ([]*types.SignedMessage, error) {
+func (cg *ChainGen) Banker() address.Address {
+	return cg.banker
+}
+
+func (cg *ChainGen) Wallet() *wallet.Wallet {
+	return cg.w
+}
+
+func getRandomMessages(cg *ChainGen) ([]*types.SignedMessage, error) {
 	msgs := make([]*types.SignedMessage, cg.msgsPerBlock)
 	for m := range msgs {
 		msg := types.Message{
@@ -400,13 +419,13 @@ func (cg *ChainGen) YieldRepo() (repo.Repo, error) {
 type MiningCheckAPI interface {
 	ChainGetRandomness(context.Context, types.TipSetKey, int64) ([]byte, error)
 
-	StateMinerPower(context.Context, address.Address, *types.TipSet) (api.MinerPower, error)
+	StateMinerPower(context.Context, address.Address, types.TipSetKey) (api.MinerPower, error)
 
-	StateMinerWorker(context.Context, address.Address, *types.TipSet) (address.Address, error)
+	StateMinerWorker(context.Context, address.Address, types.TipSetKey) (address.Address, error)
 
-	StateMinerSectorSize(context.Context, address.Address, *types.TipSet) (uint64, error)
+	StateMinerSectorSize(context.Context, address.Address, types.TipSetKey) (uint64, error)
 
-	StateMinerProvingSet(context.Context, address.Address, *types.TipSet) ([]*api.ChainSectorInfo, error)
+	StateMinerProvingSet(context.Context, address.Address, types.TipSetKey) ([]*api.ChainSectorInfo, error)
 
 	WalletSign(context.Context, address.Address, []byte) (*types.Signature, error)
 }
@@ -420,7 +439,11 @@ func (mca mca) ChainGetRandomness(ctx context.Context, pts types.TipSetKey, lb i
 	return mca.sm.ChainStore().GetRandomness(ctx, pts.Cids(), int64(lb))
 }
 
-func (mca mca) StateMinerPower(ctx context.Context, maddr address.Address, ts *types.TipSet) (api.MinerPower, error) {
+func (mca mca) StateMinerPower(ctx context.Context, maddr address.Address, tsk types.TipSetKey) (api.MinerPower, error) {
+	ts, err := mca.sm.ChainStore().LoadTipSet(tsk)
+	if err != nil {
+		return api.MinerPower{}, xerrors.Errorf("loading tipset %s: %w", tsk, err)
+	}
 	mpow, tpow, err := stmgr.GetPower(ctx, mca.sm, ts, maddr)
 	if err != nil {
 		return api.MinerPower{}, err
@@ -432,15 +455,27 @@ func (mca mca) StateMinerPower(ctx context.Context, maddr address.Address, ts *t
 	}, err
 }
 
-func (mca mca) StateMinerWorker(ctx context.Context, maddr address.Address, ts *types.TipSet) (address.Address, error) {
+func (mca mca) StateMinerWorker(ctx context.Context, maddr address.Address, tsk types.TipSetKey) (address.Address, error) {
+	ts, err := mca.sm.ChainStore().LoadTipSet(tsk)
+	if err != nil {
+		return address.Undef, xerrors.Errorf("loading tipset %s: %w", tsk, err)
+	}
 	return stmgr.GetMinerWorkerRaw(ctx, mca.sm, ts.ParentState(), maddr)
 }
 
-func (mca mca) StateMinerSectorSize(ctx context.Context, maddr address.Address, ts *types.TipSet) (uint64, error) {
+func (mca mca) StateMinerSectorSize(ctx context.Context, maddr address.Address, tsk types.TipSetKey) (uint64, error) {
+	ts, err := mca.sm.ChainStore().LoadTipSet(tsk)
+	if err != nil {
+		return 0, xerrors.Errorf("loading tipset %s: %w", tsk, err)
+	}
 	return stmgr.GetMinerSectorSize(ctx, mca.sm, ts, maddr)
 }
 
-func (mca mca) StateMinerProvingSet(ctx context.Context, maddr address.Address, ts *types.TipSet) ([]*api.ChainSectorInfo, error) {
+func (mca mca) StateMinerProvingSet(ctx context.Context, maddr address.Address, tsk types.TipSetKey) ([]*api.ChainSectorInfo, error) {
+	ts, err := mca.sm.ChainStore().LoadTipSet(tsk)
+	if err != nil {
+		return nil, xerrors.Errorf("loading tipset %s: %w", tsk, err)
+	}
 	return stmgr.GetMinerProvingSet(ctx, mca.sm, ts, maddr)
 }
 
@@ -484,7 +519,7 @@ func IsRoundWinner(ctx context.Context, ts *types.TipSet, round int64, miner add
 		return nil, xerrors.Errorf("chain get randomness: %w", err)
 	}
 
-	mworker, err := a.StateMinerWorker(ctx, miner, ts)
+	mworker, err := a.StateMinerWorker(ctx, miner, ts.Key())
 	if err != nil {
 		return nil, xerrors.Errorf("failed to get miner worker: %w", err)
 	}
@@ -494,7 +529,7 @@ func IsRoundWinner(ctx context.Context, ts *types.TipSet, round int64, miner add
 		return nil, xerrors.Errorf("failed to compute VRF: %w", err)
 	}
 
-	pset, err := a.StateMinerProvingSet(ctx, miner, ts)
+	pset, err := a.StateMinerProvingSet(ctx, miner, ts.Key())
 	if err != nil {
 		return nil, xerrors.Errorf("failed to load proving set for miner: %w", err)
 	}
@@ -519,12 +554,12 @@ func IsRoundWinner(ctx context.Context, ts *types.TipSet, round int64, miner add
 		return nil, xerrors.Errorf("failed to generate electionPoSt candidates: %w", err)
 	}
 
-	pow, err := a.StateMinerPower(ctx, miner, ts)
+	pow, err := a.StateMinerPower(ctx, miner, ts.Key())
 	if err != nil {
 		return nil, xerrors.Errorf("failed to check power: %w", err)
 	}
 
-	ssize, err := a.StateMinerSectorSize(ctx, miner, ts)
+	ssize, err := a.StateMinerSectorSize(ctx, miner, ts.Key())
 	if err != nil {
 		return nil, xerrors.Errorf("failed to look up miners sector size: %w", err)
 	}
@@ -611,7 +646,7 @@ func VerifyVRF(ctx context.Context, worker, miner address.Address, p uint64, inp
 		Data: vrfproof,
 	}
 
-	if err := sig.Verify(worker, vrfBase); err != nil {
+	if err := sigs.Verify(sig, worker, vrfBase); err != nil {
 		return xerrors.Errorf("vrf was invalid: %w", err)
 	}
 

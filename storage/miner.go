@@ -10,7 +10,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/api"
@@ -42,23 +42,24 @@ type Miner struct {
 
 type storageMinerApi interface {
 	// Call a read only method on actors (no interaction with the chain required)
-	StateCall(context.Context, *types.Message, *types.TipSet) (*api.MethodCall, error)
-	StateMinerWorker(context.Context, address.Address, *types.TipSet) (address.Address, error)
-	StateMinerElectionPeriodStart(ctx context.Context, actor address.Address, ts *types.TipSet) (uint64, error)
-	StateMinerSectors(context.Context, address.Address, *types.TipSet) ([]*api.ChainSectorInfo, error)
-	StateMinerProvingSet(context.Context, address.Address, *types.TipSet) ([]*api.ChainSectorInfo, error)
-	StateMinerSectorSize(context.Context, address.Address, *types.TipSet) (uint64, error)
+	StateCall(context.Context, *types.Message, types.TipSetKey) (*api.MethodCall, error)
+	StateMinerWorker(context.Context, address.Address, types.TipSetKey) (address.Address, error)
+	StateMinerElectionPeriodStart(ctx context.Context, actor address.Address, tsk types.TipSetKey) (uint64, error)
+	StateMinerSectors(context.Context, address.Address, types.TipSetKey) ([]*api.ChainSectorInfo, error)
+	StateMinerProvingSet(context.Context, address.Address, types.TipSetKey) ([]*api.ChainSectorInfo, error)
+	StateMinerSectorSize(context.Context, address.Address, types.TipSetKey) (uint64, error)
 	StateWaitMsg(context.Context, cid.Cid) (*api.MsgWait, error) // TODO: removeme eventually
-	StateGetActor(ctx context.Context, actor address.Address, ts *types.TipSet) (*types.Actor, error)
-	StateGetReceipt(context.Context, cid.Cid, *types.TipSet) (*types.MessageReceipt, error)
-	StateMarketStorageDeal(context.Context, uint64, *types.TipSet) (*actors.OnChainDeal, error)
+	StateGetActor(ctx context.Context, actor address.Address, tsk types.TipSetKey) (*types.Actor, error)
+	StateGetReceipt(context.Context, cid.Cid, types.TipSetKey) (*types.MessageReceipt, error)
+	StateMarketStorageDeal(context.Context, uint64, types.TipSetKey) (*actors.OnChainDeal, error)
+	StateMinerFaults(context.Context, address.Address, types.TipSetKey) ([]uint64, error)
 
 	MpoolPushMessage(context.Context, *types.Message) (*types.SignedMessage, error)
 
 	ChainHead(context.Context) (*types.TipSet, error)
 	ChainNotify(context.Context) (<-chan []*store.HeadChange, error)
 	ChainGetRandomness(context.Context, types.TipSetKey, int64) ([]byte, error)
-	ChainGetTipSetByHeight(context.Context, uint64, *types.TipSet) (*types.TipSet, error)
+	ChainGetTipSetByHeight(context.Context, uint64, types.TipSetKey) (*types.TipSet, error)
 	ChainGetBlockMessages(context.Context, cid.Cid) (*api.BlockMessages, error)
 	ChainReadObj(context.Context, cid.Cid) ([]byte, error)
 
@@ -67,7 +68,7 @@ type storageMinerApi interface {
 	WalletHas(context.Context, address.Address) (bool, error)
 }
 
-func NewMiner(api storageMinerApi, addr address.Address, h host.Host, ds datastore.Batching, sb *sealing.SealAgent, tktFn sealing.TicketFn) (*Miner, error) {
+func NewMiner(api storageMinerApi, maddr, worker address.Address, h host.Host, ds datastore.Batching, sb sectorbuilder.Interface, tktFn sealing.TicketFn) (*Miner, error) {
 	m := &Miner{
 		api:   api,
 		h:     h,
@@ -75,7 +76,8 @@ func NewMiner(api storageMinerApi, addr address.Address, h host.Host, ds datasto
 		ds:    ds,
 		tktFn: tktFn,
 
-		maddr: addr,
+		maddr:  maddr,
+		worker: worker,
 	}
 	m.dataTiker = time.NewTicker(120 * time.Second)
 	return m, nil
@@ -86,21 +88,11 @@ func (m *Miner) Run(ctx context.Context) error {
 		return xerrors.Errorf("miner preflight checks failed: %w", err)
 	}
 
-	fps := &fpostScheduler{
-		api: m.api,
-		sb:  m.sb,
-
-		actor:  m.maddr,
-		worker: m.worker,
-	}
-
-	go fps.run(ctx)
-	go m.fillData()
 	evts := events.NewEvents(ctx, m.api)
 	m.sealing = sealing.New(m.api, evts, m.maddr, m.worker, m.ds, m.sb, m.tktFn)
 
 	go m.sealing.Run(ctx)
-
+	go m.fillData()
 	return nil
 }
 
@@ -110,14 +102,7 @@ func (m *Miner) Stop(ctx context.Context) error {
 }
 
 func (m *Miner) runPreflightChecks(ctx context.Context) error {
-	worker, err := m.api.StateMinerWorker(ctx, m.maddr, nil)
-	if err != nil {
-		return err
-	}
-
-	m.worker = worker
-
-	has, err := m.api.WalletHas(ctx, worker)
+	has, err := m.api.WalletHas(ctx, m.worker)
 	if err != nil {
 		return xerrors.Errorf("failed to check wallet for worker key: %w", err)
 	}

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/filecoin-project/go-address"
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
 	"github.com/filecoin-project/lotus/build"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
@@ -232,7 +232,7 @@ func builder(t *testing.T, nFull int, storage []int) ([]test.TestNode, []test.Te
 			SectorSize:    1024,
 			WorkerThreads: 2,
 			Miner:         genMiner,
-			Dir:           psd,
+			Paths:         sectorbuilder.SimplePath(psd),
 		}, namespace.Wrap(mds, datastore.NewKey("/sectorbuilder")))
 		if err != nil {
 			t.Fatal(err)

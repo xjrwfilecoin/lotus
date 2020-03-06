@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 )
 
 func TestOpFinish(t *testing.T) {

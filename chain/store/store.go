@@ -13,6 +13,8 @@ import (
 	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/state"
 	"github.com/filecoin-project/lotus/chain/vm"
+	"github.com/filecoin-project/lotus/metrics"
+	"go.opencensus.io/stats"
 	"go.opencensus.io/trace"
 	"go.uber.org/multierr"
 
@@ -100,7 +102,15 @@ func NewChainStore(bs bstore.Blockstore, ds dstore.Batching, vmcalls *types.VMSy
 		return nil
 	}
 
-	cs.headChangeNotifs = append(cs.headChangeNotifs, hcnf)
+	hcmetric := func(rev, app []*types.TipSet) error {
+		ctx := context.Background()
+		for _, r := range app {
+			stats.Record(ctx, metrics.ChainNodeHeight.M(int64(r.Height())))
+		}
+		return nil
+	}
+
+	cs.headChangeNotifs = append(cs.headChangeNotifs, hcnf, hcmetric)
 
 	return cs
 }
@@ -1018,4 +1028,12 @@ func NewChainRand(cs *ChainStore, blks []cid.Cid, bheight uint64) vm.Rand {
 
 func (cr *chainRand) GetRandomness(ctx context.Context, round int64) ([]byte, error) {
 	return cr.cs.GetRandomness(ctx, cr.blks, round)
+}
+
+func (cs *ChainStore) GetTipSetFromKey(tsk types.TipSetKey) (*types.TipSet, error) {
+	if tsk.IsEmpty() {
+		return cs.GetHeaviestTipSet(), nil
+	} else {
+		return cs.LoadTipSet(tsk)
+	}
 }

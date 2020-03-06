@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 
 	"github.com/ipfs/go-cid"
 	dstore "github.com/ipfs/go-datastore"

@@ -285,7 +285,7 @@ var clientQueryAskCmd = &cli.Command{
 
 		var pid peer.ID
 		if pidstr := cctx.String("peerid"); pidstr != "" {
-			p, err := peer.IDFromString(pidstr)
+			p, err := peer.Decode(pidstr)
 			if err != nil {
 				return err
 			}
@@ -295,7 +295,7 @@ var clientQueryAskCmd = &cli.Command{
 				To:     maddr,
 				From:   maddr,
 				Method: actors.MAMethods.GetPeerID,
-			}, nil)
+			}, types.EmptyTSK)
 			if err != nil {
 				return xerrors.Errorf("failed to get peerID for miner: %w", err)
 			}

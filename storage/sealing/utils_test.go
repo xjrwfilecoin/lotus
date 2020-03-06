@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
 )
 
 func testFill(t *testing.T, n uint64, exp []uint64) {
@@ -50,6 +50,13 @@ func TestFastPledge(t *testing.T) {
 
 	s := Sealing{sb: sbmock.NewMockSectorBuilder(0, sz)}
 	if _, err := s.fastPledgeCommitment(sectorbuilder.UserBytesForSectorSize(sz), 5); err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	sz = uint64(1024)
+
+	s = Sealing{sb: sbmock.NewMockSectorBuilder(0, sz)}
+	if _, err := s.fastPledgeCommitment(sectorbuilder.UserBytesForSectorSize(sz), 64); err != nil {
 		t.Fatalf("%+v", err)
 	}
 }

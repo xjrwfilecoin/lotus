@@ -2,7 +2,7 @@ package validation
 
 import (
 	"context"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/filecoin-project/go-sectorbuilder"
 
 	vchain "github.com/filecoin-project/chain-validation/pkg/chain"
 	vstate "github.com/filecoin-project/chain-validation/pkg/state"

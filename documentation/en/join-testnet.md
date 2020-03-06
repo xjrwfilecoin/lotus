@@ -36,13 +36,13 @@ In order to connect to the network, you need to be connected to at least 1 peer.
 
 ## Chain sync
 
-While the daemon is running, the next requirement is to sync the chain. Run the command below to start the chain sync progress. To see current chain height, visit the [network stats page](http://stats.testnet.filecoin.io/).
+While the daemon is running, the next requirement is to sync the chain. Run the command below to view the chain sync progress. To see current chain height, visit the [network stats page](https://stats.testnet.filecoin.io/).
 
 ```sh
 lotus sync wait
 ```
 
-- This step will take anywhere between 30 minutes to a few hours.
+- This step will take anywhere between a few hours to a couple of days.
 - You will be able to perform **Lotus Testnet** operations after it is finished.
 
 ## Create your first address
@@ -50,8 +50,10 @@ lotus sync wait
 Initialize a new wallet:
 
 ```sh
-lotus wallet new 
+lotus wallet new
 ```
+
+Sometimes your operating system may limit file name length to under 150 characters. You need to use a file system that supports long filenames.
 
 Here is an example of the response:
 

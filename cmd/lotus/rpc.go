@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/filecoin-project/lotus/api/apistruct"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/filecoin-project/lotus/api/apistruct"
 
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/lib/auth"
@@ -21,6 +22,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
 	"golang.org/x/xerrors"
+
+	"contrib.go.opencensus.io/exporter/prometheus"
 )
 
 var log = logging.Logger("main")
@@ -42,6 +45,15 @@ func serveRPC(a api.FullNode, stop node.StopFunc, addr multiaddr.Multiaddr) erro
 	}
 
 	http.Handle("/rest/v0/import", importAH)
+
+	exporter, err := prometheus.NewExporter(prometheus.Options{
+		Namespace: "lotus",
+	})
+	if err != nil {
+		log.Fatalf("could not create the prometheus stats exporter: %v", err)
+	}
+
+	http.Handle("/debug/metrics", exporter)
 
 	lst, err := manet.Listen(addr)
 	if err != nil {
