@@ -10,7 +10,7 @@ require (
 	github.com/Gurpartap/async v0.0.0-20180927173644-4f7f499dd9ee
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
-	github.com/coreos/go-systemd/v22 v22.0.0
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/docker/go-units v0.4.0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/filecoin-project/chain-validation v0.0.3
@@ -137,3 +137,7 @@ require (
 replace github.com/golangci/golangci-lint => github.com/golangci/golangci-lint v1.18.0
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
+
+replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
+
+replace github.com/libp2p/go-libp2p-quic-transport v0.2.3 => github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66
