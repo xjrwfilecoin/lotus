@@ -7,7 +7,7 @@ func init() {
 }
 
 var SectorSizes = []uint64{
-	1024,
+	//	1024,
 	32 << 30,
 }
 

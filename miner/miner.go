@@ -251,7 +251,7 @@ func (m *Miner) GetBestMiningCandidate(ctx context.Context) (*MiningBase, error)
 	if err != nil {
 		return nil, err
 	}
-
+	log.Info("[qz]miner 1")
 	if m.lastWork != nil {
 		if m.lastWork.ts.Equals(bts) {
 			return m.lastWork, nil
@@ -261,11 +261,12 @@ func (m *Miner) GetBestMiningCandidate(ctx context.Context) (*MiningBase, error)
 		if err != nil {
 			return nil, err
 		}
+		log.Info("[qz]miner 2")
 		ltsw, err := m.api.ChainTipSetWeight(ctx, m.lastWork.ts)
 		if err != nil {
 			return nil, err
 		}
-
+		log.Info("[qz]miner 3")
 		if types.BigCmp(btsw, ltsw) <= 0 {
 			return m.lastWork, nil
 		}

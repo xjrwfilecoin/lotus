@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+
 	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/actors"
 	"github.com/filecoin-project/lotus/chain/types"
@@ -23,6 +24,7 @@ func (cs *ChainStore) Weight(ctx context.Context, ts *types.TipSet) (types.BigIn
 
 	// >>> wFunction(totalPowerAtTipset(ts)) * 2^8 <<< + (wFunction(totalPowerAtTipset(ts)) * len(ts.blocks) * wRatio_num * 2^8) / (e * wRatio_den)
 
+	//fmt.Println("[qz] weigth1");
 	ret, err := cs.call(ctx, &types.Message{
 		From:   actors.StoragePowerAddress,
 		To:     actors.StoragePowerAddress,
@@ -42,7 +44,7 @@ func (cs *ChainStore) Weight(ctx context.Context, ts *types.TipSet) (types.BigIn
 		// Not really expect to be here ...
 		return types.EmptyInt, xerrors.Errorf("All power in the net is gone. You network might be disconnected, or the net is dead!")
 	}
-
+	//fmt.Println("[qz] weigth2");
 	out.Add(out, big.NewInt(log2P<<8))
 
 	// (wFunction(totalPowerAtTipset(ts)) * len(ts.blocks) * wRatio_num * 2^8) / (e * wRatio_den)
@@ -50,7 +52,7 @@ func (cs *ChainStore) Weight(ctx context.Context, ts *types.TipSet) (types.BigIn
 	eWeight := big.NewInt((log2P * int64(len(ts.Blocks())) * build.WRatioNum) << 8)
 	eWeight.Div(eWeight, big.NewInt(int64(build.BlocksPerEpoch*build.WRatioDen)))
 	out.Add(out, eWeight)
-
+	//fmt.Println("[qz] weigth3");
 	return types.BigInt{Int: out}, nil
 }
 
