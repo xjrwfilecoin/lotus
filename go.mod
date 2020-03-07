@@ -93,7 +93,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20200206220010-03c9665e2a66
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/pubsub v0.0.0-20131020042734-02de8aa2db3d
-	github.com/xjrwfilecoin/go-sectorbuilder v0.1.63
+	github.com/xjrwfilecoin/go-sectorbuilder v0.1.61
 	go.opencensus.io v0.22.3
 	go.uber.org/dig v1.7.0 // indirect
 	go.uber.org/fx v1.9.0
