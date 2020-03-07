@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	paramfetch "github.com/filecoin-project/go-paramfetch"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/mitchellh/go-homedir"
 
 	logging "github.com/ipfs/go-log/v2"

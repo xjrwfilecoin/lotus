@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
-	"github.com/filecoin-project/go-sectorbuilder/fs"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	files "github.com/ipfs/go-ipfs-files"
 	"golang.org/x/xerrors"
 	"gopkg.in/cheggaaa/pb.v1"

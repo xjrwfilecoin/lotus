@@ -3,8 +3,8 @@ package sealing
 import (
 	"context"
 
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
-	"github.com/filecoin-project/go-sectorbuilder/fs"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/build"

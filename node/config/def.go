@@ -4,7 +4,7 @@ import (
 	"encoding"
 	"time"
 
-	"github.com/filecoin-project/go-sectorbuilder/fs"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 )
 
 // Common is common config between full node and miner

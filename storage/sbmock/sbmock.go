@@ -12,8 +12,8 @@ import (
 
 	ffi "github.com/filecoin-project/filecoin-ffi"
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-sectorbuilder"
-	"github.com/filecoin-project/go-sectorbuilder/fs"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	"golang.org/x/xerrors"
 )
 

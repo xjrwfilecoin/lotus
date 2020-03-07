@@ -14,8 +14,8 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-sectorbuilder"
-	"github.com/filecoin-project/go-sectorbuilder/fs"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/apistruct"
 	"github.com/filecoin-project/lotus/lib/tarutil"
@@ -23,7 +23,7 @@ import (
 	"github.com/filecoin-project/lotus/storage"
 	"github.com/filecoin-project/lotus/storage/sealing"
 	"github.com/filecoin-project/lotus/storage/sectorblocks"
-	"github.com/filecoin-project/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder"
 )
 
 type StorageMinerAPI struct {

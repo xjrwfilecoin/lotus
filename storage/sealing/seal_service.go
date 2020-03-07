@@ -12,7 +12,7 @@ import (
 	client "github.com/smallnest/rpcx/client"
 	server "github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
 )
 
 type DummyReader struct {
