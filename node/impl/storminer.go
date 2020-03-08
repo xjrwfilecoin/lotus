@@ -288,4 +288,12 @@ func (sm *MinerAgentAPI) WorkerStats(context.Context) (sectorbuilder.WorkerStats
 	return stat, nil
 }
 
+func (sm *MinerAgentAPI) ActorAddress(context.Context) (address.Address, error) {
+	address.Address.From()
+	return os.Getenv("MINER_ADDRESS"), nil
+}
+
+func (sm *MinerAgentAPI) ActorSectorSize(ctx context.Context, addr address.Address) (uint64, error) {
+	return strings.ParseInt(os.Getenv("MINER_ADDRESS"),10,64), nil
+}
 var _ api.MinerAgent = &MinerAgentAPI{}

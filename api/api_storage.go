@@ -116,6 +116,9 @@ type MinerAgent interface {
 	//SectorsUpdate(context.Context, uint64, SectorState) error
 	WorkerStats(context.Context) (sectorbuilder.WorkerStats, error)
 
+	ActorAddress(context.Context) (address.Address, error)
+
+	ActorSectorSize(context.Context, address.Address) (uint64, error)
 	// WorkerQueue registers a remote worker
 	WorkerQueue(context.Context, sectorbuilder.WorkerCfg) (<-chan sectorbuilder.WorkerTask, error)
 

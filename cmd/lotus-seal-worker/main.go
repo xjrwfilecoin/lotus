@@ -7,6 +7,7 @@ import (
 	paramfetch "github.com/filecoin-project/go-paramfetch"
 	"github.com/xjrwfilecoin/go-sectorbuilder"
 	"github.com/mitchellh/go-homedir"
+		"github.com/filecoin-project/go-address"
 
 	logging "github.com/ipfs/go-log/v2"
 	"golang.org/x/xerrors"
