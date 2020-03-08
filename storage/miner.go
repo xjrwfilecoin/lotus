@@ -69,10 +69,11 @@ type storageMinerApi interface {
 }
 
 func NewMiner(api storageMinerApi, maddr, worker address.Address, h host.Host, ds datastore.Batching, sb sectorbuilder.Interface, tktFn sealing.TicketFn) (*Miner, error) {
+	sa := sb.(*sealing.SealAgent)
 	m := &Miner{
 		api:   api,
 		h:     h,
-		sb:    sb,
+		sb:    sa,
 		ds:    ds,
 		tktFn: tktFn,
 

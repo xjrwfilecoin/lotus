@@ -16,7 +16,7 @@ require (
 	github.com/filecoin-project/filecoin-ffi v0.0.0-20200304181354-4446ff8a1bb9
 	github.com/filecoin-project/go-address v0.0.2-0.20200218010043-eb9bb40ed5be
 	github.com/filecoin-project/go-amt-ipld v0.0.0-20191205011053-79efc22d6cdc
-	github.com/filecoin-project/go-amt-ipld/v2 v2.0.1-0.20200131012142-05d80eeccc5e
+	github.com/filecoin-project/go-amt-ipld/v2 v2.0.0
 	github.com/filecoin-project/go-cbor-util v0.0.0-20191219014500-08c40a1e63a2
 	github.com/filecoin-project/go-crypto v0.0.0-20191218222705-effae4ea9f03
 	github.com/filecoin-project/go-data-transfer v0.0.0-20191219005021-4accf56bd2ce
@@ -40,7 +40,7 @@ require (
 	github.com/ipfs/go-filestore v0.0.2
 	github.com/ipfs/go-fs-lock v0.0.1
 	github.com/ipfs/go-graphsync v0.0.4
-	github.com/ipfs/go-hamt-ipld v0.0.15-0.20200131012125-dd88a59d3f2e
+	github.com/ipfs/go-hamt-ipld v0.0.14-0.20191218031521-b2c774a54db1
 	github.com/ipfs/go-ipfs-blockstore v0.1.1
 	github.com/ipfs/go-ipfs-chunker v0.0.1
 	github.com/ipfs/go-ipfs-ds-help v0.0.1
@@ -93,7 +93,8 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20200206220010-03c9665e2a66
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/pubsub v0.0.0-20131020042734-02de8aa2db3d
-	github.com/xjrwfilecoin/go-sectorbuilder v0.1.61
+	github.com/xjrwfilecoin/go-sectorbuilder v0.0.201
+	
 	go.opencensus.io v0.22.3
 	go.uber.org/dig v1.7.0 // indirect
 	go.uber.org/fx v1.9.0

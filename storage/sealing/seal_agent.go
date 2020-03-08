@@ -19,6 +19,7 @@ import (
 	server "github.com/smallnest/rpcx/server"
 	"github.com/smallnest/rpcx/serverplugin"
 	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	fs "github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	"golang.org/x/xerrors"
 )
 
@@ -137,6 +138,19 @@ type SealAgent struct {
 	ws        *WorkStatsService
 }
 
+func (sb *SealAgent) CanCommit(sectorID uint64) (bool, error) {
+	return false, xerrors.Errorf("Not implemented")
+}
+
+//TODO QZ ask remote to drop staged path
+func (sb *SealAgent) DropStaged(ctx context.Context, id uint64) error {
+	return nil
+}
+
+//TODO QZ ask remote to FinalizeSector
+func (sb *SealAgent) FinalizeSector(ctx context.Context, id uint64) error {
+	return nil
+}
 func (sa *SealAgent) getSectorDealer(w http.ResponseWriter, r *http.Request) {
 	//从request中获取到的sectorID
 	sectorID := r.URL.Query().Get("id")
@@ -174,7 +188,7 @@ func (sa SealAgent) RateLimit() func() {
 	return func() {
 	}
 }
-func (sa SealAgent) AddPiece(size uint64, sectorID uint64, reader io.Reader, sizes []uint64) (sectorbuilder.PublicPieceInfo, error) {
+func (sa SealAgent) AddPiece(ctx context.Context, size uint64, sectorID uint64, reader io.Reader, sizes []uint64) (sectorbuilder.PublicPieceInfo, error) {
 	return sectorbuilder.PublicPieceInfo{}, xerrors.Errorf("Not implemented")
 }
 func (sa SealAgent) AddRemotePiece(size uint64, sectorID uint64, sizes []uint64) (sectorbuilder.PublicPieceInfo, error) {
@@ -278,28 +292,38 @@ func (sa SealAgent) SealCommit(ctx context.Context, sectorId uint64, ticket sect
 }
 
 //这个需要改造成一个tcpReader
-func (sa SealAgent) ReadPieceFromSealedSector(sectorID uint64, offset uint64, size uint64, ticket []byte, commD []byte) (io.ReadCloser, error) {
+func (sa SealAgent) ReadPieceFromSealedSector(ctx context.Context, sectorID uint64, offset uint64, size uint64, ticket []byte, commD []byte) (io.ReadCloser, error) {
 	return nil, xerrors.Errorf("not implemented")
 }
-func (sa SealAgent) GetPath(typename string, sname string) (string, error) {
-	return sa.sb.GetPath(typename, sname)
+func (sa SealAgent) AllocSectorPath(typ fs.DataType, sectorID uint64, cache bool) (fs.SectorPath, error) {
+	return "", xerrors.Errorf("not implemented")
+}
+
+//TODO ask remote to release sector
+func (sb SealAgent) ReleaseSector(typ fs.DataType, path fs.SectorPath) {
+
+}
+
+//TODO ask remote to release sector
+func (sb SealAgent) SectorPath(typ fs.DataType, sectorID uint64) (fs.SectorPath, error) {
+	return fs.SectorPath(""), nil
 }
 func (sa SealAgent) WorkerStats() sectorbuilder.WorkerStats {
 	ret := sa.sb.WorkerStats()
 	for _, value := range sa.ws.getWorkerStats() {
 		ret.AddPieceWait += value.AddPieceWait
 		ret.CommitWait += value.CommitWait
-		ret.FreeCommittee += value.FreeCommittee
-		ret.FreePreCommittee += value.FreePreCommittee
+		//ret.FreeCommittee += value.FreeCommittee
+		//ret.FreePreCommittee += value.FreePreCommittee
 		ret.LocalFree += value.LocalFree
 		ret.LocalReserved += value.LocalReserved
 		ret.LocalTotal += value.LocalTotal
-		ret.PendingCommit += value.PendingCommit
+		//ret.PendingCommit += value.PendingCommit
 		ret.PreCommitWait += value.PreCommitWait
 		ret.RemotesFree += value.RemotesFree
 		ret.RemotesTotal += value.RemotesTotal
 		ret.UnsealWait += value.UnsealWait
-		ret.WaitingPiece += value.WaitingPiece
+		//ret.WaitingPiece += value.WaitingPiece
 	}
 	return ret
 }

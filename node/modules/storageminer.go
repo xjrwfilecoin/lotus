@@ -5,6 +5,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 	"math"
 	"reflect"
+	"fmt"
 
 	"github.com/filecoin-project/go-address"
 	dtgraphsync "github.com/filecoin-project/go-data-transfer/impl/graphsync"
@@ -31,7 +32,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/mitchellh/go-homedir"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
+	
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 
@@ -95,9 +96,9 @@ func RawSectorBuilderConfig(storagePath string, threads uint, noprecommit, nocom
 			NoPreCommit:   noprecommit,
 			NoCommit:      nocommit,
 
-			Dir: sp,
+			
 		}
-
+		sb.Paths = append(sb.Paths,fs.PathConfig{sp,true,1})
 		return sb, nil
 	}
 }
