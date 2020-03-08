@@ -295,5 +295,6 @@ func (sm *MinerAgentAPI) ActorAddress(context.Context) (address.Address, error) 
 
 func (sm *MinerAgentAPI) ActorSectorSize(ctx context.Context, addr address.Address) (uint64, error) {
 	return strings.ParseInt(os.Getenv("MINER_ADDRESS"),10,64), nil
+	
 }
 var _ api.MinerAgent = &MinerAgentAPI{}
