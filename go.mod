@@ -71,7 +71,7 @@ require (
 	github.com/libp2p/go-libp2p-routing-helpers v0.1.0
 	github.com/libp2p/go-libp2p-secio v0.2.1
 	github.com/libp2p/go-libp2p-swarm v0.2.2
-	github.com/libp2p/go-libp2p-tls v0.1.0
+	github.com/libp2p/go-libp2p-tls v0.1.1
 	github.com/libp2p/go-libp2p-yamux v0.2.1
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
@@ -94,7 +94,6 @@ require (
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/pubsub v0.0.0-20131020042734-02de8aa2db3d
 	github.com/xjrwfilecoin/go-sectorbuilder v0.0.201
-	
 	go.opencensus.io v0.22.3
 	go.uber.org/dig v1.7.0 // indirect
 	go.uber.org/fx v1.9.0
@@ -116,4 +115,8 @@ replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
 
 replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
 
+replace github.com/libp2p/go-libp2p-quic-transport v0.1.1 => github.com/libp2p/go-libp2p-quic-transport v0.2.0
+
 replace google.golang.org/grpc v1.27.1 => google.golang.org/grpc v1.26.0
+
+replace github.com/lucas-clemente/quic-go v0.15.0 => github.com/lucas-clemente/quic-go v0.13.0
