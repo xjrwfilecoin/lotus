@@ -26,6 +26,17 @@ type StorageMiner struct {
 	Common
 
 	SectorBuilder SectorBuilder
+
+	SealAgent CfgSealAgent
+}
+
+// StorageMiner is a storage miner config
+type MinerAgent struct {
+	Common
+
+	SectorBuilder SectorBuilder
+
+	SealAgent CfgSealAgent
 }
 
 // API contains configs for API endpoint
@@ -43,6 +54,17 @@ type Libp2p struct {
 	ConnMgrLow   uint
 	ConnMgrHigh  uint
 	ConnMgrGrace Duration
+}
+type CfgSealAgent struct {
+	EtcdAddrs []string
+	ServeIP   string
+	ServePort int
+}
+
+type CfgSealService struct {
+	EtcdAddrs []string
+	ServeIP   string
+	ServePort int
 }
 
 // // Full Node
@@ -97,6 +119,23 @@ func DefaultStorageMiner() *StorageMiner {
 
 		SectorBuilder: SectorBuilder{
 			WorkerCount: 2,
+		},
+		SealAgent: CfgSealAgent{
+			ServePort: 33140,
+		},
+	}
+	cfg.Common.API.ListenAddress = "/ip4/127.0.0.1/tcp/2345/http"
+	return cfg
+}
+func DefaultMinerAgent() *StorageMiner {
+	cfg := &StorageMiner{
+		Common: defCommon(),
+
+		SectorBuilder: SectorBuilder{
+			WorkerCount: 5,
+		},
+		SealAgent: CfgSealAgent{
+			ServePort: 33141,
 		},
 	}
 	cfg.Common.API.ListenAddress = "/ip4/127.0.0.1/tcp/2345/http"

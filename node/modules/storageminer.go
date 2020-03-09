@@ -5,6 +5,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 	"math"
 	"reflect"
+	"fmt"
 
 	"github.com/filecoin-project/go-address"
 	dtgraphsync "github.com/filecoin-project/go-data-transfer/impl/graphsync"
@@ -39,6 +40,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/gen"
 	"github.com/filecoin-project/lotus/markets/retrievaladapter"
 	"github.com/filecoin-project/lotus/miner"
+	"github.com/filecoin-project/lotus/node/config"
 	"github.com/filecoin-project/lotus/node/modules/dtypes"
 	"github.com/filecoin-project/lotus/node/modules/helpers"
 	"github.com/filecoin-project/lotus/node/repo"
@@ -57,13 +59,48 @@ func minerAddrFromDS(ds dtypes.MetadataDS) (address.Address, error) {
 }
 
 func GetParams(sbc *sectorbuilder.Config) error {
+	fmt.Println("create parameters")
 	if err := paramfetch.GetParams(build.ParametersJson(), sbc.SectorSize); err != nil {
 		return xerrors.Errorf("fetching proof parameters: %w", err)
 	}
 
 	return nil
 }
+func RawSectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS) (*sectorbuilder.Config, error) {
+	return func(ds dtypes.MetadataDS) (*sectorbuilder.Config, error) {
+		minerAddr, err := minerAddrFromDS(ds)
+		if err != nil {
+			return nil, err
+		}
 
+		//TODO ploto update from config file
+		ssize := uint64(1024) //, err := api.StateMinerSectorSize(context.TODO(), minerAddr, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		sp, err := homedir.Expand(storagePath)
+		if err != nil {
+			return nil, err
+		}
+
+		if threads > math.MaxUint8 {
+			return nil, xerrors.Errorf("too many sectorbuilder threads specified: %d, max allowed: %d", threads, math.MaxUint8)
+		}
+		sb := &sectorbuilder.Config{
+			Miner:      minerAddr,
+			SectorSize: ssize,
+
+			WorkerThreads: uint8(threads),
+			NoPreCommit:   noprecommit,
+			NoCommit:      nocommit,
+
+			
+		}
+		sb.Paths = append(sb.Paths,fs.PathConfig{sp,true,1})
+		return sb, nil
+	}
+}
 func SectorBuilderConfig(storage []fs.PathConfig, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS, api.FullNode) (*sectorbuilder.Config, error) {
 	return func(ds dtypes.MetadataDS, api api.FullNode) (*sectorbuilder.Config, error) {
 		minerAddr, err := minerAddrFromDS(ds)
@@ -102,7 +139,7 @@ func SectorBuilderConfig(storage []fs.PathConfig, threads uint, noprecommit, noc
 	}
 }
 
-func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h host.Host, ds dtypes.MetadataDS, sb sectorbuilder.Interface, tktFn sealing.TicketFn) (*storage.Miner, error) {
+func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h host.Host, ds dtypes.MetadataDS, sb *sealing.SealAgent, tktFn sealing.TicketFn) (*storage.Miner, error) {
 	maddr, err := minerAddrFromDS(ds)
 	if err != nil {
 		return nil, err
@@ -289,4 +326,23 @@ func StorageProvider(ds dtypes.MetadataDS, dag dtypes.StagingDAG, dataTransfer d
 func RetrievalProvider(sblks *sectorblocks.SectorBlocks, full api.FullNode) retrievalmarket.RetrievalProvider {
 	adapter := retrievaladapter.NewRetrievalProviderNode(sblks, full)
 	return retrievalimpl.NewProvider(adapter)
+}
+
+func SealAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS) (*sealing.SealAgent, error) {
+	fmt.Println("call seal agent")
+	sa := sealing.NewSealAgent(sb, cfg, namespace.Wrap(ds, datastore.NewKey("/sealagent")))
+
+	return sa, nil
+}
+
+func MinerAgent(cfg *config.CfgSealAgent, sb sectorbuilder.Interface, ds dtypes.MetadataDS, scfg *sectorbuilder.Config) (*sealing.AgentService, error) {
+	fmt.Println("Miner agent ")
+	sa := sealing.NewAgentService(sb, cfg, scfg)
+
+	return sa, nil
+}
+
+func ExtractSealAgent(cfg *config.StorageMiner) *config.CfgSealAgent {
+	cfgFile := cfg.SealAgent
+	return &cfgFile
 }
