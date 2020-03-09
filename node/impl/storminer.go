@@ -3,19 +3,18 @@ package impl
 import (
 	"context"
 	"encoding/json"
-	"github.com/filecoin-project/lotus/chain/types"
 	"io"
 	"mime"
 	"net/http"
 	"os"
 	"strconv"
 
+	"github.com/filecoin-project/lotus/chain/types"
+
 	"github.com/gorilla/mux"
 	files "github.com/ipfs/go-ipfs-files"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/xjrwfilecoin/go-sectorbuilder"
-	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/apistruct"
 	"github.com/filecoin-project/lotus/lib/tarutil"
@@ -23,7 +22,8 @@ import (
 	"github.com/filecoin-project/lotus/storage"
 	"github.com/filecoin-project/lotus/storage/sealing"
 	"github.com/filecoin-project/lotus/storage/sectorblocks"
-	
+	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 )
 
 type StorageMinerAPI struct {
@@ -289,12 +289,15 @@ func (sm *MinerAgentAPI) WorkerStats(context.Context) (sectorbuilder.WorkerStats
 }
 
 func (sm *MinerAgentAPI) ActorAddress(context.Context) (address.Address, error) {
-	address.Address.From()
-	return os.Getenv("MINER_ADDRESS"), nil
+	return address.NewFromString(os.Getenv("MINER_ADDRESS"))
+
 }
 
 func (sm *MinerAgentAPI) ActorSectorSize(ctx context.Context, addr address.Address) (uint64, error) {
-	return strings.ParseInt(os.Getenv("MINER_ADDRESS"),10,64), nil
-	
+	val, err := strconv.ParseInt(os.Getenv("SECTOR_SIZE"), 10, 64)
+
+	return uint64(val), err
+
 }
+
 var _ api.MinerAgent = &MinerAgentAPI{}
