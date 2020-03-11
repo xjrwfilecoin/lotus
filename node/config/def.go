@@ -3,6 +3,8 @@ package config
 import (
 	"encoding"
 	"time"
+
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 )
 
 // Common is common config between full node and miner
@@ -76,7 +78,8 @@ type Metrics struct {
 // // Storage Miner
 
 type SectorBuilder struct {
-	Path        string
+	Path        string // TODO: remove // FORK (-ish)
+	Storage     []fs.PathConfig
 	WorkerCount uint
 
 	DisableLocalPreCommit bool

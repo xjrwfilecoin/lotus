@@ -17,6 +17,7 @@ import (
 	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/actors/aerrors"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/lib/sigs"
 )
 
 type StoragePowerActor struct{}
@@ -170,11 +171,11 @@ func (spa StoragePowerActor) ArbitrateConsensusFault(act *types.Actor, vmctx typ
 		return nil, aerrors.Absorb(oerr, 3, "response from 'GetWorkerAddr' was not a valid address")
 	}
 
-	if err := params.Block1.CheckBlockSignature(vmctx.Context(), worker); err != nil {
+	if err := sigs.CheckBlockSignature(params.Block1, vmctx.Context(), worker); err != nil {
 		return nil, aerrors.Absorb(err, 4, "block1 did not have valid signature")
 	}
 
-	if err := params.Block2.CheckBlockSignature(vmctx.Context(), worker); err != nil {
+	if err := sigs.CheckBlockSignature(params.Block2, vmctx.Context(), worker); err != nil {
 		return nil, aerrors.Absorb(err, 5, "block2 did not have valid signature")
 	}
 
@@ -474,7 +475,8 @@ func powerLookup(ctx context.Context, vmctx types.VMContext, self *StoragePowerS
 	}
 
 	if !has {
-		return types.EmptyInt, aerrors.New(1, "miner not registered with storage power actor")
+		// A miner could be registered with storage power actor, but removed for some reasons, e.g. consensus fault
+		return types.EmptyInt, aerrors.New(1, "miner not registered with storage power actor, or removed already")
 	}
 
 	// TODO: Use local amt

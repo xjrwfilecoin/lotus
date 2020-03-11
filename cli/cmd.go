@@ -222,4 +222,5 @@ var Commands = []*cli.Command{
 	syncCmd,
 	versionCmd,
 	walletCmd,
+	logCmd,
 }

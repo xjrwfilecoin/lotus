@@ -75,7 +75,7 @@ func NewAgentService(sb sectorbuilder.Interface, cfg *config.CfgSealAgent, scfg 
 		etcAddrs:  cfg.EtcdAddrs,
 		ip:        cfg.ServeIP,
 		port:      cfg.ServePort,
-		dataDir:   scfg.Dir,
+		dataDir:   scfg.Paths[0].Path,
 		miner:     scfg.Miner.String(),
 		discovery: client.NewEtcdDiscovery(basePath, "WorkStatsService", cfg.EtcdAddrs, nil),
 	}
@@ -103,7 +103,7 @@ func pledgeReader(size uint64, parts uint64) io.Reader {
 }*/
 func (as *AgentService) AddPiece(ctx context.Context, args *AddPieceArgs, reply *AddPieceReply) error {
 
-	result, err := as.sb.AddPiece(args.Size, args.SectorID, NewLimitedDummyReader(int64(args.Size)), args.Sizes)
+	result, err := as.sb.AddPiece(ctx,args.Size, args.SectorID, NewLimitedDummyReader(int64(args.Size)), args.Sizes)
 	if err == nil {
 		reply.PPI = result
 	}
@@ -184,7 +184,8 @@ func (as *AgentService) reportFreeWorksToMiner() error {
 	var err error
 
 	clientID := fmt.Sprintf("tcp@%v:%v", as.ip, as.port)
-	freeWorker := as.sb.GetFreeWorkers()
+	//TODO check free workers
+	freeWorker := 0;//as.sb.GetFreeWorkers()
 	log.Infof("free worker:%v\n", freeWorker)
 
 	workerStats := as.sb.WorkerStats()

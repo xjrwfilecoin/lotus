@@ -30,12 +30,14 @@ import (
 	"github.com/libp2p/go-libp2p-core/routing"
 	"github.com/mitchellh/go-homedir"
 	"github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	"go.uber.org/fx"
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/gen"
+	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/markets/retrievaladapter"
 	"github.com/filecoin-project/lotus/miner"
 	"github.com/filecoin-project/lotus/node/config"
@@ -94,27 +96,29 @@ func RawSectorBuilderConfig(storagePath string, threads uint, noprecommit, nocom
 			NoPreCommit:   noprecommit,
 			NoCommit:      nocommit,
 
-			Dir: sp,
+			Paths: append([]fs.PathConfig{}, fs.PathConfig{sp, true, 1}),
 		}
 
 		return sb, nil
 	}
 }
-func SectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS, api.FullNode) (*sectorbuilder.Config, error) {
+func SectorBuilderConfig(storage []fs.PathConfig, threads uint, noprecommit, nocommit bool) func(dtypes.MetadataDS, api.FullNode) (*sectorbuilder.Config, error) {
 	return func(ds dtypes.MetadataDS, api api.FullNode) (*sectorbuilder.Config, error) {
 		minerAddr, err := minerAddrFromDS(ds)
 		if err != nil {
 			return nil, err
 		}
 
-		ssize, err := api.StateMinerSectorSize(context.TODO(), minerAddr, nil)
+		ssize, err := api.StateMinerSectorSize(context.TODO(), minerAddr, types.EmptyTSK)
 		if err != nil {
 			return nil, err
 		}
 
-		sp, err := homedir.Expand(storagePath)
-		if err != nil {
-			return nil, err
+		for i := range storage {
+			storage[i].Path, err = homedir.Expand(storage[i].Path)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		if threads > math.MaxUint8 {
@@ -129,7 +133,7 @@ func SectorBuilderConfig(storagePath string, threads uint, noprecommit, nocommit
 			NoPreCommit:   noprecommit,
 			NoCommit:      nocommit,
 
-			Dir: sp,
+			Paths: storage,
 		}
 
 		return sb, nil
@@ -142,15 +146,23 @@ func StorageMiner(mctx helpers.MetricsCtx, lc fx.Lifecycle, api api.FullNode, h 
 		return nil, err
 	}
 
-	sm, err := storage.NewMiner(api, maddr, h, ds, sb, tktFn)
+	ctx := helpers.LifecycleCtx(mctx, lc)
+
+	worker, err := api.StateMinerWorker(ctx, maddr, types.EmptyTSK)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := helpers.LifecycleCtx(mctx, lc)
+	fps := storage.NewFPoStScheduler(api, sb, maddr, worker)
+
+	sm, err := storage.NewMiner(api, maddr, worker, h, ds, sb, tktFn)
+	if err != nil {
+		return nil, err
+	}
 
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
+			go fps.Run(ctx)
 			return sm.Run(ctx)
 		},
 		OnStop: sm.Stop,

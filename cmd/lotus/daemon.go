@@ -11,7 +11,11 @@ import (
 	paramfetch "github.com/filecoin-project/go-paramfetch"
 	"github.com/xjrwfilecoin/go-sectorbuilder"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
+	"github.com/mitchellh/go-homedir"
 	"github.com/multiformats/go-multiaddr"
+	"go.opencensus.io/stats"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/tag"
 	"golang.org/x/xerrors"
 	"gopkg.in/urfave/cli.v2"
 
@@ -30,6 +34,12 @@ import (
 const (
 	makeGenFlag          = "lotus-make-random-genesis"
 	preSealedSectorsFlag = "genesis-presealed-sectors"
+)
+
+var (
+	lotusInfo  = stats.Int64("info", "Arbitrary counter to tag lotus info to", stats.UnitDimensionless)
+	version, _ = tag.NewKey("version")
+	commit, _  = tag.NewKey("commit")
 )
 
 // DaemonCmd is the `go-lotus daemon` command
@@ -89,8 +99,16 @@ var DaemonCmd = &cli.Command{
 			defer pprof.StopCPUProfile()
 		}
 
-		ctx := context.Background()
-		log.Infof("lotus repo: %s", cctx.String("repo"))
+		ctx, _ := tag.New(context.Background(), tag.Insert(version, build.BuildVersion), tag.Insert(commit, build.CurrentCommit))
+		{
+			dir, err := homedir.Expand(cctx.String("repo"))
+			if err != nil {
+				log.Warnw("could not expand repo location", "error", err)
+			} else {
+				log.Infof("lotus repo: %s", dir)
+			}
+		}
+
 		r, err := repo.NewFS(cctx.String("repo"))
 		if err != nil {
 			return xerrors.Errorf("opening fs repo: %w", err)
@@ -161,6 +179,22 @@ var DaemonCmd = &cli.Command{
 		if err != nil {
 			return xerrors.Errorf("initializing node: %w", err)
 		}
+
+		// We are using this metric to tag info about lotus even though
+		// it doesn't contain any actual metrics
+		if err = view.Register(
+			&view.View{
+				Name:        "info",
+				Description: "Lotus node information",
+				Measure:     lotusInfo,
+				Aggregation: view.LastValue(),
+				TagKeys:     []tag.Key{version, commit},
+			},
+		); err != nil {
+			log.Fatalf("Cannot register the view: %v", err)
+		}
+		// Set the metric to one so it is published to the exporter
+		stats.Record(ctx, lotusInfo.M(1))
 
 		endpoint, err := r.APIEndpoint()
 		if err != nil {

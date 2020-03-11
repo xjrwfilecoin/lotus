@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	contrib.go.opencensus.io/exporter/jaeger v0.1.0
+	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/GeertJohan/go.rice v1.0.0
 	github.com/Gurpartap/async v0.0.0-20180927173644-4f7f499dd9ee
@@ -32,8 +33,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/go-multierror v1.0.0
-	github.com/hashicorp/golang-lru v0.5.3
-	github.com/huandu/xstrings v1.3.0 // indirect
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb1-client v0.0.0-20190809212627-fc22c7df067e
 	github.com/ipfs/go-bitswap v0.1.8
 	github.com/ipfs/go-block-format v0.0.2
@@ -73,9 +73,8 @@ require (
 	github.com/libp2p/go-libp2p-mplex v0.2.1
 	github.com/libp2p/go-libp2p-peer v0.2.0
 	github.com/libp2p/go-libp2p-peerstore v0.1.4
-	github.com/libp2p/go-libp2p-pubsub v0.2.3
-	github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66
-
+	github.com/libp2p/go-libp2p-pubsub v0.2.6
+	github.com/libp2p/go-libp2p-quic-transport v0.1.1
 	github.com/libp2p/go-libp2p-record v0.1.1
 	github.com/libp2p/go-libp2p-routing-helpers v0.1.0
 	github.com/libp2p/go-libp2p-secio v0.2.1
@@ -84,7 +83,6 @@ require (
 	github.com/libp2p/go-maddr-filter v0.0.5
 	github.com/lucas-clemente/quic-go v0.14.3
 	github.com/marten-seemann/quic-conn v0.0.0-20191204020628-6e719687462b // indirect
-
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/minio/sha256-simd v0.1.1
@@ -108,7 +106,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20200121162646-b63bacf5eaf8
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7
 	github.com/whyrusleeping/pubsub v0.0.0-20131020042734-02de8aa2db3d
-	github.com/xjrwfilecoin/go-sectorbuilder v0.1.61
+	github.com/xjrwfilecoin/go-sectorbuilder v0.1.71
 	github.com/xtaci/kcp-go v5.4.20+incompatible // indirect
 	go.etcd.io/etcd v3.3.18+incompatible
 	go.opencensus.io v0.22.3
@@ -139,4 +137,4 @@ replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
 
 replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
 
-replace github.com/libp2p/go-libp2p-quic-transport v0.2.3 => github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66
+replace github.com/libp2p/go-libp2p-quic-transport v0.1.1 => github.com/libp2p/go-libp2p-quic-transport v0.2.4-0.20200206155639-036f69e5ec66

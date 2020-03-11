@@ -3,6 +3,7 @@
 /lotus-seal-worker
 /lotus-seed
 /lotus-health
+/lotus-shed
 /pond
 /townhall
 /fountain
@@ -26,6 +27,9 @@ build/paramfetch.sh
 /blocks.svg
 /chainwatch
 /chainwatch.db
+/bundle
+/darwin
+/linux
 
 *-fuzz.zip
 /chain/types/work_msg/

@@ -257,12 +257,12 @@ func (m *Miner) GetBestMiningCandidate(ctx context.Context) (*MiningBase, error)
 			return m.lastWork, nil
 		}
 
-		btsw, err := m.api.ChainTipSetWeight(ctx, bts)
+		btsw, err := m.api.ChainTipSetWeight(ctx, bts.Key())
 		if err != nil {
 			return nil, err
 		}
 		log.Info("[qz]miner 2")
-		ltsw, err := m.api.ChainTipSetWeight(ctx, m.lastWork.ts)
+		ltsw, err := m.api.ChainTipSetWeight(ctx, m.lastWork.ts.Key())
 		if err != nil {
 			return nil, err
 		}
@@ -277,7 +277,7 @@ func (m *Miner) GetBestMiningCandidate(ctx context.Context) (*MiningBase, error)
 }
 
 func (m *Miner) hasPower(ctx context.Context, addr address.Address, ts *types.TipSet) (bool, error) {
-	power, err := m.api.StateMinerPower(ctx, addr, ts)
+	power, err := m.api.StateMinerPower(ctx, addr, ts.Key())
 	if err != nil {
 		return false, err
 	}
@@ -317,7 +317,7 @@ func (m *Miner) mineOne(ctx context.Context, addr address.Address, base *MiningB
 	}
 
 	// get pending messages early,
-	pending, err := m.api.MpoolPending(context.TODO(), base.ts)
+	pending, err := m.api.MpoolPending(context.TODO(), base.ts.Key())
 	if err != nil {
 		return nil, xerrors.Errorf("failed to get pending messages: %w", err)
 	}
@@ -342,7 +342,7 @@ func (m *Miner) mineOne(ctx context.Context, addr address.Address, base *MiningB
 }
 
 func (m *Miner) computeVRF(ctx context.Context, addr address.Address, input []byte) ([]byte, error) {
-	w, err := m.getMinerWorker(ctx, addr, nil)
+	w, err := m.getMinerWorker(ctx, addr, types.EmptyTSK)
 	if err != nil {
 		return nil, err
 	}
@@ -350,12 +350,12 @@ func (m *Miner) computeVRF(ctx context.Context, addr address.Address, input []by
 	return gen.ComputeVRF(ctx, m.api.WalletSign, w, addr, gen.DSepTicket, input)
 }
 
-func (m *Miner) getMinerWorker(ctx context.Context, addr address.Address, ts *types.TipSet) (address.Address, error) {
+func (m *Miner) getMinerWorker(ctx context.Context, addr address.Address, tsk types.TipSetKey) (address.Address, error) {
 	ret, err := m.api.StateCall(ctx, &types.Message{
 		From:   addr,
 		To:     addr,
 		Method: actors.MAMethods.GetWorkerAddr,
-	}, ts)
+	}, tsk)
 	if err != nil {
 		return address.Undef, xerrors.Errorf("failed to get miner worker addr: %w", err)
 	}
@@ -402,10 +402,10 @@ func (m *Miner) createBlock(base *MiningBase, addr address.Address, ticket *type
 	nheight := base.ts.Height() + base.nullRounds + 1
 
 	// why even return this? that api call could just submit it for us
-	return m.api.MinerCreateBlock(context.TODO(), addr, base.ts, ticket, proof, msgs, nheight, uint64(uts))
+	return m.api.MinerCreateBlock(context.TODO(), addr, base.ts.Key(), ticket, proof, msgs, nheight, uint64(uts))
 }
 
-type ActorLookup func(context.Context, address.Address, *types.TipSet) (*types.Actor, error)
+type ActorLookup func(context.Context, address.Address, types.TipSetKey) (*types.Actor, error)
 
 func countFrom(msgs []*types.SignedMessage, from address.Address) (out int) {
 	for _, msg := range msgs {
@@ -432,7 +432,7 @@ func SelectMessages(ctx context.Context, al ActorLookup, ts *types.TipSet, msgs 
 		from := msg.Message.From
 
 		if _, ok := inclNonces[from]; !ok {
-			act, err := al(ctx, from, ts)
+			act, err := al(ctx, from, ts.Key())
 			if err != nil {
 				log.Warnf("failed to check message sender balance, skipping message: %+v", err)
 				continue

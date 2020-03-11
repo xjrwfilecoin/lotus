@@ -1,16 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"os"
 
-	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	"path/filepath"
+
 	files "github.com/ipfs/go-ipfs-files"
+	sectorbuilder "github.com/xjrwfilecoin/go-sectorbuilder"
+	"github.com/xjrwfilecoin/go-sectorbuilder/fs"
 	"golang.org/x/xerrors"
 	"gopkg.in/cheggaaa/pb.v1"
-	"path/filepath"
 
 	"github.com/filecoin-project/lotus/lib/tarutil"
 )
@@ -27,7 +30,7 @@ func (w *worker) fetch(typ string, sectorID uint64) error {
 	return nil
 	outname := filepath.Join(w.repo, typ, w.sb.SectorName(sectorID))
 
-	url := w.minerEndpoint + "/remote/" + typ + "/" + w.sb.SectorName(sectorID)
+	url := w.minerEndpoint + "/remote/" + typ + "/" + fmt.Sprint(sectorID)
 	log.Infof("Fetch %s %s", typ, url)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -78,21 +81,29 @@ func (w *worker) fetch(typ string, sectorID uint64) error {
 
 func (w *worker) push(typ string, sectorID uint64) error {
 	return nil
-	filename := filepath.Join(w.repo, typ, w.sb.SectorName(sectorID))
+	w.limiter.transferLimit <- struct{}{}
+	defer func() {
+		<-w.limiter.transferLimit
+	}()
 
-	url := w.minerEndpoint + "/remote/" + typ + "/" + w.sb.SectorName(sectorID)
+	filename, err := w.sb.SectorPath(fs.DataType(typ), sectorID)
+	if err != nil {
+		return err
+	}
+
+	url := w.minerEndpoint + "/remote/" + typ + "/" + fmt.Sprint(sectorID)
 	log.Infof("Push %s %s", typ, url)
 
-	stat, err := os.Stat(filename)
+	stat, err := os.Stat(string(filename))
 	if err != nil {
 		return err
 	}
 
 	var r io.Reader
 	if stat.IsDir() {
-		r, err = tarutil.TarDirectory(filename)
+		r, err = tarutil.TarDirectory(string(filename))
 	} else {
-		r, err = os.OpenFile(filename, os.O_RDONLY, 0644)
+		r, err = os.OpenFile(string(filename), os.O_RDONLY, 0644)
 	}
 	if err != nil {
 		return xerrors.Errorf("opening push reader: %w", err)
@@ -145,6 +156,11 @@ func (w *worker) remove(typ string, sectorID uint64) error {
 }
 
 func (w *worker) fetchSector(sectorID uint64, typ sectorbuilder.WorkerTaskType) error {
+	w.limiter.transferLimit <- struct{}{}
+	defer func() {
+		<-w.limiter.transferLimit
+	}()
+
 	var err error
 	switch typ {
 	case sectorbuilder.WorkerPreCommit:
