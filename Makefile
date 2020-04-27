@@ -196,3 +196,5 @@ gen: type-gen method-gen
 
 print-%:
 	@echo $*=$($*)
+	
+	
