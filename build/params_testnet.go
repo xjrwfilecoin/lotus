@@ -5,7 +5,12 @@ package build
 
 import (
 	"github.com/filecoin-project/specs-actors/actors/abi"
+	"github.com/filecoin-project/specs-actors/actors/builtin/power"
 )
+
+func init() {
+	power.ConsensusMinerMinPower = abi.NewStoragePower(2 << 30)
+}
 
 var SectorSizes = []abi.SectorSize{
 	512 << 20,
