@@ -162,6 +162,7 @@ var runCmd = &cli.Command{
 			taskTypes = append(taskTypes, sealtasks.TTPreCommit2)
 		}
 		if cctx.Bool("commit") {
+			taskTypes = append(taskTypes, sealtasks.TTCommit1) //xjrw modify
 			taskTypes = append(taskTypes, sealtasks.TTCommit2)
 		}
 
