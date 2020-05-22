@@ -238,8 +238,8 @@ func (s *WindowPoStScheduler) submitPost(ctx context.Context, proof *miner.Submi
 		if rec.Receipt.ExitCode == 0 {
 			return
 		}
-
-		log.Errorf("Submitting window post %s failed: exit %d", sm.Cid(), rec.Receipt.ExitCode)
+		// xjrw modify
+		log.Errorf("Submitting window post %s failed: exit %d, return: %s", sm.Cid(), rec.Receipt.ExitCode, string(rec.Receipt.Return))
 	}()
 
 	return nil
