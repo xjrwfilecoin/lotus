@@ -14,12 +14,13 @@ import (
 	"golang.org/x/xerrors"
 	"gopkg.in/urfave/cli.v2"
 
+	"github.com/filecoin-project/go-jsonrpc"
+	"github.com/filecoin-project/go-jsonrpc/auth"
+
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/apistruct"
 	"github.com/filecoin-project/lotus/build"
 	lcli "github.com/filecoin-project/lotus/cli"
-	"github.com/filecoin-project/lotus/lib/auth"
-	"github.com/filecoin-project/lotus/lib/jsonrpc"
 	"github.com/filecoin-project/lotus/lib/ulimit"
 	"github.com/filecoin-project/lotus/node"
 	"github.com/filecoin-project/lotus/node/impl"

@@ -15,6 +15,8 @@ import (
 	"github.com/filecoin-project/lotus/chain/store"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/vm"
+	_ "github.com/filecoin-project/lotus/lib/sigs/bls"
+	_ "github.com/filecoin-project/lotus/lib/sigs/secp"
 	"github.com/filecoin-project/sector-storage/ffiwrapper"
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"golang.org/x/xerrors"
@@ -65,6 +67,11 @@ var importBenchCmd = &cli.Command{
 			return err
 		}
 		bs := blockstore.NewBlockstore(bds)
+		cbs, err := blockstore.CachedBlockstore(context.TODO(), bs, blockstore.DefaultCacheOpts())
+		if err != nil {
+			return err
+		}
+		bs = cbs
 		ds := datastore.NewMapDatastore()
 		cs := store.NewChainStore(bs, ds, vm.Syscalls(ffiwrapper.ProofVerifier))
 		stm := stmgr.NewStateManager(cs)
@@ -111,7 +118,14 @@ var importBenchCmd = &cli.Command{
 			cur := tschain[i]
 			log.Infof("computing state (height: %d, ts=%s)", cur.Height(), cur.Cids())
 			if cur.ParentState() != lastState {
-				return xerrors.Errorf("tipset chain had state mismatch at height %d", cur.Height())
+				lastTrace := out[len(out)-1].Trace
+				d, err := json.MarshalIndent(lastTrace, "", "  ")
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println("TRACE")
+				fmt.Println(string(d))
+				return xerrors.Errorf("tipset chain had state mismatch at height %d (%s != %s)", cur.Height(), cur.ParentState(), lastState)
 			}
 			start := time.Now()
 			st, trace, err := stm.ExecutionTrace(context.TODO(), cur)

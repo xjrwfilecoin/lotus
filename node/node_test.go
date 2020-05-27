@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"github.com/filecoin-project/specs-actors/actors/abi/big"
 	"github.com/filecoin-project/specs-actors/actors/builtin"
@@ -39,7 +40,6 @@ import (
 	"github.com/filecoin-project/lotus/chain/wallet"
 	"github.com/filecoin-project/lotus/cmd/lotus-seed/seed"
 	genesis "github.com/filecoin-project/lotus/genesis"
-	"github.com/filecoin-project/lotus/lib/jsonrpc"
 	"github.com/filecoin-project/lotus/miner"
 	"github.com/filecoin-project/lotus/node"
 	"github.com/filecoin-project/lotus/node/modules"
@@ -82,7 +82,7 @@ func testStorageNode(ctx context.Context, t *testing.T, waddr address.Address, a
 	err = ds.Put(datastore.NewKey("miner-address"), act.Bytes())
 	require.NoError(t, err)
 
-	nic := storedcounter.New(ds, datastore.NewKey("/storage/nextid"))
+	nic := storedcounter.New(ds, datastore.NewKey(modules.StorageCounterDSPrefix))
 	for i := 0; i < nGenesisPreseals; i++ {
 		nic.Next()
 	}

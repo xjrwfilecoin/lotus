@@ -62,6 +62,10 @@ func GossipSub(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, nn dtyp
 				// TODO we want to whitelist IPv6 /64s that belong to datacenters etc
 				// IPColocationFactorWhitelist: map[string]struct{}{},
 
+				// P7: behavioural penalties, decay after 1hr
+				BehaviourPenaltyWeight: -10,
+				BehaviourPenaltyDecay:  pubsub.ScoreParameterDecay(time.Hour),
+
 				DecayInterval: pubsub.DefaultDecayInterval,
 				DecayToZero:   pubsub.DefaultDecayToZero,
 
@@ -84,18 +88,28 @@ func GossipSub(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, nn dtyp
 						FirstMessageDeliveriesDecay:  pubsub.ScoreParameterDecay(time.Hour),
 						FirstMessageDeliveriesCap:    100, // 100 blocks in an hour
 
-						// tracks deliveries in the last minute
-						// penalty activates at 1 minute and expects ~0.4 blocks
-						MeshMessageDeliveriesWeight:     -576, // max penalty is -100
-						MeshMessageDeliveriesDecay:      pubsub.ScoreParameterDecay(time.Minute),
-						MeshMessageDeliveriesCap:        10,      // 10 blocks in a minute
-						MeshMessageDeliveriesThreshold:  0.41666, // 10/12/2 blocks/min
-						MeshMessageDeliveriesWindow:     10 * time.Millisecond,
-						MeshMessageDeliveriesActivation: time.Minute,
-
-						// decays after 15 min
-						MeshFailurePenaltyWeight: -576,
-						MeshFailurePenaltyDecay:  pubsub.ScoreParameterDecay(15 * time.Minute),
+						// Mesh Delivery Failure is currently turned off for blocks
+						// This is on purpose as
+						// - the traffic is very low for meaningful distribution of incoming edges.
+						// - the reaction time needs to be very slow -- in the order of 10 min at least
+						//   so we might as well let opportunistic grafting repair the mesh on its own
+						//   pace.
+						// - the network is too small, so large asymmetries can be expected between mesh
+						//   edges.
+						// We should revisit this once the network grows.
+						//
+						// // tracks deliveries in the last minute
+						// // penalty activates at 1 minute and expects ~0.4 blocks
+						// MeshMessageDeliveriesWeight:     -576, // max penalty is -100
+						// MeshMessageDeliveriesDecay:      pubsub.ScoreParameterDecay(time.Minute),
+						// MeshMessageDeliveriesCap:        10,      // 10 blocks in a minute
+						// MeshMessageDeliveriesThreshold:  0.41666, // 10/12/2 blocks/min
+						// MeshMessageDeliveriesWindow:     10 * time.Millisecond,
+						// MeshMessageDeliveriesActivation: time.Minute,
+						//
+						// // decays after 15 min
+						// MeshFailurePenaltyWeight: -576,
+						// MeshFailurePenaltyDecay:  pubsub.ScoreParameterDecay(15 * time.Minute),
 
 						// invalid messages decay after 1 hour
 						InvalidMessageDeliveriesWeight: -1000,
@@ -113,20 +127,24 @@ func GossipSub(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, nn dtyp
 						// deliveries decay after 10min, cap at 1000 tx
 						FirstMessageDeliveriesWeight: 0.5, // max value is 500
 						FirstMessageDeliveriesDecay:  pubsub.ScoreParameterDecay(10 * time.Minute),
-						FirstMessageDeliveriesCap:    1000,
+						//FirstMessageDeliveriesCap:    1000,
+						FirstMessageDeliveriesCap: 1, // we can't yet properly validate them so only confer a tiny boost from delivery
 
-						// tracks deliveries in the last minute
-						// penalty activates at 1 min and expects 2.5 txs
-						MeshMessageDeliveriesWeight:     -16, // max penalty is -100
-						MeshMessageDeliveriesDecay:      pubsub.ScoreParameterDecay(time.Minute),
-						MeshMessageDeliveriesCap:        100, // 100 txs in a minute
-						MeshMessageDeliveriesThreshold:  2.5, // 60/12/2 txs/minute
-						MeshMessageDeliveriesWindow:     10 * time.Millisecond,
-						MeshMessageDeliveriesActivation: time.Minute,
+						// Mesh Delivery Failure is currently turned off for messages
+						// This is on purpose as the network is still too small, which results in
+						// asymmetries and potential unmeshing from negative scores.
+						// // tracks deliveries in the last minute
+						// // penalty activates at 1 min and expects 2.5 txs
+						// MeshMessageDeliveriesWeight:     -16, // max penalty is -100
+						// MeshMessageDeliveriesDecay:      pubsub.ScoreParameterDecay(time.Minute),
+						// MeshMessageDeliveriesCap:        100, // 100 txs in a minute
+						// MeshMessageDeliveriesThreshold:  2.5, // 60/12/2 txs/minute
+						// MeshMessageDeliveriesWindow:     10 * time.Millisecond,
+						// MeshMessageDeliveriesActivation: time.Minute,
 
-						// decays after 5min
-						MeshFailurePenaltyWeight: -16,
-						MeshFailurePenaltyDecay:  pubsub.ScoreParameterDecay(5 * time.Minute),
+						// // decays after 5min
+						// MeshFailurePenaltyWeight: -16,
+						// MeshFailurePenaltyDecay:  pubsub.ScoreParameterDecay(5 * time.Minute),
 
 						// invalid messages decay after 1 hour
 						InvalidMessageDeliveriesWeight: -2000,
@@ -139,7 +157,7 @@ func GossipSub(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, nn dtyp
 				PublishThreshold:            -1000,
 				GraylistThreshold:           -2500,
 				AcceptPXThreshold:           1000,
-				OpportunisticGraftThreshold: 2.5,
+				OpportunisticGraftThreshold: 5,
 			},
 		),
 	}
@@ -151,6 +169,7 @@ func GossipSub(mctx helpers.MetricsCtx, lc fx.Lifecycle, host host.Host, nn dtyp
 		pubsub.GossipSubDscore = 0
 		pubsub.GossipSubDlo = 0
 		pubsub.GossipSubDhi = 0
+		pubsub.GossipSubDout = 0
 		pubsub.GossipSubDlazy = 1024
 		pubsub.GossipSubGossipFactor = 0.5
 		// turn on PX
