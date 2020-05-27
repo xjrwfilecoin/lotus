@@ -120,6 +120,6 @@ replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
 
 replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
 
-replace github.com/filecoin-project/sector-storage  => github.com/xjrwfilecoin/sector-storage v0.3.1
+replace github.com/filecoin-project/sector-storage  => github.com/xjrwfilecoin/sector-storage v0.3.2
 
 replace github.com/filecoin-project/storage-fsm  => github.com/xjrwfilecoin/storage-fsm v0.3.1
