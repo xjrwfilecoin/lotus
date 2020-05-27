@@ -93,20 +93,21 @@ var infoCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		faults, err := api.StateMinerFaults(ctx, maddr, types.EmptyTSK)
-		if err != nil {
-			return err
-		}
+		// faults, err := api.StateMinerFaults(ctx, maddr, types.EmptyTSK)
+		// if err != nil {
+		// 	return err
+		// }
 
 		fmt.Printf("\tCommitted: %s\n", types.SizeStr(types.BigMul(types.NewInt(secCounts.Sset), types.NewInt(uint64(mi.SectorSize)))))
-		if len(faults) == 0 {
-			fmt.Printf("\tProving: %s\n", types.SizeStr(types.BigMul(types.NewInt(secCounts.Pset), types.NewInt(uint64(mi.SectorSize)))))
-		} else {
-			fmt.Printf("\tProving: %s (%s Faulty, %.2f%%)\n",
-				types.SizeStr(types.BigMul(types.NewInt(secCounts.Pset-uint64(len(faults))), types.NewInt(uint64(mi.SectorSize)))),
-				types.SizeStr(types.BigMul(types.NewInt(uint64(len(faults))), types.NewInt(uint64(mi.SectorSize)))),
-				float64(10000*uint64(len(faults))/secCounts.Pset)/100.)
-		}
+		fmt.Printf("\tProving: %s\n", "xjrw remove")
+		// if len(faults) == 0 {
+		// 	fmt.Printf("\tProving: %s\n", types.SizeStr(types.BigMul(types.NewInt(secCounts.Pset), types.NewInt(uint64(mi.SectorSize)))))
+		// } else {
+		// 	fmt.Printf("\tProving: %s (%s Faulty, %.2f%%)\n",
+		// 		types.SizeStr(types.BigMul(types.NewInt(secCounts.Pset-uint64(len(faults))), types.NewInt(uint64(mi.SectorSize)))),
+		// 		types.SizeStr(types.BigMul(types.NewInt(uint64(len(faults))), types.NewInt(uint64(mi.SectorSize)))),
+		// 		float64(10000*uint64(len(faults))/secCounts.Pset)/100.)
+		// }
 
 		fmt.Println()
 
