@@ -241,6 +241,7 @@ type WorkerStruct struct {
 		Paths     func(context.Context) ([]stores.StoragePath, error)            `perm:"admin"`
 		Info      func(context.Context) (storiface.WorkerInfo, error)            `perm:"admin"`
 
+		WorkerAddPiece func(ctx context.Context, sector abi.SectorID, pieceSizes []abi.UnpaddedPieceSize, newPieceSize abi.UnpaddedPieceSize) (abi.PieceInfo, error)                                              `perm:"admin"`
 		SealPreCommit1 func(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, pieces []abi.PieceInfo) (storage.PreCommit1Out, error)                                                           `perm:"admin"`
 		SealPreCommit2 func(context.Context, abi.SectorID, storage.PreCommit1Out) (cids storage.SectorCids, err error)                                                                                            `perm:"admin"`
 		SealCommit1    func(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (storage.Commit1Out, error) `perm:"admin"`
@@ -892,6 +893,10 @@ func (w *WorkerStruct) Paths(ctx context.Context) ([]stores.StoragePath, error) 
 
 func (w *WorkerStruct) Info(ctx context.Context) (storiface.WorkerInfo, error) {
 	return w.Internal.Info(ctx)
+}
+
+func (w *WorkerStruct) WorkerAddPiece(ctx context.Context, sector abi.SectorID, pieceSizes []abi.UnpaddedPieceSize, newPieceSize abi.UnpaddedPieceSize) (abi.PieceInfo, error) {
+	return w.Internal.WorkerAddPiece(ctx, sector, pieceSizes, newPieceSize)
 }
 
 func (w *WorkerStruct) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, pieces []abi.PieceInfo) (storage.PreCommit1Out, error) {
