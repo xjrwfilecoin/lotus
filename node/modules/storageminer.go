@@ -3,11 +3,13 @@ package modules
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/ipfs/go-bitswap"
 	"github.com/ipfs/go-bitswap/network"
 	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	graphsync "github.com/ipfs/go-graphsync/impl"
@@ -71,6 +73,12 @@ func GetParams(sbc *ffiwrapper.Config) error {
 	ssize, err := sbc.SealProofType.SectorSize()
 	if err != nil {
 		return err
+	}
+
+	// If built-in assets are disabled, we expect the user to have placed the right
+	// parameters in the right location on the filesystem (/var/tmp/filecoin-proof-parameters).
+	if build.DisableBuiltinAssets {
+		return nil
 	}
 
 	if err := paramfetch.GetParams(context.TODO(), build.ParametersJSON(), uint64(ssize)); err != nil {
@@ -307,7 +315,7 @@ func NewStorageAsk(ctx helpers.MetricsCtx, fapi lapi.FullNode, ds dtypes.Metadat
 	return storedAsk, nil
 }
 
-func StorageProvider(minerAddress dtypes.MinerAddress, ffiConfig *ffiwrapper.Config, storedAsk *storedask.StoredAsk, h host.Host, ds dtypes.MetadataDS, ibs dtypes.StagingBlockstore, r repo.LockedRepo, pieceStore dtypes.ProviderPieceStore, dataTransfer dtypes.ProviderDataTransfer, spn storagemarket.StorageProviderNode, isAcceptingFunc dtypes.AcceptingStorageDealsConfigFunc) (storagemarket.StorageProvider, error) {
+func StorageProvider(minerAddress dtypes.MinerAddress, ffiConfig *ffiwrapper.Config, storedAsk *storedask.StoredAsk, h host.Host, ds dtypes.MetadataDS, ibs dtypes.StagingBlockstore, r repo.LockedRepo, pieceStore dtypes.ProviderPieceStore, dataTransfer dtypes.ProviderDataTransfer, spn storagemarket.StorageProviderNode, onlineOk dtypes.ConsiderOnlineStorageDealsConfigFunc, offlineOk dtypes.ConsiderOfflineStorageDealsConfigFunc, blocklistFunc dtypes.StorageDealPieceCidBlocklistConfigFunc) (storagemarket.StorageProvider, error) {
 	net := smnet.NewFromLibp2pHost(h)
 	store, err := piecefilestore.NewLocalFileStore(piecefilestore.OsPath(r.Path()))
 	if err != nil {
@@ -315,14 +323,36 @@ func StorageProvider(minerAddress dtypes.MinerAddress, ffiConfig *ffiwrapper.Con
 	}
 
 	opt := storageimpl.CustomDealDecisionLogic(func(ctx context.Context, deal storagemarket.MinerDeal) (bool, string, error) {
-		b, err := isAcceptingFunc()
+		b, err := onlineOk()
 		if err != nil {
 			return false, "miner error", err
 		}
 
-		if !b {
-			log.Warnf("storage deal acceptance disabled; rejecting storage deal proposal from client: %s", deal.Client.String())
-			return false, "miner is not accepting storage deals", nil
+		if deal.Ref != nil && deal.Ref.TransferType != storagemarket.TTManual && !b {
+			log.Warnf("online storage deal consideration disabled; rejecting storage deal proposal from client: %s", deal.Client.String())
+			return false, "miner is not considering online storage deals", nil
+		}
+
+		b, err = offlineOk()
+		if err != nil {
+			return false, "miner error", err
+		}
+
+		if deal.Ref != nil && deal.Ref.TransferType == storagemarket.TTManual && !b {
+			log.Warnf("offline storage deal consideration disabled; rejecting storage deal proposal from client: %s", deal.Client.String())
+			return false, "miner is not accepting offline storage deals", nil
+		}
+
+		blocklist, err := blocklistFunc()
+		if err != nil {
+			return false, "miner error", err
+		}
+
+		for idx := range blocklist {
+			if deal.Proposal.PieceCID.Equals(blocklist[idx]) {
+				log.Warnf("piece CID in proposal %s is blocklisted; rejecting storage deal proposal from client: %s", deal.Proposal.PieceCID, deal.Client.String())
+				return false, fmt.Sprintf("miner has blocklisted piece CID %s", deal.Proposal.PieceCID), nil
+			}
 		}
 
 		return true, "", nil
@@ -337,14 +367,40 @@ func StorageProvider(minerAddress dtypes.MinerAddress, ffiConfig *ffiwrapper.Con
 }
 
 // RetrievalProvider creates a new retrieval provider attached to the provider blockstore
-func RetrievalProvider(h host.Host, miner *storage.Miner, sealer sectorstorage.SectorManager, full lapi.FullNode, ds dtypes.MetadataDS, pieceStore dtypes.ProviderPieceStore, ibs dtypes.StagingBlockstore) (retrievalmarket.RetrievalProvider, error) {
+func RetrievalProvider(h host.Host, miner *storage.Miner, sealer sectorstorage.SectorManager, full lapi.FullNode, ds dtypes.MetadataDS, pieceStore dtypes.ProviderPieceStore, ibs dtypes.StagingBlockstore, onlineOk dtypes.ConsiderOnlineRetrievalDealsConfigFunc, offlineOk dtypes.ConsiderOfflineRetrievalDealsConfigFunc) (retrievalmarket.RetrievalProvider, error) {
 	adapter := retrievaladapter.NewRetrievalProviderNode(miner, sealer, full)
-	address, err := minerAddrFromDS(ds)
+
+	maddr, err := minerAddrFromDS(ds)
 	if err != nil {
 		return nil, err
 	}
-	network := rmnet.NewFromLibp2pHost(h)
-	return retrievalimpl.NewProvider(address, adapter, network, pieceStore, ibs, namespace.Wrap(ds, datastore.NewKey("/retrievals/provider")))
+
+	netwk := rmnet.NewFromLibp2pHost(h)
+
+	opt := retrievalimpl.DealDeciderOpt(func(ctx context.Context, state retrievalmarket.ProviderDealState) (bool, string, error) {
+		b, err := onlineOk()
+		if err != nil {
+			return false, "miner error", err
+		}
+
+		if !b {
+			log.Warn("online retrieval deal consideration disabled; rejecting retrieval deal proposal from client")
+			return false, "miner is not accepting online retrieval deals", nil
+		}
+
+		b, err = offlineOk()
+		if err != nil {
+			return false, "miner error", err
+		}
+
+		if !b {
+			log.Info("offline retrieval has not been implemented yet")
+		}
+
+		return true, "", nil
+	})
+
+	return retrievalimpl.NewProvider(maddr, adapter, netwk, pieceStore, ibs, namespace.Wrap(ds, datastore.NewKey("/retrievals/provider")), opt)
 }
 
 func SectorStorage(mctx helpers.MetricsCtx, lc fx.Lifecycle, ls stores.LocalStorage, si stores.SectorIndex, cfg *ffiwrapper.Config, sc sectorstorage.SealerConfig, urls sectorstorage.URLs, sa sectorstorage.StorageAuth) (*sectorstorage.Manager, error) {
@@ -379,36 +435,124 @@ func StorageAuth(ctx helpers.MetricsCtx, ca lapi.Common) (sectorstorage.StorageA
 	return sectorstorage.StorageAuth(headers), nil
 }
 
-func NewAcceptingStorageDealsConfigFunc(r repo.LockedRepo) (dtypes.AcceptingStorageDealsConfigFunc, error) {
-	return func() (bool, error) {
-		raw, err := r.Config()
-		if err != nil {
-			return false, err
-		}
-
-		cfg, ok := raw.(*config.StorageMiner)
-		if !ok {
-			return false, xerrors.New("expected address of config.StorageMiner")
-		}
-
-		return cfg.Dealmaking.AcceptingStorageDeals, nil
+func NewConsiderOnlineStorageDealsConfigFunc(r repo.LockedRepo) (dtypes.ConsiderOnlineStorageDealsConfigFunc, error) {
+	return func() (out bool, err error) {
+		err = readCfg(r, func(cfg *config.StorageMiner) {
+			out = cfg.Dealmaking.ConsiderOnlineStorageDeals
+		})
+		return
 	}, nil
 }
 
-func NewSetAcceptingStorageDealsConfigFunc(r repo.LockedRepo) (dtypes.SetAcceptingStorageDealsConfigFunc, error) {
-	return func(b bool) error {
-		var typeErr error
-
-		setConfigErr := r.SetConfig(func(raw interface{}) {
-			cfg, ok := raw.(*config.StorageMiner)
-			if !ok {
-				typeErr = errors.New("expected storage miner config")
-				return
-			}
-
-			cfg.Dealmaking.AcceptingStorageDeals = b
+func NewSetConsideringOnlineStorageDealsFunc(r repo.LockedRepo) (dtypes.SetConsiderOnlineStorageDealsConfigFunc, error) {
+	return func(b bool) (err error) {
+		err = mutateCfg(r, func(cfg *config.StorageMiner) {
+			cfg.Dealmaking.ConsiderOnlineStorageDeals = b
 		})
-
-		return multierr.Combine(typeErr, setConfigErr)
+		return
 	}, nil
+}
+
+func NewConsiderOnlineRetrievalDealsConfigFunc(r repo.LockedRepo) (dtypes.ConsiderOnlineRetrievalDealsConfigFunc, error) {
+	return func() (out bool, err error) {
+		err = readCfg(r, func(cfg *config.StorageMiner) {
+			out = cfg.Dealmaking.ConsiderOnlineRetrievalDeals
+		})
+		return
+	}, nil
+}
+
+func NewSetConsiderOnlineRetrievalDealsConfigFunc(r repo.LockedRepo) (dtypes.SetConsiderOnlineRetrievalDealsConfigFunc, error) {
+	return func(b bool) (err error) {
+		err = mutateCfg(r, func(cfg *config.StorageMiner) {
+			cfg.Dealmaking.ConsiderOnlineRetrievalDeals = b
+		})
+		return
+	}, nil
+}
+
+func NewStorageDealPieceCidBlocklistConfigFunc(r repo.LockedRepo) (dtypes.StorageDealPieceCidBlocklistConfigFunc, error) {
+	return func() (out []cid.Cid, err error) {
+		err = readCfg(r, func(cfg *config.StorageMiner) {
+			out = cfg.Dealmaking.PieceCidBlocklist
+		})
+		return
+	}, nil
+}
+
+func NewSetStorageDealPieceCidBlocklistConfigFunc(r repo.LockedRepo) (dtypes.SetStorageDealPieceCidBlocklistConfigFunc, error) {
+	return func(blocklist []cid.Cid) (err error) {
+		err = mutateCfg(r, func(cfg *config.StorageMiner) {
+			cfg.Dealmaking.PieceCidBlocklist = blocklist
+		})
+		return
+	}, nil
+}
+
+func NewConsiderOfflineStorageDealsConfigFunc(r repo.LockedRepo) (dtypes.ConsiderOfflineStorageDealsConfigFunc, error) {
+	return func() (out bool, err error) {
+		err = readCfg(r, func(cfg *config.StorageMiner) {
+			out = cfg.Dealmaking.ConsiderOfflineStorageDeals
+		})
+		return
+	}, nil
+}
+
+func NewSetConsideringOfflineStorageDealsFunc(r repo.LockedRepo) (dtypes.SetConsiderOfflineStorageDealsConfigFunc, error) {
+	return func(b bool) (err error) {
+		err = mutateCfg(r, func(cfg *config.StorageMiner) {
+			cfg.Dealmaking.ConsiderOfflineStorageDeals = b
+		})
+		return
+	}, nil
+}
+
+func NewConsiderOfflineRetrievalDealsConfigFunc(r repo.LockedRepo) (dtypes.ConsiderOfflineRetrievalDealsConfigFunc, error) {
+	return func() (out bool, err error) {
+		err = readCfg(r, func(cfg *config.StorageMiner) {
+			out = cfg.Dealmaking.ConsiderOfflineRetrievalDeals
+		})
+		return
+	}, nil
+}
+
+func NewSetConsiderOfflineRetrievalDealsConfigFunc(r repo.LockedRepo) (dtypes.SetConsiderOfflineRetrievalDealsConfigFunc, error) {
+	return func(b bool) (err error) {
+		err = mutateCfg(r, func(cfg *config.StorageMiner) {
+			cfg.Dealmaking.ConsiderOfflineRetrievalDeals = b
+		})
+		return
+	}, nil
+}
+
+func readCfg(r repo.LockedRepo, accessor func(*config.StorageMiner)) error {
+	raw, err := r.Config()
+	if err != nil {
+		return err
+	}
+
+	cfg, ok := raw.(*config.StorageMiner)
+	if !ok {
+		return xerrors.New("expected address of config.StorageMiner")
+	}
+
+	accessor(cfg)
+
+	return nil
+}
+
+func mutateCfg(r repo.LockedRepo, mutator func(*config.StorageMiner)) error {
+	var typeErr error
+
+	setConfigErr := r.SetConfig(func(raw interface{}) {
+		cfg, ok := raw.(*config.StorageMiner)
+		if !ok {
+			typeErr = errors.New("expected storage miner config")
+			return
+		}
+
+		mutator(cfg)
+	})
+
+	return multierr.Combine(typeErr, setConfigErr)
 }
