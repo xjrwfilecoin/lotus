@@ -178,6 +178,7 @@ var runCmd = &cli.Command{
 		taskTypes = append(taskTypes, sealtasks.TTFetch, sealtasks.TTCommit1, sealtasks.TTFinalize)
 
 		if cctx.Bool("precommit1") {
+			taskTypes = append(taskTypes, sealtasks.TTAddPiece)
 			taskTypes = append(taskTypes, sealtasks.TTPreCommit1)
 		}
 		if cctx.Bool("precommit2") {
