@@ -136,3 +136,5 @@ replace github.com/dgraph-io/badger/v2 => github.com/dgraph-io/badger/v2 v2.0.1-
 replace github.com/filecoin-project/sector-storage => /home/xjrw/sector-storage
 
 replace github.com/filecoin-project/specs-storage => /home/xjrw/specs-storage
+
+replace github.com/filecoin-project/storage-fsm => /home/xjrw/storage-fsm
