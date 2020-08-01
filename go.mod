@@ -143,3 +143,5 @@ replace github.com/filecoin-project/sector-storage => /home/xjrw/sector-storage
 replace github.com/filecoin-project/specs-storage => /home/xjrw/specs-storage
 
 replace github.com/filecoin-project/storage-fsm => /home/xjrw/storage-fsm
+
+replace github.com/filecoin-project/go-fil-markets => /home/xjrw/go-fil-markets
