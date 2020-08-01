@@ -25,7 +25,7 @@ func (r *remoteWorker) NewSector(ctx context.Context, sector abi.SectorID) error
 	return xerrors.New("unsupported")
 }
 
-func (r *remoteWorker) AddPiece(ctx context.Context, sector abi.SectorID, pieceSizes []abi.UnpaddedPieceSize, newPieceSize abi.UnpaddedPieceSize, pieceData storage2.Data, pieceType int) (abi.PieceInfo, error) {
+func (r *remoteWorker) AddPiece(ctx context.Context, sector abi.SectorID, pieceSizes []abi.UnpaddedPieceSize, newPieceSize abi.UnpaddedPieceSize, pieceData storage2.Data, PiecePath string) (abi.PieceInfo, error) {
 	return abi.PieceInfo{}, xerrors.New("unsupported")
 }
 
