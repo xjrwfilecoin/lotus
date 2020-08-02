@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	filestore "github.com/filecoin-project/go-fil-markets/filestore"
 	"github.com/filecoin-project/go-fil-markets/storagemarket/impl/funds"
 	"net/http"
+	"os"
 	"time"
 
 	"go.uber.org/fx"
@@ -446,7 +448,8 @@ func StorageProvider(minerAddress dtypes.MinerAddress,
 	funds ProviderDealFunds,
 ) (storagemarket.StorageProvider, error) {
 	net := smnet.NewFromLibp2pHost(h)
-	store, err := piecefilestore.NewLocalFileStore(piecefilestore.OsPath(r.Path()))
+	//store, err := piecefilestore.NewLocalFileStore(piecefilestore.OsPath(r.Path()))
+	store, err := piecefilestore.NewLocalFileStore(filestore.OsPath(os.Getenv("REAL_ROOT")))
 	if err != nil {
 		return nil, err
 	}
