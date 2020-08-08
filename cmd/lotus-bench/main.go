@@ -190,9 +190,9 @@ var sealBenchCmd = &cli.Command{
 				return err
 			}
 			defer func() {
-				if err := os.RemoveAll(tsdir); err != nil {
-					log.Warn("remove all: ", err)
-				}
+				// if err := os.RemoveAll(tsdir); err != nil {
+				// 	log.Warn("remove all: ", err)
+				// }
 			}()
 
 			// TODO: pretty sure this isnt even needed?
@@ -470,6 +470,7 @@ var sealBenchCmd = &cli.Command{
 				fmt.Printf("verify window post proof (hot): %s\n", bo.VerifyWindowPostHot)
 			}
 		}
+
 		return nil
 	},
 }
@@ -505,19 +506,22 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 			Number: i,
 		}
 
-		start := time.Now()
-		log.Infof("[%d] Writing piece into sector...", i)
+		if withP1result == "" {
 
-		//r := rand.New(rand.NewSource(100 + int64(i)))
+			start := time.Now()
+			log.Infof("[%d] Writing piece into sector...", i)
 
-		pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), rand.Reader, "")
-		if err != nil {
-			return nil, nil, err
+			//r := rand.New(rand.NewSource(100 + int64(i)))
+
+			pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), rand.Reader, "")
+			if err != nil {
+				return nil, nil, err
+			}
+
+			raw_pieces = append(raw_pieces, pi)
+
+			sealTimings[i-1].AddPiece = time.Since(start)
 		}
-
-		raw_pieces = append(raw_pieces, pi)
-
-		sealTimings[i-1].AddPiece = time.Since(start)
 	}
 
 	sectorsPerWorker := numSectors / par.PreCommit1
@@ -552,7 +556,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 						ticket = p1Result.Ticket
 						pieces = p1Result.Pieces
 					} else {
-						sid := abi.SectorID{
+						sid = abi.SectorID{
 							Miner:  mid,
 							Number: i,
 						}
@@ -802,6 +806,9 @@ var proveCmd = &cli.Command{
 }
 
 func bps(data abi.SectorSize, d time.Duration) string {
+	if d.Nanoseconds() == 0 {
+		return "NaN"
+	}
 	bdata := new(big.Int).SetUint64(uint64(data))
 	bdata = bdata.Mul(bdata, big.NewInt(time.Second.Nanoseconds()))
 	bps := bdata.Div(bdata, big.NewInt(d.Nanoseconds()))
