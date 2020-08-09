@@ -190,9 +190,9 @@ var sealBenchCmd = &cli.Command{
 				return err
 			}
 			defer func() {
-				if err := os.RemoveAll(tsdir); err != nil {
-					log.Warn("remove all: ", err)
-				}
+				// if err := os.RemoveAll(tsdir); err != nil {
+				// 	log.Warn("remove all: ", err)
+				// }
 			}()
 
 			// TODO: pretty sure this isnt even needed?
@@ -499,25 +499,27 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 		return nil, nil, fmt.Errorf("parallelism factor must cleanly divide numSectors")
 	}
 
-	for i := abi.SectorNumber(1); i <= abi.SectorNumber(numSectors); i++ {
-		sid := abi.SectorID{
-			Miner:  mid,
-			Number: i,
+	if withP1result == "" {
+		for i := abi.SectorNumber(1); i <= abi.SectorNumber(numSectors); i++ {
+			sid := abi.SectorID{
+				Miner:  mid,
+				Number: i,
+			}
+
+			start := time.Now()
+			log.Infof("[%d] Writing piece into sector...", i)
+
+			//r := rand.New(rand.NewSource(100 + int64(i)))
+
+			pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), rand.Reader, "")
+			if err != nil {
+				return nil, nil, err
+			}
+
+			raw_pieces = append(raw_pieces, pi)
+
+			sealTimings[i-1].AddPiece = time.Since(start)
 		}
-
-		start := time.Now()
-		log.Infof("[%d] Writing piece into sector...", i)
-
-		//r := rand.New(rand.NewSource(100 + int64(i)))
-
-		pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), rand.Reader, "")
-		if err != nil {
-			return nil, nil, err
-		}
-
-		raw_pieces = append(raw_pieces, pi)
-
-		sealTimings[i-1].AddPiece = time.Since(start)
 	}
 
 	sectorsPerWorker := numSectors / par.PreCommit1
@@ -802,6 +804,9 @@ var proveCmd = &cli.Command{
 }
 
 func bps(data abi.SectorSize, d time.Duration) string {
+	if d.Nanoseconds() == 0 {
+		return "Nan"
+	}
 	bdata := new(big.Int).SetUint64(uint64(data))
 	bdata = bdata.Mul(bdata, big.NewInt(time.Second.Nanoseconds()))
 	bps := bdata.Div(bdata, big.NewInt(d.Nanoseconds()))
