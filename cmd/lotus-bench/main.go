@@ -457,6 +457,7 @@ var sealBenchCmd = &cli.Command{
 				}
 				fmt.Println("")
 			}
+
 			if !c.Bool("skip-commit2") {
 				fmt.Printf("generate candidates: %s (%s)\n", bo.PostGenerateCandidates, bps(bo.SectorSize*abi.SectorSize(len(bo.SealingResults)), bo.PostGenerateCandidates))
 				fmt.Printf("compute winning post proof (cold): %s\n", bo.PostWinningProofCold)
@@ -554,7 +555,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 						ticket = p1Result.Ticket
 						pieces = p1Result.Pieces
 					} else {
-						sid := abi.SectorID{
+						sid = abi.SectorID{
 							Miner:  mid,
 							Number: i,
 						}
