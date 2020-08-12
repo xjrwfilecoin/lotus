@@ -1,0 +1,9 @@
+git pull
+cd ~/sector-storage
+git pull
+cd ~/specs-storage
+git pull
+cd ~/storage-fsm
+git pull
+cd ~/go-fil-markets
+git pull
