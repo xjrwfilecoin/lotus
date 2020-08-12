@@ -471,6 +471,7 @@ var sealBenchCmd = &cli.Command{
 				fmt.Printf("verify window post proof (hot): %s\n", bo.VerifyWindowPostHot)
 			}
 		}
+
 		return nil
 	},
 }
