@@ -500,13 +500,12 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 		return nil, nil, fmt.Errorf("parallelism factor must cleanly divide numSectors")
 	}
 
-	for i := abi.SectorNumber(1); i <= abi.SectorNumber(numSectors); i++ {
-		sid := abi.SectorID{
-			Miner:  mid,
-			Number: i,
-		}
-
-		if withP1result == "" {
+	if withP1result == "" {
+		for i := abi.SectorNumber(1); i <= abi.SectorNumber(numSectors); i++ {
+			sid := abi.SectorID{
+				Miner:  mid,
+				Number: i,
+			}
 
 			start := time.Now()
 			log.Infof("[%d] Writing piece into sector...", i)
@@ -807,7 +806,7 @@ var proveCmd = &cli.Command{
 
 func bps(data abi.SectorSize, d time.Duration) string {
 	if d.Nanoseconds() == 0 {
-		return "NaN"
+		return "Nan"
 	}
 	bdata := new(big.Int).SetUint64(uint64(data))
 	bdata = bdata.Mul(bdata, big.NewInt(time.Second.Nanoseconds()))
