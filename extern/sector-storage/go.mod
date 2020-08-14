@@ -11,6 +11,7 @@ require (
 	github.com/filecoin-project/go-paramfetch v0.0.2-0.20200218225740-47c639bab663
 	github.com/filecoin-project/specs-actors v0.8.2
 	github.com/filecoin-project/specs-storage v0.1.1-0.20200622113353-88a9704877ea
+	github.com/fxamacker/cbor/v2 v2.2.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/hashicorp/go-multierror v1.0.0

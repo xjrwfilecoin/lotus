@@ -76,7 +76,7 @@ func (mgr *SectorMgr) NewSector(ctx context.Context, sector abi.SectorID) error 
 	return nil
 }
 
-func (mgr *SectorMgr) AddPiece(ctx context.Context, sectorId abi.SectorID, existingPieces []abi.UnpaddedPieceSize, size abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
+func (mgr *SectorMgr) AddPiece(ctx context.Context, sectorId abi.SectorID, existingPieces []abi.UnpaddedPieceSize, size abi.UnpaddedPieceSize, r io.Reader, PiecePath string) (abi.PieceInfo, error) {
 	log.Warn("Add piece: ", sectorId, size, mgr.proofType)
 
 	var b bytes.Buffer

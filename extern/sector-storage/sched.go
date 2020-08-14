@@ -359,6 +359,7 @@ func (sh *scheduler) trySched() {
 		needRes := ResourceTable[task.taskType][sh.spt]
 
 		selectedWindow := -1
+		log.Infof("acceptableWindows %v %v %v %v %v %v %v", task.sector, task.taskType, acceptableWindows[sqi+scheduled], sqi, scheduled, task.index, task.indexHeap)
 		for _, wnd := range acceptableWindows[task.indexHeap] {
 			wid := sh.openWindows[wnd].worker
 			wr := sh.workers[wid].info.Resources
@@ -536,6 +537,7 @@ func (sh *scheduler) runWorker(wid WorkerID) {
 }
 
 func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *workerHandle, req *workerRequest) error {
+	log.Infof("xjrw assignWorker %s <%v> => %v", req.taskType, req.sector, w.info.Hostname)
 	needRes := ResourceTable[req.taskType][sh.spt]
 
 	w.lk.Lock()

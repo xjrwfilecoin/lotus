@@ -104,13 +104,13 @@ func (l *LocalWorker) NewSector(ctx context.Context, sector abi.SectorID) error 
 	return sb.NewSector(ctx, sector)
 }
 
-func (l *LocalWorker) AddPiece(ctx context.Context, sector abi.SectorID, epcs []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
+func (l *LocalWorker) AddPiece(ctx context.Context, sector abi.SectorID, epcs []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader, PiecePath string) (abi.PieceInfo, error) {
 	sb, err := l.sb()
 	if err != nil {
 		return abi.PieceInfo{}, err
 	}
 
-	return sb.AddPiece(ctx, sector, epcs, sz, r)
+	return sb.AddPiece(ctx, sector, epcs, sz, r, PiecePath)
 }
 
 func (l *LocalWorker) Fetch(ctx context.Context, sector abi.SectorID, fileType stores.SectorFileType, ptype stores.PathType, am stores.AcquireMode) error {
