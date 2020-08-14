@@ -64,6 +64,8 @@ type WorkerID uint64
 type Manager struct {
 	scfg *ffiwrapper.Config
 
+	mapReal map[abi.SectorID]struct{}
+
 	ls         stores.LocalStorage
 	storage    *stores.Remote
 	localStore *stores.Local
@@ -108,8 +110,8 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		localStore: lstor,
 		remoteHnd:  &stores.FetchHandler{Local: lstor},
 		index:      si,
-
-		sched: newScheduler(cfg.SealProofType),
+		mapReal:    make(map[abi.SectorID]struct{}),
+		sched:      newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
