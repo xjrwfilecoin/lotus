@@ -319,6 +319,10 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 		return abi.PieceInfo{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 
+	if PiecePath != "" {
+		m.mapReal[sector] = struct{}{}
+	}
+
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
@@ -378,7 +382,9 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 		if err != nil {
 			return err
 		}
-		if os.Getenv("LOTUS_PLDEGE") != "" {
+		_, exist := m.mapReal[sector]
+		if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
+			log.Infof("xjrw ShellExecute %v", sector)
 			go stores.ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 		}
 		out = p
