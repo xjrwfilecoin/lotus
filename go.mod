@@ -110,6 +110,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/raulk/clock v1.1.0
 	github.com/stretchr/objx v0.2.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/supranational/blst v0.1.1
 	github.com/syndtr/goleveldb v1.0.0
@@ -142,3 +143,7 @@ replace github.com/filecoin-project/sector-storage => ./extern/sector-storage
 replace github.com/filecoin-project/storage-fsm => ./extern/storage-fsm
 
 replace github.com/dgraph-io/badger/v2 => github.com/dgraph-io/badger/v2 v2.0.1-rc1.0.20200716180832-3ab515320794
+
+replace github.com/filecoin-project/go-fil-markets => /home/xjrw/go-fil-markets
+
+replace github.com/filecoin-project/specs-storage => /home/xjrw/specs-storage

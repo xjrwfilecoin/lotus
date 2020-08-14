@@ -481,6 +481,7 @@ func (s *WindowPoStScheduler) submitPost(ctx context.Context, proof *miner.Submi
 		}
 
 		if rec.Receipt.ExitCode == 0 {
+			log.Infof("Submitting window post %s success ", sm.Cid())
 			return
 		}
 
