@@ -17,6 +17,7 @@ func (m *Sealing) pledgeReader(size abi.UnpaddedPieceSize) io.Reader {
 
 func (m *Sealing) pledgeSector(ctx context.Context, sectorID abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, sizes ...abi.UnpaddedPieceSize) ([]abi.PieceInfo, error) {
 	if len(sizes) == 0 {
+		log.Infof("pledgeSector sectorID = %v ", sectorID)
 		return nil, nil
 	}
 
@@ -24,7 +25,7 @@ func (m *Sealing) pledgeSector(ctx context.Context, sectorID abi.SectorID, exist
 
 	out := make([]abi.PieceInfo, len(sizes))
 	for i, size := range sizes {
-		ppi, err := m.sealer.AddPiece(ctx, sectorID, existingPieceSizes, size, m.pledgeReader(size))
+		ppi, err := m.sealer.AddPiece(ctx, sectorID, existingPieceSizes, size, m.pledgeReader(size), "")
 		if err != nil {
 			return nil, xerrors.Errorf("add piece: %w", err)
 		}

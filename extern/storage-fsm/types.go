@@ -3,6 +3,7 @@ package sealing
 import (
 	"bytes"
 	"context"
+	"github.com/filecoin-project/go-fil-markets/filestore"
 	"time"
 
 	"github.com/ipfs/go-cid"
@@ -32,6 +33,7 @@ type DealInfo struct {
 	DealID       abi.DealID
 	DealSchedule DealSchedule
 	KeepUnsealed bool
+	PiecePath    filestore.Path
 }
 
 // DealSchedule communicates the time interval of a storage deal. The deal must

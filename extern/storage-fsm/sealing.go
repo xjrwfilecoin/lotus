@@ -146,7 +146,7 @@ func (m *Sealing) AddPieceToAnySector(ctx context.Context, size abi.UnpaddedPiec
 	}
 
 	for _, p := range pads {
-		err = m.addPiece(ctx, sid, p.Unpadded(), m.pledgeReader(p.Unpadded()), nil)
+		err = m.addPiece(ctx, sid, p.Unpadded(), m.pledgeReader(p.Unpadded()), nil, string(d.PiecePath))
 		if err != nil {
 			m.unsealedInfoMap.mux.Unlock()
 			return 0, 0, xerrors.Errorf("writing pads: %w", err)
@@ -154,7 +154,7 @@ func (m *Sealing) AddPieceToAnySector(ctx context.Context, size abi.UnpaddedPiec
 	}
 
 	offset := m.unsealedInfoMap.infos[sid].stored
-	err = m.addPiece(ctx, sid, size, r, &d)
+	err = m.addPiece(ctx, sid, size, r, &d, string(d.PiecePath))
 
 	if err != nil {
 		m.unsealedInfoMap.mux.Unlock()
@@ -172,9 +172,9 @@ func (m *Sealing) AddPieceToAnySector(ctx context.Context, size abi.UnpaddedPiec
 }
 
 // Caller should hold m.unsealedInfoMap.mux
-func (m *Sealing) addPiece(ctx context.Context, sectorID abi.SectorNumber, size abi.UnpaddedPieceSize, r io.Reader, di *DealInfo) error {
-	log.Infof("Adding piece to sector %d", sectorID)
-	ppi, err := m.sealer.AddPiece(sectorstorage.WithPriority(ctx, DealSectorPriority), m.minerSector(sectorID), m.unsealedInfoMap.infos[sectorID].pieceSizes, size, r)
+func (m *Sealing) addPiece(ctx context.Context, sectorID abi.SectorNumber, size abi.UnpaddedPieceSize, r io.Reader, di *DealInfo, PiecePath string) error {
+	log.Infof("Adding piece to sector = %d PiecePath = %s", sectorID, PiecePath)
+	ppi, err := m.sealer.AddPiece(sectorstorage.WithPriority(ctx, DealSectorPriority), m.minerSector(sectorID), m.unsealedInfoMap.infos[sectorID].pieceSizes, size, r, PiecePath)
 	if err != nil {
 		return xerrors.Errorf("writing piece: %w", err)
 	}
