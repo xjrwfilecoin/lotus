@@ -2,15 +2,11 @@ package sectorstorage
 
 import (
 	"context"
-	"github.com/filecoin-project/go-fil-markets/filestore"
-	"github.com/filecoin-project/go-padreader"
 	"github.com/filecoin-project/sector-storage/sealtasks"
 	"github.com/filecoin-project/sector-storage/stores"
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"github.com/filecoin-project/specs-storage/storage"
-	nr "github.com/filecoin-project/storage-fsm/lib/nullreader"
 	"golang.org/x/xerrors"
-	"io"
 	"os"
 	"time"
 )
@@ -50,7 +46,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 
 		if os.Getenv("LOTUS_PLDEGE") != "" {
 			log.Infof("xjrw ShellExecute %v", sector)
-			go stores.ShellExecute(os.Getenv("LOTUS_PLDEGE"))
+			go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 		}
 		out = p
 		return nil
@@ -172,5 +168,5 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepU
 		log.Infof("xjrw cast mgr FinalizeSector %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 	}()
 
-	return oldFinalizeSector(ctx, sector, keepUnsealed)
+	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
 }
