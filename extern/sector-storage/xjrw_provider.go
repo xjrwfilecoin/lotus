@@ -7,9 +7,54 @@ import (
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"github.com/filecoin-project/specs-storage/storage"
 	"golang.org/x/xerrors"
+	"io"
 	"os"
 	"time"
 )
+
+func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
+	log.Infof("xjrw AddPiece begin %v sz = %v", sector, sz)
+	t1 := time.Now()
+	defer func() {
+		t2 := time.Now()
+		log.Infof("xjrw cast mgr AddPiece %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+	}()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	if err := m.index.StorageLock(ctx, sector, stores.FTNone, stores.FTUnsealed); err != nil {
+		return abi.PieceInfo{}, xerrors.Errorf("acquiring sector lock: %w", err)
+	}
+
+	var selector WorkerSelector
+	var err error
+	if len(existingPieces) == 0 { // new
+		selector = newAllocSelector(m.index, stores.FTUnsealed, stores.PathSealing)
+	} else { // use existing
+		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
+	}
+
+	var out abi.PieceInfo
+	err = m.sched.Schedule(ctx, sector, sealtasks.TTAddPiece, selector, schedNop, func(ctx context.Context, w Worker) error {
+		inf, e := w.Info(ctx)
+		if e != nil {
+			return e
+		}
+
+		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTAddPiece)
+		defer endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTAddPiece)
+
+		p, err := w.AddPiece(ctx, sector, existingPieces, sz, r)
+		if err != nil {
+			return err
+		}
+		out = p
+		return nil
+	})
+
+	return out, err
+}
 
 func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
 	log.Info("xjrw SealPreCommit1 begin ", sector)
