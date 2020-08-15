@@ -536,6 +536,7 @@ func (sh *scheduler) runWorker(wid WorkerID) {
 }
 
 func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *workerHandle, req *workerRequest) error {
+	log.Infof("xjrw assignWorker %s <%v> => %v", req.taskType, req.sector, w.info.Hostname)
 	needRes := ResourceTable[req.taskType][sh.spt]
 
 	w.lk.Lock()
