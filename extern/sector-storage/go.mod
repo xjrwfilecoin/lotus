@@ -16,6 +16,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/ipfs/go-cid v0.0.6
 	github.com/ipfs/go-ipfs-files v0.0.7
+	github.com/fxamacker/cbor/v2 v2.2.0
 	github.com/ipfs/go-ipld-cbor v0.0.5-0.20200204214505-252690b78669 // indirect
 	github.com/ipfs/go-log v1.0.4
 	github.com/ipfs/go-log/v2 v2.0.5

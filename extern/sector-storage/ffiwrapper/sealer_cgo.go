@@ -12,7 +12,9 @@ import (
 	"math/bits"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/ipfs/go-cid"
 	"golang.org/x/xerrors"
@@ -75,8 +77,9 @@ func CopyFile(sourceFile string, destinationFile string) {
 
 func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data) (abi.PieceInfo, error) {
 	parent_path := os.Getenv(ssd_parent)
-	log.Infof("AddPiece existingPieceSizes = %v", existingPieceSizes)
-	if parent_path != "" && len(existingPieceSizes) == 0 {
+	oType := reflect.TypeOf(file)
+	log.Infof("AddPiece existingPieceSizes = %v oType = %v", existingPieceSizes, oType)
+	if parent_path != "" && len(existingPieceSizes) == 0 && strings.Contains(oType.String(), "NullReader") {
 		stagedPath, done, _ := sb.sectors.AcquireSector(ctx, sector, 0, stores.FTUnsealed, stores.PathSealing)
 		done()
 
