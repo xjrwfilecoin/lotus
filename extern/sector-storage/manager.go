@@ -114,6 +114,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		Prover: prover,
 	}
 
+	initState()
 	go m.sched.runSched()
 
 	localTasks := []sealtasks.TaskType{
