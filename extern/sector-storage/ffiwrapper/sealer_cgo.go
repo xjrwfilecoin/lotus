@@ -32,6 +32,7 @@ import (
 var _ Storage = &Sealer{}
 
 const ssd_parent = "FIL_PROOFS_ADDPIECE_CACHE"
+
 func New(sectors SectorProvider, cfg *Config) (*Sealer, error) {
 	sectorSize, err := sizeFromConfig(*cfg)
 	if err != nil {
@@ -74,7 +75,7 @@ func CopyFile(sourceFile string, destinationFile string) {
 
 func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data) (abi.PieceInfo, error) {
 	parent_path := os.Getenv(ssd_parent)
-	log.Infof("AddPiece existingPieceSizes = %v  PiecePath = %v", existingPieceSizes, PiecePath)
+	log.Infof("AddPiece existingPieceSizes = %v", existingPieceSizes)
 	if parent_path != "" && len(existingPieceSizes) == 0 {
 		stagedPath, done, _ := sb.sectors.AcquireSector(ctx, sector, 0, stores.FTUnsealed, stores.PathSealing)
 		done()
