@@ -78,8 +78,20 @@ func CopyFile(sourceFile string, destinationFile string) {
 func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data) (abi.PieceInfo, error) {
 	parent_path := os.Getenv(ssd_parent)
 	oType := reflect.TypeOf(file)
+
 	log.Infof("AddPiece existingPieceSizes = %v oType = %v", existingPieceSizes, oType)
-	if parent_path != "" && len(existingPieceSizes) == 0 && strings.Contains(oType.String(), "NullReader") {
+
+	zero_device := false;
+	 if (strings.Contains(oType.String(),"os.File")){
+		 args := make([]reflect.Value, 0)
+		 oValue := reflect.ValueOf(file)
+		 value := oValue.MethodByName("Name").Call(args);
+		 if len(value) > 0 && strings.Contains(value[0].String(),("/dev/zero")) {
+		 	zero_device = true;
+		 }
+
+	 }
+	if parent_path != "" && len(existingPieceSizes) == 0 && (strings.Contains(oType.String(), "NullReader") || zero_device)  {
 		stagedPath, done, _ := sb.sectors.AcquireSector(ctx, sector, 0, stores.FTUnsealed, stores.PathSealing)
 		done()
 
@@ -186,7 +198,7 @@ func (sb *Sealer) addPiece(ctx context.Context, sector abi.SectorID, existingPie
 			return abi.PieceInfo{}, xerrors.Errorf("opening unsealed sector file: %w", err)
 		}
 	}
-	log.Info("partial file created:", stagedPath.Unsealed)
+	log.Info("partial file created:", stagedFile.path)
 	w, err := stagedFile.Writer(storiface.UnpaddedByteIndex(offset).Padded(), pieceSize.Padded())
 	if err != nil {
 		return abi.PieceInfo{}, xerrors.Errorf("getting partial file writer: %w", err)

@@ -500,6 +500,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 	}
 
 	if withP1result == "" {
+		zero, _ := os.Open("/dev/zero")
 		for i := abi.SectorNumber(1); i <= abi.SectorNumber(numSectors); i++ {
 			sid := abi.SectorID{
 				Miner:  mid,
@@ -511,7 +512,8 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 
 			//r := rand.New(rand.NewSource(100 + int64(i)))
 
-			pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), rand.Reader)
+
+			pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), zero)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -520,6 +522,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 
 			sealTimings[i-1].AddPiece = time.Since(start)
 		}
+		zero.Close()
 	}
 
 	sectorsPerWorker := numSectors / par.PreCommit1
