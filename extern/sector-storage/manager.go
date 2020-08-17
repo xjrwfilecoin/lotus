@@ -6,6 +6,7 @@ import (
 	"github.com/filecoin-project/sector-storage/fsutil"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log/v2"
@@ -277,17 +278,26 @@ func (m *Manager) ReadPiece(ctx context.Context, sink io.Writer, sector abi.Sect
 }
 
 func (m *Manager) NewSector(ctx context.Context, sector abi.SectorID) error {
-	log.Warnf("stub NewSector")
+	log.Warnf("stub NewSector %v", sector)
 	return nil
 }
 
 func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
+	log.Infof("xjrw AddPiece begin %v sz = %v", sector, sz)
+	t1 := time.Now()
+	defer func() {
+		t2 := time.Now()
+		log.Infof("xjrw cast mgr AddPiece %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+	}()
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	log.Infof("xjrw AddPiece begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTNone, stores.FTUnsealed); err != nil {
 		return abi.PieceInfo{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
+	log.Infof("xjrw AddPiece end StorageLock %v", sector)
 
 	var selector WorkerSelector
 	var err error
@@ -311,12 +321,21 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 }
 
 func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
+	log.Info("xjrw SealPreCommit1 begin ", sector)
+	t1 := time.Now()
+	defer func() {
+		t2 := time.Now()
+		log.Infof("xjrw cast mgr SealPreCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+	}()
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	log.Infof("xjrw SealPreCommit1 begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTUnsealed, stores.FTSealed|stores.FTCache); err != nil {
 		return nil, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
+	log.Infof("xjrw SealPreCommit1 end StorageLock %v", sector)
 
 	// TODO: also consider where the unsealed data sits
 
@@ -335,12 +354,21 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 }
 
 func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
+	log.Info("xjrw SealPreCommit2 begin ", sector)
+	t1 := time.Now()
+	defer func() {
+		t2 := time.Now()
+		log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+	}()
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	log.Infof("xjrw SealPreCommit2 begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTSealed, stores.FTCache); err != nil {
 		return storage.SectorCids{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
+	log.Infof("xjrw SealPreCommit2 end StorageLock %v", sector)
 
 	selector := newExistingSelector(m.index, sector, stores.FTCache|stores.FTSealed, true)
 
@@ -356,12 +384,21 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 }
 
 func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (out storage.Commit1Out, err error) {
+	log.Info("xjrw SealCommit1 begin ", sector)
+	t1 := time.Now()
+	defer func() {
+		t2 := time.Now()
+		log.Infof("xjrw cast mgr SealCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+	}()
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	log.Infof("xjrw SealCommit1 begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTSealed, stores.FTCache); err != nil {
 		return storage.Commit1Out{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
+	log.Infof("xjrw SealCommit1 end StorageLock %v", sector)
 
 	// NOTE: We set allowFetch to false in so that we always execute on a worker
 	// with direct access to the data. We want to do that because this step is
@@ -380,6 +417,13 @@ func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 }
 
 func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
+	log.Info("xjrw SealCommit2 begin ", sector)
+	t1 := time.Now()
+	defer func() {
+		t2 := time.Now()
+		log.Infof("xjrw cast mgr SealCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+	}()
+
 	selector := newTaskSelector()
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTCommit2, selector, schedNop, func(ctx context.Context, w Worker) error {
