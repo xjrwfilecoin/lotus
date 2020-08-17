@@ -295,6 +295,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 
 	log.Infof("xjrw AddPiece begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTNone, stores.FTUnsealed); err != nil {
+		log.Infof("xjrw AddPiece StorageLock %v error = %v", sector, err)
 		return abi.PieceInfo{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 	log.Infof("xjrw AddPiece end StorageLock %v", sector)
@@ -333,6 +334,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 
 	log.Infof("xjrw SealPreCommit1 begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTUnsealed, stores.FTSealed|stores.FTCache); err != nil {
+		log.Infof("xjrw SealPreCommit1 StorageLock %v error = %v", sector, err)
 		return nil, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 	log.Infof("xjrw SealPreCommit1 end StorageLock %v", sector)
@@ -366,6 +368,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 
 	log.Infof("xjrw SealPreCommit2 begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTSealed, stores.FTCache); err != nil {
+		log.Infof("xjrw SealPreCommit2 StorageLock %v error = %v", sector, err)
 		return storage.SectorCids{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 	log.Infof("xjrw SealPreCommit2 end StorageLock %v", sector)
@@ -396,6 +399,7 @@ func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 
 	log.Infof("xjrw SealCommit1 begin StorageLock %v", sector)
 	if err := m.index.StorageLock(ctx, sector, stores.FTSealed, stores.FTCache); err != nil {
+		log.Infof("xjrw SealCommit1 StorageLock %v error = %v", sector, err)
 		return storage.Commit1Out{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 	log.Infof("xjrw SealCommit1 end StorageLock %v", sector)
