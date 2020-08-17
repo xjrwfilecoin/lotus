@@ -186,7 +186,7 @@ func (sb *Sealer) addPiece(ctx context.Context, sector abi.SectorID, existingPie
 			return abi.PieceInfo{}, xerrors.Errorf("opening unsealed sector file: %w", err)
 		}
 	}
-	log.Info("partial file created:", stagedPath.Unsealed)
+	log.Info("partial file created:", stagedFile.path)
 	w, err := stagedFile.Writer(storiface.UnpaddedByteIndex(offset).Padded(), pieceSize.Padded())
 	if err != nil {
 		return abi.PieceInfo{}, xerrors.Errorf("getting partial file writer: %w", err)
