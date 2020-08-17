@@ -27,6 +27,7 @@ import (
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"github.com/filecoin-project/specs-actors/actors/builtin/miner"
 	"github.com/filecoin-project/specs-storage/storage"
+	sealing "github.com/filecoin-project/storage-fsm"
 
 	lapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
@@ -511,7 +512,8 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 
 			//r := rand.New(rand.NewSource(100 + int64(i)))
 
-			pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), rand.Reader)
+			size := abi.PaddedPieceSize(sectorSize).Unpadded()
+			pi, err := sb.AddPiece(context.TODO(), sid, nil, size, sealing.NewNullReader(size))
 			if err != nil {
 				return nil, nil, err
 			}
