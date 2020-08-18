@@ -2,7 +2,7 @@ package sectorstorage
 
 import (
 	"database/sql"
-	"github.com/filecoin-project/sector-storage/sealtasks"
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"os/exec"
