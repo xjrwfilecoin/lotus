@@ -41,7 +41,7 @@ require (
 	github.com/filecoin-project/specs-actors v0.9.2
 	github.com/filecoin-project/specs-storage v0.1.1-0.20200730063404-f7db367e9401
 	github.com/filecoin-project/storage-fsm v0.0.0-20200805013058-9d9ea4e6331f
-	github.com/fxamacker/cbor/v2 v2.2.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.2.0
 	github.com/gbrlsnchs/jwt/v3 v3.0.0-beta.1
 	github.com/go-kit/kit v0.10.0
 	github.com/go-ole/go-ole v1.2.4 // indirect
@@ -103,7 +103,7 @@ require (
 	github.com/libp2p/go-libp2p-yamux v0.2.8
 	github.com/libp2p/go-maddr-filter v0.1.0
 	github.com/mattn/go-isatty v0.0.12 // indirect
-	github.com/mattn/go-sqlite3 v1.14.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/multiformats/go-base32 v0.0.3
