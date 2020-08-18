@@ -223,6 +223,7 @@ func (sh *scheduler) runSched() {
 			sh.dropWorker(wid)
 
 		case req := <-sh.schedule:
+			log.Infof("sh.schedule %v %v", req.sector, req.taskType)
 			sh.schedQueue.Push(req)
 			sh.trySched()
 
@@ -230,6 +231,7 @@ func (sh *scheduler) runSched() {
 				sh.testSync <- struct{}{}
 			}
 		case req := <-sh.windowRequests:
+			log.Infof("sh.windowRequests %v", req.worker)
 			sh.openWindows = append(sh.openWindows, req)
 			sh.trySched()
 
@@ -536,6 +538,7 @@ func (sh *scheduler) runWorker(wid WorkerID) {
 }
 
 func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *workerHandle, req *workerRequest) error {
+	log.Infof("xjrw assignWorker %s <%v> => %v", req.taskType, req.sector, w.info.Hostname)
 	needRes := ResourceTable[req.taskType][sh.spt]
 
 	w.lk.Lock()

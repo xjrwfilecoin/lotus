@@ -6,10 +6,15 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"github.com/fxamacker/cbor/v2"
 	"io"
+	"io/ioutil"
 	"math/bits"
 	"os"
+	"path/filepath"
+	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/ipfs/go-cid"
 	"golang.org/x/xerrors"
@@ -27,6 +32,7 @@ import (
 )
 
 var _ Storage = &Sealer{}
+const ssd_parent = "FIL_PROOFS_ADDPIECE_CACHE"
 
 func New(sectors SectorProvider, cfg *Config) (*Sealer, error) {
 	sectorSize, err := sizeFromConfig(*cfg)
@@ -52,7 +58,75 @@ func (sb *Sealer) NewSector(ctx context.Context, sector abi.SectorID) error {
 	return nil
 }
 
+func CopyFile(sourceFile string, destinationFile string) {
+	input, err := ioutil.ReadFile(sourceFile)
+	if err != nil {
+		log.Errorf("ReadFile error: ", err)
+		return
+	}
+
+	err = ioutil.WriteFile(destinationFile, input, 0644)
+	if err != nil {
+		log.Errorf("WriteFile error: ", err)
+		return
+	}
+
+	log.Info("Copy file src = ", sourceFile, " dest = ", destinationFile)
+}
+
 func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data) (abi.PieceInfo, error) {
+	parent_path := os.Getenv(ssd_parent)
+	oType := reflect.TypeOf(file)
+	log.Infof("AddPiece sector = %v existingPieceSizes = %v oType = %v", sector, existingPieceSizes, oType)
+	if parent_path != "" && len(existingPieceSizes) == 0 && strings.Contains(oType.String(), "NullReader") {
+		stagedPath, done, _ := sb.sectors.AcquireSector(ctx, sector, 0, stores.FTUnsealed, stores.PathSealing)
+		done()
+
+		pre_add_piece := parent_path + "/cached_add_piece.dat"
+		pre_add_committed := parent_path + "/cached_add_piece.commit"
+		if _, err := os.Stat(parent_path); os.IsNotExist(err) {
+			os.Mkdir(parent_path, os.ModeDir|os.ModePerm)
+		}
+		log.Info("create cached piece:", pre_add_piece)
+		if _, err := os.Stat(pre_add_committed); os.IsNotExist(err) {
+			// path/to/whatever does not exist
+			piece_info, err := sb.addPiece(ctx, sector, existingPieceSizes, pieceSize, file, pre_add_piece)
+
+			if err == nil {
+				log.Info("piece_info: ", piece_info)
+				b, err := cbor.Marshal(piece_info) // encode v to []byte b
+				ioutil.WriteFile(pre_add_committed, b, 0644)
+				CopyFile(pre_add_piece, stagedPath.Unsealed)
+				return piece_info, err
+			} else {
+				log.Errorf("sb.addPiece error: ", err)
+				CopyFile(pre_add_piece, stagedPath.Unsealed)
+				return abi.PieceInfo{}, err
+			}
+		} else {
+			bytes, err := ioutil.ReadFile(pre_add_committed)
+			if err != nil {
+				log.Errorf("ioutil.ReadFile error:  ", err)
+				CopyFile(pre_add_piece, stagedPath.Unsealed)
+				return abi.PieceInfo{}, err
+			}
+			piece_info := abi.PieceInfo{}
+			err = cbor.Unmarshal(bytes, &piece_info)
+			log.Info("piece_info: ", piece_info)
+			dir := filepath.Dir(stagedPath.Unsealed)
+			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				os.Mkdir(dir, os.ModeDir|os.ModePerm)
+			}
+			CopyFile(pre_add_piece, stagedPath.Unsealed)
+			return piece_info, err
+		}
+
+	} else {
+		return sb.addPiece(ctx, sector, existingPieceSizes, pieceSize, file, "")
+	}
+
+}
+func (sb *Sealer) addPiece(ctx context.Context, sector abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data, cached_path string) (abi.PieceInfo, error) {
 	var offset abi.UnpaddedPieceSize
 	for _, size := range existingPieceSizes {
 		offset += size
@@ -63,6 +137,7 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 	if offset.Padded()+pieceSize.Padded() > maxPieceSize {
 		return abi.PieceInfo{}, xerrors.Errorf("can't add %d byte piece to sector %v with %d bytes of existing pieces", pieceSize, sector, offset)
 	}
+	log.Info("max piece Size:", maxPieceSize, " current size:", pieceSize)
 
 	var err error
 	var done func()
@@ -87,7 +162,11 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 			return abi.PieceInfo{}, xerrors.Errorf("acquire unsealed sector: %w", err)
 		}
 
-		stagedFile, err = createPartialFile(maxPieceSize, stagedPath.Unsealed)
+		if cached_path == "" {
+			stagedFile, err = createPartialFile(maxPieceSize, stagedPath.Unsealed)
+		} else {
+			stagedFile, err = createPartialFile(maxPieceSize, cached_path)
+		}
 		if err != nil {
 			return abi.PieceInfo{}, xerrors.Errorf("creating unsealed sector file: %w", err)
 		}
@@ -97,12 +176,16 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 			return abi.PieceInfo{}, xerrors.Errorf("acquire unsealed sector: %w", err)
 		}
 
-		stagedFile, err = openPartialFile(maxPieceSize, stagedPath.Unsealed)
+		if cached_path == "" {
+			stagedFile, err = openPartialFile(maxPieceSize, stagedPath.Unsealed)
+		} else {
+			stagedFile, err = openPartialFile(maxPieceSize, cached_path)
+		}
 		if err != nil {
 			return abi.PieceInfo{}, xerrors.Errorf("opening unsealed sector file: %w", err)
 		}
 	}
-
+	log.Info("partial file created:", stagedFile.path)
 	w, err := stagedFile.Writer(storiface.UnpaddedByteIndex(offset).Padded(), pieceSize.Padded())
 	if err != nil {
 		return abi.PieceInfo{}, xerrors.Errorf("getting partial file writer: %w", err)
@@ -116,7 +199,7 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 
 	buf := make([]byte, chunk.Unpadded())
 	var pieceCids []abi.PieceInfo
-
+	log.Info("partial file created")
 	for {
 		var read int
 		for rbuf := buf; len(rbuf) > 0; {

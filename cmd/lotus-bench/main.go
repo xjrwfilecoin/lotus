@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -27,6 +27,7 @@ import (
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"github.com/filecoin-project/specs-actors/actors/builtin/miner"
 	"github.com/filecoin-project/specs-storage/storage"
+	sealing "github.com/filecoin-project/storage-fsm"
 
 	lapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
@@ -135,6 +136,18 @@ var sealBenchCmd = &cli.Command{
 			Name:  "save-commit2-input",
 			Usage: "Save commit2 input to a file",
 		},
+		&cli.StringFlag{
+			Name:  "bench-dir",
+			Usage: "specify bench out dir",
+		},
+		&cli.StringFlag{
+			Name:  "save-p2-input",
+			Usage: "Save pre-commit2 input to a file",
+		},
+		&cli.StringFlag{
+			Name:  "with-p2-input",
+			Usage: "skip p1 and use pre-commit2 input to bench",
+		},
 		&cli.IntFlag{
 			Name:  "num-sectors",
 			Value: 1,
@@ -154,6 +167,9 @@ var sealBenchCmd = &cli.Command{
 
 		robench := c.String("benchmark-existing-sectorbuilder")
 
+		exportP1 := c.String("save-p2-input")
+		withP1Result := c.String("with-p2-input")
+		benchoutdir := c.String("bench-dir")
 		var sbdir string
 
 		if robench == "" {
@@ -168,13 +184,16 @@ var sealBenchCmd = &cli.Command{
 			}
 
 			tsdir, err := ioutil.TempDir(sdir, "bench")
+			if benchoutdir != "" {
+				tsdir = sdir + "/" + benchoutdir
+			}
 			if err != nil {
 				return err
 			}
 			defer func() {
-				if err := os.RemoveAll(tsdir); err != nil {
-					log.Warn("remove all: ", err)
-				}
+				// if err := os.RemoveAll(tsdir); err != nil {
+				// 	log.Warn("remove all: ", err)
+				// }
 			}()
 
 			// TODO: pretty sure this isnt even needed?
@@ -244,7 +263,7 @@ var sealBenchCmd = &cli.Command{
 				PreCommit2: 1,
 				Commit:     1,
 			}
-			sealTimings, sealedSectors, err = runSeals(sb, sbfs, c.Int("num-sectors"), parCfg, mid, sectorSize, []byte(c.String("ticket-preimage")), c.String("save-commit2-input"), c.Bool("skip-commit2"), c.Bool("skip-unseal"))
+			sealTimings, sealedSectors, err = runSeals(sb, sbfs, c.Int("num-sectors"), parCfg, mid, sectorSize, []byte(c.String("ticket-preimage")), exportP1, withP1Result, c.String("save-commit2-input"), c.Bool("skip-commit2"), c.Bool("skip-unseal"))
 			if err != nil {
 				return xerrors.Errorf("failed to run seals: %w", err)
 			}
@@ -426,7 +445,7 @@ var sealBenchCmd = &cli.Command{
 
 			fmt.Println(string(data))
 		} else {
-			fmt.Printf("----\nresults (v27) (%d)\n", sectorSize)
+			fmt.Printf("----\nresults (v28) (%d)\n", sectorSize)
 			if robench == "" {
 				fmt.Printf("seal: addPiece: %s (%s)\n", bo.SealingResults[0].AddPiece, bps(bo.SectorSize, bo.SealingResults[0].AddPiece)) // TODO: average across multiple sealings
 				fmt.Printf("seal: preCommit phase 1: %s (%s)\n", bo.SealingResults[0].PreCommit1, bps(bo.SectorSize, bo.SealingResults[0].PreCommit1))
@@ -461,9 +480,16 @@ type ParCfg struct {
 	PreCommit2 int
 	Commit     int
 }
+type P1Result struct {
+	Sid    abi.SectorID
+	P1co   storage.PreCommit1Out
+	Ticket []byte
+	Pieces []abi.PieceInfo
+}
 
-func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par ParCfg, mid abi.ActorID, sectorSize abi.SectorSize, ticketPreimage []byte, saveC2inp string, skipc2, skipunseal bool) ([]SealingResult, []abi.SectorInfo, error) {
-	var pieces []abi.PieceInfo
+func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par ParCfg, mid abi.ActorID, sectorSize abi.SectorSize, ticketPreimage []byte,
+	saveP1result string, withP1result string, saveC2inp string, skipc2, skipunseal bool) ([]SealingResult, []abi.SectorInfo, error) {
+	var raw_pieces []abi.PieceInfo
 	sealTimings := make([]SealingResult, numSectors)
 	sealedSectors := make([]abi.SectorInfo, numSectors)
 
@@ -474,25 +500,28 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 		return nil, nil, fmt.Errorf("parallelism factor must cleanly divide numSectors")
 	}
 
-	for i := abi.SectorNumber(1); i <= abi.SectorNumber(numSectors); i++ {
-		sid := abi.SectorID{
-			Miner:  mid,
-			Number: i,
+	if withP1result == "" {
+		for i := abi.SectorNumber(1); i <= abi.SectorNumber(numSectors); i++ {
+			sid := abi.SectorID{
+				Miner:  mid,
+				Number: i,
+			}
+
+			start := time.Now()
+			log.Infof("[%d] Writing piece into sector...", i)
+
+			//r := rand.New(rand.NewSource(100 + int64(i)))
+
+			size := abi.PaddedPieceSize(sectorSize).Unpadded()
+			pi, err := sb.AddPiece(context.TODO(), sid, nil, size, sealing.NewNullReader(size))
+			if err != nil {
+				return nil, nil, err
+			}
+
+			raw_pieces = append(raw_pieces, pi)
+
+			sealTimings[i-1].AddPiece = time.Since(start)
 		}
-
-		start := time.Now()
-		log.Infof("[%d] Writing piece into sector...", i)
-
-		r := rand.New(rand.NewSource(100 + int64(i)))
-
-		pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), r)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		pieces = append(pieces, pi)
-
-		sealTimings[i-1].AddPiece = time.Since(start)
 	}
 
 	sectorsPerWorker := numSectors / par.PreCommit1
@@ -505,23 +534,60 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 				end := start + sectorsPerWorker
 				for i := abi.SectorNumber(start); i < abi.SectorNumber(end); i++ {
 					ix := int(i - 1)
-					sid := abi.SectorID{
-						Miner:  mid,
-						Number: i,
-					}
-
+					sid := abi.SectorID{}
+					pc1o := storage.PreCommit1Out{}
+					var pieces []abi.PieceInfo
+					var ticket []byte
+					err := error(nil)
 					start := time.Now()
+					if withP1result != "" {
+						log.Infof("[%d] use presealed replication(1)...", i)
 
-					trand := blake2b.Sum256(ticketPreimage)
-					ticket := abi.SealRandomness(trand[:])
+						p1Result := P1Result{}
+						inb, err := ioutil.ReadFile(withP1result)
+						if err != nil {
+							return xerrors.Errorf("reading input file: %w", err)
+						}
+						if err := json.Unmarshal(inb, &p1Result); err != nil {
+							return xerrors.Errorf("unmarshalling input file: %w", err)
+						}
+						sid = p1Result.Sid
+						pc1o = p1Result.P1co
+						ticket = p1Result.Ticket
+						pieces = p1Result.Pieces
+					} else {
+						sid = abi.SectorID{
+							Miner:  mid,
+							Number: i,
+						}
 
-					log.Infof("[%d] Running replication(1)...", i)
-					pieces := []abi.PieceInfo{pieces[ix]}
-					pc1o, err := sb.SealPreCommit1(context.TODO(), sid, ticket, pieces)
-					if err != nil {
-						return xerrors.Errorf("commit: %w", err)
+						trand := blake2b.Sum256(ticketPreimage)
+						ticket = abi.SealRandomness(trand[:])
+						log.Infof("[%d] Running replication(1)...", i)
+						pieces = []abi.PieceInfo{raw_pieces[ix]}
+						pc1o, err = sb.SealPreCommit1(context.TODO(), sid, ticket, pieces)
+						if err != nil {
+							return xerrors.Errorf("commit: %w", err)
+						}
+
+						if saveP1result != "" {
+							p1Result := P1Result{
+								Sid:    sid,
+								P1co:   pc1o,
+								Ticket: ticket,
+								Pieces: pieces,
+							}
+							b, err := json.Marshal(&p1Result)
+							if err != nil {
+								return err
+							}
+
+							if err := ioutil.WriteFile(saveP1result, b, 0664); err != nil {
+								log.Warnf("%+v", err)
+							}
+							return nil
+						}
 					}
-
 					precommit1 := time.Now()
 
 					preCommit2Sema <- struct{}{}
@@ -731,7 +797,7 @@ var proveCmd = &cli.Command{
 
 		fmt.Printf("proof: %x\n", proof)
 
-		fmt.Printf("----\nresults (v27) (%d)\n", c2in.SectorSize)
+		fmt.Printf("----\nresults (v28) (%d)\n", c2in.SectorSize)
 		dur := sealCommit2.Sub(start)
 
 		fmt.Printf("seal: commit phase 2: %s (%s)\n", dur, bps(abi.SectorSize(c2in.SectorSize), dur))
@@ -740,6 +806,9 @@ var proveCmd = &cli.Command{
 }
 
 func bps(data abi.SectorSize, d time.Duration) string {
+	if d.Nanoseconds() == 0 {
+		return "Nan"
+	}
 	bdata := new(big.Int).SetUint64(uint64(data))
 	bdata = bdata.Mul(bdata, big.NewInt(time.Second.Nanoseconds()))
 	bps := bdata.Div(bdata, big.NewInt(d.Nanoseconds()))
