@@ -24,10 +24,10 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper"
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper/basicfs"
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
+	sealing "github.com/filecoin-project/lotus/extern/storage-sealing"
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"github.com/filecoin-project/specs-actors/actors/builtin/miner"
 	"github.com/filecoin-project/specs-storage/storage"
-	sealing "github.com/filecoin-project/storage-fsm"
 
 	lapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
@@ -540,7 +540,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 					var ticket []byte
 					err := error(nil)
 					start := time.Now()
-					skip_p2_and := false;
+					skip_p2_and := false
 					if withP1result != "" {
 						log.Infof("[%d] use presealed replication(1)...", i)
 
@@ -587,7 +587,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 								log.Warnf("%+v", err)
 							}
 
-							skip_p2_and = true;
+							skip_p2_and = true
 						}
 					}
 					precommit1 := time.Now()
@@ -704,7 +704,6 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 						sealTimings[ix].Verify = verifySeal.Sub(sealcommit2)
 						sealTimings[ix].Unseal = unseal.Sub(verifySeal)
 					}
-
 
 					sealTimings[ix].PreCommit1 = precommit1.Sub(start)
 
