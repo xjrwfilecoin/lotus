@@ -30,6 +30,10 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 	}
 	log.Infof("xjrw AddPiece end StorageLock %v", sector)
 
+	if len(existingPieces) == 0 {
+		m.mapReal[sector] = struct{}{}
+	}
+
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
@@ -110,7 +114,8 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 	}()
 
-	if os.Getenv("LOTUS_PLDEGE") != "" {
+	_, exist := m.mapReal[sector]
+	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
 		log.Infof("xjrw ShellExecute %v", sector)
 		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 	}
