@@ -70,7 +70,7 @@ func startSector(sector, wk string, tk sealtasks.TaskType) {
 
 	pre := ""
 	if tk == sealtasks.TTAddPiece {
-		pre = "insert into sector(id, addpiecestart,addpiecehost) values(?, ?, ?)"
+		pre = "replace into sector(id, addpiecestart,addpiecehost) values(?, ?, ?)"
 	} else if tk == sealtasks.TTPreCommit1 {
 		pre = "update sector set p1start = ?, p1host = ?  where id = ?"
 	} else if tk == sealtasks.TTPreCommit2 {

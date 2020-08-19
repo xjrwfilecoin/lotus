@@ -95,10 +95,6 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 			return err
 		}
 
-		if os.Getenv("LOTUS_PLDEGE") != "" {
-			log.Infof("xjrw ShellExecute %v", sector)
-			go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
-		}
 		out = p
 		return nil
 	})
@@ -113,6 +109,11 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		t2 := time.Now()
 		log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 	}()
+
+	if os.Getenv("LOTUS_PLDEGE") != "" {
+		log.Infof("xjrw ShellExecute %v", sector)
+		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
+	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
