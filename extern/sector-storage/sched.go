@@ -223,7 +223,6 @@ func (sh *scheduler) runSched() {
 			sh.dropWorker(wid)
 
 		case req := <-sh.schedule:
-			log.Infof("sh.schedule %v %v", req.sector, req.taskType)
 			sh.schedQueue.Push(req)
 			sh.trySched()
 
@@ -231,7 +230,6 @@ func (sh *scheduler) runSched() {
 				sh.testSync <- struct{}{}
 			}
 		case req := <-sh.windowRequests:
-			log.Infof("sh.windowRequests %v", req.worker)
 			sh.openWindows = append(sh.openWindows, req)
 			sh.trySched()
 
