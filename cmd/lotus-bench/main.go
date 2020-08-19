@@ -445,7 +445,7 @@ var sealBenchCmd = &cli.Command{
 
 			fmt.Println(string(data))
 		} else {
-			fmt.Printf("----\nresults (v27) (%d)\n", sectorSize)
+			fmt.Printf("----\nresults (v28) (%d)\n", sectorSize)
 			if robench == "" {
 				fmt.Printf("seal: addPiece: %s (%s)\n", bo.SealingResults[0].AddPiece, bps(bo.SectorSize, bo.SealingResults[0].AddPiece)) // TODO: average across multiple sealings
 				fmt.Printf("seal: preCommit phase 1: %s (%s)\n", bo.SealingResults[0].PreCommit1, bps(bo.SectorSize, bo.SealingResults[0].PreCommit1))
@@ -536,6 +536,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 					ix := int(i - 1)
 					sid := abi.SectorID{}
 					pc1o := storage.PreCommit1Out{}
+
 					var pieces []abi.PieceInfo
 					var ticket []byte
 					err := error(nil)
@@ -797,7 +798,7 @@ var proveCmd = &cli.Command{
 
 		fmt.Printf("proof: %x\n", proof)
 
-		fmt.Printf("----\nresults (v27) (%d)\n", c2in.SectorSize)
+		fmt.Printf("----\nresults (v28) (%d)\n", c2in.SectorSize)
 		dur := sealCommit2.Sub(start)
 
 		fmt.Printf("seal: commit phase 2: %s (%s)\n", dur, bps(abi.SectorSize(c2in.SectorSize), dur))

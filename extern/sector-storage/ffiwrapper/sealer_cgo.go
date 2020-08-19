@@ -58,21 +58,36 @@ func (sb *Sealer) NewSector(ctx context.Context, sector abi.SectorID) error {
 
 	return nil
 }
-
-func CopyFile(sourceFile string, destinationFile string) {
-	input, err := ioutil.ReadFile(sourceFile)
+const BUFFERSIZE = 128*1024*1024;
+func CopyFile(sourceFile string, destinationFile string) error {
+	buf := make([]byte, BUFFERSIZE)
+	source, err := os.Open(sourceFile)
 	if err != nil {
-		log.Errorf("ReadFile error: ", err)
-		return
+		return  err
 	}
+	defer source.Close()
 
-	err = ioutil.WriteFile(destinationFile, input, 0644)
+	destination, err := os.Create(destinationFile)
 	if err != nil {
-		log.Errorf("WriteFile error: ", err)
-		return
+		return  err
+	}
+	defer destination.Close();
+	for {
+		n, err := source.Read(buf)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+
+		if _, err := destination.Write(buf[:n]); err != nil {
+			return err
+		}
 	}
 
 	log.Info("Copy file src = ", sourceFile, " dest = ", destinationFile)
+	return nil
 }
 
 func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data) (abi.PieceInfo, error) {
