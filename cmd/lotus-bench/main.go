@@ -267,6 +267,9 @@ var sealBenchCmd = &cli.Command{
 			if err != nil {
 				return xerrors.Errorf("failed to run seals: %w", err)
 			}
+			if exportP1 != "" {
+				return nil
+			}
 		}
 
 		beforePost := time.Now()
@@ -485,6 +488,7 @@ type P1Result struct {
 	P1co   storage.PreCommit1Out
 	Ticket []byte
 	Pieces []abi.PieceInfo
+	Root  string
 }
 
 func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par ParCfg, mid abi.ActorID, sectorSize abi.SectorSize, ticketPreimage []byte,
@@ -556,6 +560,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 						pc1o = p1Result.P1co
 						ticket = p1Result.Ticket
 						pieces = p1Result.Pieces
+						sbfs.Root = p1Result.Root
 					} else {
 						sid = abi.SectorID{
 							Miner:  mid,
@@ -577,6 +582,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 								P1co:   pc1o,
 								Ticket: ticket,
 								Pieces: pieces,
+								Root:sbfs.Root,
 							}
 							b, err := json.Marshal(&p1Result)
 							if err != nil {
