@@ -110,7 +110,6 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
-		log.Infof("xjrw ShellExecute %v", sector)
 		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 	}
 
