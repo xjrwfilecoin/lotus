@@ -27,7 +27,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 		return abi.PieceInfo{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 
-	if len(existingPieces) == 0 {
+	if len(existingPieces) != 0 {
 		m.mapReal[sector] = struct{}{}
 	}
 
