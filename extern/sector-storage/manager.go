@@ -65,6 +65,7 @@ type WorkerID uint64
 type Manager struct {
 	scfg *ffiwrapper.Config
 
+	mapReal map[abi.SectorID]struct{}
 	ls         stores.LocalStorage
 	storage    *stores.Remote
 	localStore *stores.Local
@@ -111,11 +112,13 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		remoteHnd:  &stores.FetchHandler{Local: lstor},
 		index:      si,
 
+		mapReal: make(map[abi.SectorID]struct{}),
 		sched: newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
 
+	initState()
 	go m.sched.runSched()
 
 	localTasks := []sealtasks.TaskType{
@@ -282,11 +285,11 @@ func (m *Manager) ReadPiece(ctx context.Context, sink io.Writer, sector abi.Sect
 }
 
 func (m *Manager) NewSector(ctx context.Context, sector abi.SectorID) error {
-	log.Warnf("stub NewSector")
+	log.Warnf("stub NewSector %v", sector)
 	return nil
 }
 
-func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
+func (m *Manager) oldAddPiece(ctx context.Context, sector abi.SectorID, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -315,7 +318,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 	return out, err
 }
 
-func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
+func (m *Manager) oldSealPreCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -339,7 +342,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 	return out, err
 }
 
-func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
+func (m *Manager) oldSealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -360,7 +363,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 	return out, err
 }
 
-func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (out storage.Commit1Out, err error) {
+func (m *Manager) oldSealCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (out storage.Commit1Out, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -384,7 +387,7 @@ func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 	return out, err
 }
 
-func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
+func (m *Manager) oldSealCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
 	selector := newTaskSelector()
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTCommit2, selector, schedNop, func(ctx context.Context, w Worker) error {
@@ -399,7 +402,7 @@ func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Ou
 	return out, err
 }
 
-func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepUnsealed []storage.Range) error {
+func (m *Manager) oldFinalizeSector(ctx context.Context, sector abi.SectorID, keepUnsealed []storage.Range) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
