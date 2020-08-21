@@ -37,3 +37,4 @@ bin/ipget
 bin/tmp/*
 .idea
 scratchpad
+extern

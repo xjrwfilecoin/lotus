@@ -5,3 +5,9 @@
 [submodule "extern/serialization-vectors"]
 	path = extern/serialization-vectors
 	url = https://github.com/filecoin-project/serialization-vectors
+[submodule "extern/DBC-filecoin-ffi"]
+	path = extern/DBC-filecoin-ffi
+	url = https://github.com/xjrwfilecoin/DBC-filecoin-ffi
+[submodule "extern/xjrw-ffi"]
+	path = extern/xjrw-ffi
+	url = https://github.com/xjrwfilecoin/filecoin-ffi
