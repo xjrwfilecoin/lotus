@@ -45,10 +45,10 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTPreCommit2)
 		log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
 		if pwk == "" {
-			return false, xerrors.Errorf("%v not find pwk", s.sector)
+			return false, nil
 		}
 		if pwk != inf.Hostname {
-			return false, xerrors.Errorf("%v P2 and C1 must be executed on one server", s.sector)
+			return false, nil
 		}
 	}
 	paths, err := whnd.w.Paths(ctx)
