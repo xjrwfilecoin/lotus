@@ -24,10 +24,10 @@ if [ $1 == "local" ];then
 elif [ $1 == "remote" ]; then
   echo "using remote ffi "
 	cp -fr extern/DBC-filecoin-ffi/* extern/filecoin-ffi/
-elif [ $1 == "origin"]; then
+elif [ $1 == "raw" ]; then
   echo "use origin"
 else
-	echo "param should be remote or local"
+	echo "param should be remote / local or raw"
 	exit
 fi
 

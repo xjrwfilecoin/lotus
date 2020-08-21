@@ -38,3 +38,4 @@ bin/tmp/*
 .idea
 scratchpad
 extern
+.vscode
