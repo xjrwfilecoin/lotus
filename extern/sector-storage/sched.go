@@ -298,7 +298,7 @@ func (sh *scheduler) trySched() {
 			worker := sh.workers[windowRequest.worker]
 
 			// TODO: allow bigger windows
-			if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, worker.info.Resources) {
+			if !windows[wnd].allocated.canHandleRequest(task, needRes, windowRequest.worker, worker.info.Resources) {
 				continue
 			}
 
@@ -366,7 +366,7 @@ func (sh *scheduler) trySched() {
 			log.Debugf("SCHED try assign sqi:%d sector %d to window %d", sqi, task.sector.Number, wnd)
 
 			// TODO: allow bigger windows
-			if !windows[wnd].allocated.canHandleRequest(needRes, wid, wr) {
+			if !windows[wnd].allocated.canHandleRequest(task, needRes, wid, wr) {
 				continue
 			}
 
@@ -505,7 +505,7 @@ func (sh *scheduler) runWorker(wid WorkerID) {
 
 					sh.workersLk.RLock()
 					worker.lk.Lock()
-					ok := worker.preparing.canHandleRequest(needRes, wid, worker.info.Resources)
+					ok := worker.preparing.canHandleRequest(todo, needRes, wid, worker.info.Resources)
 					worker.lk.Unlock()
 
 					if !ok {
@@ -569,7 +569,7 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 			return
 		}
 
-		err = w.active.withResources(wid, w.info.Resources, needRes, &sh.workersLk, func() error {
+		err = w.active.withResources(req, wid, w.info.Resources, needRes, &sh.workersLk, func() error {
 			w.lk.Lock()
 			w.preparing.free(w.info.Resources, needRes)
 			w.lk.Unlock()

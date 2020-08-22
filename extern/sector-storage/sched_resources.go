@@ -6,8 +6,8 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
-	for !a.canHandleRequest(r, id, wr) {
+func (a *activeResources) withResources(req *workerRequest, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+	for !a.canHandleRequest(req, r, id, wr) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
 		}
@@ -52,8 +52,8 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 	a.memUsedMax -= r.MaxMemory
 }
 
-func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, res storiface.WorkerResources) bool {
-
+func (a *activeResources) canHandleRequest(task *workerRequest, needRes Resources, wid WorkerID, res storiface.WorkerResources) bool {
+	log.Debugf("canHandleRequest %v %v", task.sector, task.taskType)
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
 	minNeedMem := res.MemReserved + a.memUsedMin + needRes.MinMemory + needRes.BaseMinMemory
 	if minNeedMem > res.MemPhysical {

@@ -4,9 +4,6 @@ import (
 	"database/sql"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	_ "github.com/mattn/go-sqlite3"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"sync"
 	"time"
 )
@@ -21,27 +18,12 @@ var smu sync.Mutex
 var db *sql.DB = nil
 var state = map[string]map[sealtasks.TaskType]*SectorState{}
 
-func ShellExecute(cmdStr string) error {
-	cmd := exec.Command("/bin/bash", "-c", cmdStr, "|sh")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	err := cmd.Run()
-	log.Infof("ShellExecute %s : %v", cmdStr, err)
-	return err
-}
-
-func RemoveFile(fileName string) error {
-	file := filepath.Join(os.Getenv("TMPDIR"), fileName)
-	cmd := "rm -f " + file
-	return ShellExecute(cmd)
-}
-
 func initState() {
 	var err error
 	db, err = sql.Open("sqlite3", "./sector.db")
 	if err != nil {
 		panic(err)
+		return
 	}
 
 	sqlStmt := `
