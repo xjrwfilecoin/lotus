@@ -6,6 +6,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -30,6 +31,12 @@ func ShellExecute(cmdStr string) error {
 	return err
 }
 
+func RemoveFile(fileName string) error {
+	file := filepath.Join(os.Getenv("TMPDIR"), fileName)
+	cmd := "rm -f " + file
+	return ShellExecute(cmd)
+}
+
 func initState() {
 	var err error
 	db, err = sql.Open("sqlite3", "./sector.db")
@@ -45,6 +52,8 @@ func initState() {
 		panic(err)
 		return
 	}
+
+	RemoveFile("res_mngr.lock")
 }
 
 func startSector(sector, wk string, tk sealtasks.TaskType) {
