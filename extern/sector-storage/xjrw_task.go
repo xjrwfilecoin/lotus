@@ -2,7 +2,7 @@ package sectorstorage
 
 import (
 	"encoding/json"
-	"github.com/filecoin-project/sector-storage/sealtasks"
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -11,17 +11,12 @@ import (
 
 const sfil = "./taskconfig.json"
 
-type TaskState struct {
-	TaskType sealtasks.TaskType
-	TaskNum  int
-}
-
-var taskState = map[string]*TaskState{}
+var taskState = map[string]map[sealtasks.TaskType]int{}
 
 func init() {
 	data, err := ioutil.ReadFile(sfil)
 	if err != nil {
-		panic(err)
+		//panic(err)
 		return
 	}
 	err = json.Unmarshal(data, &taskState)

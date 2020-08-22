@@ -65,7 +65,7 @@ type WorkerID uint64
 type Manager struct {
 	scfg *ffiwrapper.Config
 
-	mapReal map[abi.SectorID]struct{}
+	mapReal    map[abi.SectorID]struct{}
 	ls         stores.LocalStorage
 	storage    *stores.Remote
 	localStore *stores.Local
@@ -113,7 +113,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		index:      si,
 
 		mapReal: make(map[abi.SectorID]struct{}),
-		sched: newScheduler(cfg.SealProofType),
+		sched:   newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
@@ -180,6 +180,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		wt: &workTracker{
 			running: map[uint64]storiface.WorkerJob{},
 		},
+		taskNum:   make(map[sealtasks.TaskType]int),
 		info:      info,
 		preparing: &activeResources{},
 		active:    &activeResources{},
