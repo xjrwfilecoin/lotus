@@ -553,7 +553,7 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 		defer func() {
 			w.lk.Lock()
 			w.taskNum[req.taskType]--
-			log.Infof("add task %v %v %v", req.taskType, req.sector, w.taskNum[req.taskType])
+			log.Infof("remove task %v %v %v", req.taskType, req.sector, w.taskNum[req.taskType])
 			w.lk.Unlock()
 		}()
 
