@@ -53,7 +53,7 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 }
 
 func (a *activeResources) canHandleRequest(w *workerHandle, req *workerRequest, needRes Resources, wid WorkerID, res storiface.WorkerResources) bool {
-	if taskNum, exist := taskState[w.info.Hostname][req.taskType]; exist && w.taskNum[req.taskType] < taskNum {
+	if taskNum, exist := taskState[w.info.Hostname][req.taskType]; exist && w.taskNum[req.taskType] <= taskNum {
 		log.Debugf("canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
 		return true
 	}
