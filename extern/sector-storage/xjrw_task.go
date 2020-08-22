@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 )
 
 const sfil = "./taskconfig.json"
@@ -34,10 +33,4 @@ func ShellExecute(cmdStr string) error {
 	err := cmd.Run()
 	log.Infof("ShellExecute %s : %v", cmdStr, err)
 	return err
-}
-
-func RemoveFile(fileName string) error {
-	file := filepath.Join(os.Getenv("TMPDIR"), fileName)
-	cmd := "rm -f " + file
-	return ShellExecute(cmd)
 }

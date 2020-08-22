@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	_ "github.com/mattn/go-sqlite3"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -35,7 +37,7 @@ func initState() {
 		return
 	}
 
-	RemoveFile("res_mngr.lock")
+	ShellExecute("rm -f " + filepath.Join(os.Getenv("TMPDIR"), "res_mngr.lock"))
 }
 
 func startSector(sector, wk string, tk sealtasks.TaskType) {
