@@ -34,7 +34,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
-		selector = newAllocSelector(m.index, stores.FTUnsealed, stores.PathSealing)
+		selector = newAllocSelector(m.index, sector, stores.FTUnsealed, stores.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
 	}
@@ -77,7 +77,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 
 	// TODO: also consider where the unsealed data sits
 
-	selector := newAllocSelector(m.index, stores.FTCache|stores.FTSealed, stores.PathSealing)
+	selector := newAllocSelector(m.index, sector, stores.FTCache|stores.FTSealed, stores.PathSealing)
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, schedFetch(sector, stores.FTUnsealed, stores.PathSealing, stores.AcquireMove), func(ctx context.Context, w Worker) error {
 		inf, e := w.Info(ctx)
@@ -188,7 +188,7 @@ func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Ou
 		log.Infof("xjrw cast mgr SealCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 	}()
 
-	selector := newTaskSelector()
+	selector := newTaskSelector(sector)
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTCommit2, selector, schedNop, func(ctx context.Context, w Worker) error {
 		inf, e := w.Info(ctx)

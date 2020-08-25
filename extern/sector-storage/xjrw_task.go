@@ -8,12 +8,29 @@ import (
 	"os/exec"
 )
 
-const sfil = "./taskconfig.json"
+const sfiltask = "./taskconfig.json"
+const sfilgroup = "./groupconfig.json"
+
+type GroupConfig struct {
+	GroupName  string
+	GroupIndex string
+}
 
 var taskState = map[string]map[sealtasks.TaskType]int{}
+var groupState = map[string]GroupConfig{}
 
 func init() {
-	data, err := ioutil.ReadFile(sfil)
+	data, err := ioutil.ReadFile(sfilgroup)
+	if err != nil {
+		panic(err)
+		return
+	}
+	err = json.Unmarshal(data, &groupState)
+	if err != nil {
+		panic(err)
+	}
+
+	data, err = ioutil.ReadFile(sfiltask)
 	if err != nil {
 		//panic(err)
 		return

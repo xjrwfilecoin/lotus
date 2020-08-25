@@ -113,7 +113,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		index:      si,
 
 		mapReal: make(map[abi.SectorID]struct{}),
-		sched: newScheduler(cfg.SealProofType),
+		sched:   newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
@@ -223,7 +223,7 @@ func (m *Manager) ReadPiece(ctx context.Context, sink io.Writer, sector abi.Sect
 
 	var selector WorkerSelector
 	if len(best) == 0 { // new
-		selector = newAllocSelector(m.index, stores.FTUnsealed, stores.PathSealing)
+		selector = newAllocSelector(m.index, sector, stores.FTUnsealed, stores.PathSealing)
 	} else { // append to existing
 		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
 	}
@@ -301,7 +301,7 @@ func (m *Manager) oldAddPiece(ctx context.Context, sector abi.SectorID, existing
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
-		selector = newAllocSelector(m.index, stores.FTUnsealed, stores.PathSealing)
+		selector = newAllocSelector(m.index, sector, stores.FTUnsealed, stores.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
 	}
@@ -329,7 +329,7 @@ func (m *Manager) oldSealPreCommit1(ctx context.Context, sector abi.SectorID, ti
 
 	// TODO: also consider where the unsealed data sits
 
-	selector := newAllocSelector(m.index, stores.FTCache|stores.FTSealed, stores.PathSealing)
+	selector := newAllocSelector(m.index, sector, stores.FTCache|stores.FTSealed, stores.PathSealing)
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, schedFetch(sector, stores.FTUnsealed, stores.PathSealing, stores.AcquireMove), func(ctx context.Context, w Worker) error {
 		p, err := w.SealPreCommit1(ctx, sector, ticket, pieces)
@@ -389,7 +389,7 @@ func (m *Manager) oldSealCommit1(ctx context.Context, sector abi.SectorID, ticke
 }
 
 func (m *Manager) oldSealCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
-	selector := newTaskSelector()
+	selector := newTaskSelector(sector)
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTCommit2, selector, schedNop, func(ctx context.Context, w Worker) error {
 		p, err := w.SealCommit2(ctx, sector, phase1Out)
@@ -434,7 +434,7 @@ func (m *Manager) oldFinalizeSector(ctx context.Context, sector abi.SectorID, ke
 		return err
 	}
 
-	fetchSel := newAllocSelector(m.index, stores.FTCache|stores.FTSealed, stores.PathStorage)
+	fetchSel := newAllocSelector(m.index, sector, stores.FTCache|stores.FTSealed, stores.PathStorage)
 	moveUnsealed := unsealed
 	{
 		if len(keepUnsealed) == 0 {
