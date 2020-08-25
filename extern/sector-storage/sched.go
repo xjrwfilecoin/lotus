@@ -76,7 +76,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	w Worker
+	w       Worker
 	taskNum map[sealtasks.TaskType]int
 
 	info storiface.WorkerInfo
@@ -322,7 +322,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				// TODO: allow bigger windows
-			if !windows[wnd].allocated.canHandleRequest(worker, task, needRes, windowRequest.worker, worker.info.Resources) {
+				if !windows[wnd].allocated.canHandleRequest(worker, task, needRes, windowRequest.worker, worker.info.Resources) {
 					continue
 				}
 
@@ -335,6 +335,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				if !ok {
+					log.Infof("%v not OK %v %v", task.sector, task.taskType, worker.info.Hostname)
 					continue
 				}
 
