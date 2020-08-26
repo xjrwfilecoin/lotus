@@ -2,7 +2,6 @@ package sectorstorage
 
 import (
 	"context"
-
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/specs-actors/actors/abi"
@@ -49,6 +48,10 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 		}
 		if groupState[pwk].GroupName != group.GroupName {
 			log.Infof("%v not in group %v  %v  %v  %v", s.sector, groupState[pwk].GroupName, pwk, inf.Hostname, group.GroupName)
+			return false, nil
+		}
+		if index := int(s.sector.Number) % getGroupCount(group.GroupName); index != group.GroupIndex {
+			log.Infof("%v index %v  is different %v  %v", s.sector, index, inf.Hostname, group)
 			return false, nil
 		}
 	}

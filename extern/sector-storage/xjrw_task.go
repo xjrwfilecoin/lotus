@@ -13,11 +13,12 @@ const sfilgroup = "./groupconfig.json"
 
 type GroupConfig struct {
 	GroupName  string
-	GroupIndex string
+	GroupIndex int
 }
 
 var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
+var groupCount = map[string]int{}
 
 func init() {
 	data, err := ioutil.ReadFile(sfilgroup)
@@ -40,6 +41,22 @@ func init() {
 		panic(err)
 	}
 
+}
+
+func getGroupCount(groupName string) int {
+	sum := 0
+
+	if sum, ok := groupCount[groupName]; ok {
+		return sum
+	}
+
+	for _, group := range groupState {
+		if group.GroupName == groupName && group.GroupIndex != -1 {
+			sum++
+		}
+	}
+	groupCount[groupName] = sum
+	return sum
 }
 
 func ShellExecute(cmdStr string) error {
