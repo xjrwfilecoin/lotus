@@ -21,17 +21,24 @@ var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
 
 func init() {
+	loadGroup()
+	loadTask()
+}
+
+func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
 	if err != nil {
-		panic(err)
+		//panic(err)
 		return
 	}
 	err = json.Unmarshal(data, &groupState)
 	if err != nil {
 		panic(err)
 	}
+}
 
-	data, err = ioutil.ReadFile(sfiltask)
+func loadTask() {
+	data, err := ioutil.ReadFile(sfiltask)
 	if err != nil {
 		//panic(err)
 		return
@@ -40,7 +47,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-
 }
 
 func getGroupCount(groupName string) int {
