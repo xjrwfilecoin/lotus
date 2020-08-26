@@ -34,14 +34,16 @@ func (s *taskSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt abi.
 		return false, xerrors.Errorf("getting worker info: %w", err)
 	}
 
-	pwk := findSector(stores.SectorName(s.sector), sealtasks.TTAddPiece)
-	log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
-	if pwk == "" {
-		return false, xerrors.Errorf("%v not exist", s.sector)
-	}
-	if groupState[pwk].GroupName != groupState[inf.Hostname].GroupName {
-		log.Infof("%v not in group %v  %v  %v  %v", s.sector, groupState[pwk].GroupName, pwk, inf.Hostname, groupState[inf.Hostname].GroupName)
-		return false, nil
+	if _, exist := groupState[inf.Hostname]; exist {
+		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTAddPiece)
+		log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
+		if pwk == "" {
+			return false, xerrors.Errorf("%v not exist", s.sector)
+		}
+		if groupState[pwk].GroupName != groupState[inf.Hostname].GroupName {
+			log.Infof("%v not in group %v  %v  %v  %v", s.sector, groupState[pwk].GroupName, pwk, inf.Hostname, groupState[inf.Hostname].GroupName)
+			return false, nil
+		}
 	}
 
 	return supported, nil
