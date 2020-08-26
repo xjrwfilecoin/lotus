@@ -389,7 +389,7 @@ func (m *Manager) oldSealCommit1(ctx context.Context, sector abi.SectorID, ticke
 }
 
 func (m *Manager) oldSealCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
-	selector := newTaskSelector(sector)
+	selector := newTaskSelector()
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTCommit2, selector, schedNop, func(ctx context.Context, w Worker) error {
 		p, err := w.SealCommit2(ctx, sector, phase1Out)
