@@ -201,7 +201,7 @@ func schedNop(context.Context, Worker) error {
 	return nil
 }
 
-func schedFetch(sector abi.SectorID, ft stores.SectorFileType, ptype stores.PathType, am stores.AcquireMode) func(context.Context, Worker) error {
+func oldschedFetch(sector abi.SectorID, ft stores.SectorFileType, ptype stores.PathType, am stores.AcquireMode) func(context.Context, Worker) error {
 	return func(ctx context.Context, worker Worker) error {
 		return worker.Fetch(ctx, sector, ft, ptype, am)
 	}

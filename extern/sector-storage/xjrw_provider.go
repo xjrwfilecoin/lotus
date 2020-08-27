@@ -12,6 +12,18 @@ import (
 	"time"
 )
 
+func schedFetch(sector abi.SectorID, ft stores.SectorFileType, ptype stores.PathType, am stores.AcquireMode) func(context.Context, Worker) error {
+	log.Infof("xjrw schedFetch begin %v", sector)
+	t1 := time.Now()
+	defer func() {
+		t2 := time.Now()
+		log.Infof("xjrw cast mgr schedFetch %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+	}()
+	return func(ctx context.Context, worker Worker) error {
+		return worker.Fetch(ctx, sector, ft, ptype, am)
+	}
+}
+
 func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
 	log.Infof("xjrw AddPiece begin %v sz = %v", sector, sz)
 	t1 := time.Now()
