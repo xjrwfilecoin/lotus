@@ -335,7 +335,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				if !ok {
-					log.Infof("%v not OK %v %v", task.sector, task.taskType, worker.info.Hostname)
+					//log.Infof("%v not OK %v %v", task.sector, task.taskType, worker.info.Hostname)
 					continue
 				}
 
