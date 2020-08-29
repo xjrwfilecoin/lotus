@@ -77,7 +77,7 @@ func NewWorkerRPC(ctx context.Context, addr string, requestHeader http.Header) (
 		requestHeader,
 		rpcenc.ReaderParamEncoder(u.String()),
 		jsonrpc.WithNoReconnect(),
-		jsonrpc.WithTimeout(30*time.Second),
+		jsonrpc.WithTimeout(300*time.Second),
 	)
 
 	return &res, closer, err
