@@ -84,7 +84,8 @@ type SealerConfig struct {
 	AllowAddPiece   bool
 	AllowPreCommit1 bool
 	AllowPreCommit2 bool
-	AllowCommit     bool
+	AllowCommit1    bool
+	AllowCommit2    bool
 	AllowUnseal     bool
 }
 
@@ -122,7 +123,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 	go m.sched.runSched()
 
 	localTasks := []sealtasks.TaskType{
-		sealtasks.TTCommit1, sealtasks.TTFinalize, sealtasks.TTFetch, sealtasks.TTReadUnsealed,
+		sealtasks.TTFinalize, sealtasks.TTFetch, sealtasks.TTReadUnsealed,
 	}
 	if sc.AllowAddPiece {
 		localTasks = append(localTasks, sealtasks.TTAddPiece)
@@ -133,7 +134,10 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 	if sc.AllowPreCommit2 {
 		localTasks = append(localTasks, sealtasks.TTPreCommit2)
 	}
-	if sc.AllowCommit {
+	if sc.AllowCommit1 {
+		localTasks = append(localTasks, sealtasks.TTCommit1)
+	}
+	if sc.AllowCommit2 {
 		localTasks = append(localTasks, sealtasks.TTCommit2)
 	}
 	if sc.AllowUnseal {
