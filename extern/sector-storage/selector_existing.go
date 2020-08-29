@@ -42,7 +42,7 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 	}
 
 	if group, exist := groupState[inf.Hostname]; exist && task == sealtasks.TTPreCommit2 {
-		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTAddPiece)
+		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTPreCommit1)
 		log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
 		if pwk == "" {
 			return false, xerrors.Errorf("%v not exist", s.sector)
