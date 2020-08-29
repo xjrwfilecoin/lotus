@@ -682,13 +682,13 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 	go func() {
 		w.lk.Lock()
 		w.taskNum[req.taskType]++
-		log.Infof("add task %v %v %v", req.taskType, req.sector, w.taskNum[req.taskType])
+		log.Infof("add task %v %v %v %v", req.taskType, w.info.Hostname, req.sector, w.taskNum[req.taskType])
 		w.lk.Unlock()
 
 		defer func() {
 			w.lk.Lock()
 			w.taskNum[req.taskType]--
-			log.Infof("remove task %v %v %v", req.taskType, req.sector, w.taskNum[req.taskType])
+			log.Infof("remove task %v %v %v %v", req.taskType, w.info.Hostname, req.sector, w.taskNum[req.taskType])
 			w.lk.Unlock()
 		}()
 		err := req.prepare(req.ctx, w.wt.worker(w.w))
