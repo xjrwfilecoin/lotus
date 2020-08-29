@@ -672,7 +672,7 @@ func (sh *scheduler) workerCompactWindows(worker *workerHandle, wid WorkerID) in
 }
 
 func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *workerHandle, req *workerRequest) error {
-	log.Infof("xjrw assignWorker %s <%v> => %v", req.taskType, req.sector, w.info.Hostname)
+	log.Infof("xjrw assignWorker %s <%v> => %v %v", req.taskType, req.sector, w.info.Hostname, w.info.Resources)
 	needRes := ResourceTable[req.taskType][sh.spt]
 
 	w.lk.Lock()
