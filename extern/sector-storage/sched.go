@@ -77,7 +77,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	w Worker
+	w       Worker
 	taskNum map[sealtasks.TaskType]int
 
 	info storiface.WorkerInfo
@@ -629,7 +629,7 @@ func (sh *scheduler) workerCompactWindows(worker *workerHandle, wid WorkerID) in
 
 			for ti, todo := range window.todo {
 				needRes := ResourceTable[todo.taskType][sh.spt]
-				if !lower.allocated.canHandleRequest(needRes, wid, "compactWindows", worker.info.Resources) {
+				if !lower.allocated.canHandleRequest(worker, todo, needRes, wid, "compactWindows", worker.info.Resources) {
 					continue
 				}
 
