@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"math/bits"
 	"os"
-	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
