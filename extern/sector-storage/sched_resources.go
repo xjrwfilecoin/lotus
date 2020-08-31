@@ -61,9 +61,10 @@ func (a *activeResources) canHandleRequest(w *workerHandle, req *workerRequest, 
 			if w.taskNum[req.taskType] <= p1Num {
 				log.Debugf("canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
 				return true
+			} else {
+				log.Debugf("not canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
+				return false
 			}
-			log.Debugf("not canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
-			return false
 		}
 	}
 	//if taskNum, exist := taskState[w.info.Hostname][req.taskType]; exist && w.taskNum[req.taskType] <= taskNum {
