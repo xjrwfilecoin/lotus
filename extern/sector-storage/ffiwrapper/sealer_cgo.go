@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"github.com/fxamacker/cbor/v2"
-	"github.com/polydawn/refmt/cbor"
 	"io"
 	"io/ioutil"
 	"math/bits"
