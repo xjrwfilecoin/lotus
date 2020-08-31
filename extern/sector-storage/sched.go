@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -81,8 +79,6 @@ type scheduler struct {
 type workerHandle struct {
 	w       Worker
 	taskNum map[sealtasks.TaskType]int
-
-	p1StartTime int64
 
 	info storiface.WorkerInfo
 
@@ -730,17 +726,6 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 			select {
 			case taskDone <- struct{}{}:
 			case <-sh.closing:
-			}
-
-			if timeStr := os.Getenv("P1_DELAY_TIME"); timeStr != "" && req.taskType == sealtasks.TTPreCommit1 {
-				timeNow := time.Now().Unix()
-				if timedelay, err := strconv.Atoi(timeStr); err == nil {
-					if w.p1StartTime != 0 && timeNow-w.p1StartTime < int64(timedelay) {
-						log.Info("PreCommit1  delay", int64(timedelay)-timeNow+w.p1StartTime)
-						time.Sleep(time.Second * time.Duration(int64(timedelay)-timeNow+w.p1StartTime))
-					}
-					w.p1StartTime = time.Now().Unix()
-				}
 			}
 
 			err = req.work(req.ctx, w.wt.worker(w.w))
