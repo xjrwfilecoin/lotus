@@ -741,10 +741,9 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 						w.lk.Unlock()
 						log.Info("%v PreCommit1  delay ", req.sector, w.p1StartTime-timeNow)
 						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
-					} else if w.p1StartTime == 0 {
+					} else {
 						w.p1StartTime = timeNow
 					}
-
 				}
 			}
 
