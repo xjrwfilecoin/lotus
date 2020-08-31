@@ -1,8 +1,11 @@
 package sectorstorage
 
 import (
+	"os"
+	"strconv"
 	"sync"
 
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
@@ -53,10 +56,20 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 }
 
 func (a *activeResources) canHandleRequest(w *workerHandle, req *workerRequest, needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources) bool {
-	if taskNum, exist := taskState[w.info.Hostname][req.taskType]; exist && w.taskNum[req.taskType] <= taskNum {
-		log.Debugf("canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
-		return true
+	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
+		if p1Num, err := strconv.Atoi(p1Str); err == nil && req.taskType == sealtasks.TTPreCommit1 {
+			if w.taskNum[req.taskType] <= p1Num {
+				log.Debugf("canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
+				return true
+			}
+			log.Debugf("not canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
+			return false
+		}
 	}
+	//if taskNum, exist := taskState[w.info.Hostname][req.taskType]; exist && w.taskNum[req.taskType] <= taskNum {
+	//	log.Debugf("canHandleRequest %v %v hostname = %v tasknum = %v", req.sector, req.taskType, w.info.Hostname, w.taskNum[req.taskType])
+	//	return true
+	//}
 
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
 	minNeedMem := res.MemReserved + a.memUsedMin + needRes.MinMemory + needRes.BaseMinMemory
