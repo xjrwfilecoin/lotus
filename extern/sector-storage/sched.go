@@ -736,10 +736,15 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 				timeNow := time.Now().Unix()
 				if timedelay, err := strconv.Atoi(timeStr); err == nil {
 					if w.p1StartTime != 0 && timeNow-w.p1StartTime < int64(timedelay) {
-						log.Info("PreCommit1  delay", int64(timedelay)-timeNow+w.p1StartTime)
-						time.Sleep(time.Second * time.Duration(int64(timedelay)-timeNow+w.p1StartTime))
+						w.lk.Lock()
+						w.p1StartTime += int64(timedelay)
+						w.lk.Unlock()
+						log.Info("%v PreCommit1  delay ", req.sector, w.p1StartTime-timeNow)
+						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
+					} else if w.p1StartTime == 0 {
+						w.p1StartTime = timeNow
 					}
-					w.p1StartTime = time.Now().Unix()
+
 				}
 			}
 
