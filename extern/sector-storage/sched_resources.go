@@ -57,7 +57,6 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
 	minNeedMem := res.MemReserved + a.memUsedMin + needRes.MinMemory + needRes.BaseMinMemory
 	if minNeedMem > res.MemPhysical {
-		log.Debugf("canHandleRequest %v %v %v", req.sector, req.taskType, w.info.Hostname)
 		log.Debugf("res.MemReserved = %v a.memUsedMin = %v needRes = %v", res.MemReserved, a.memUsedMin, needRes)
 		log.Debugf("sched: not scheduling on worker %d for %s; not enough physical memory - need: %dM, have %dM", wid, caller, minNeedMem/mib, res.MemPhysical/mib)
 		return false
@@ -66,7 +65,6 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	maxNeedMem := res.MemReserved + a.memUsedMax + needRes.MaxMemory + needRes.BaseMinMemory
 
 	if maxNeedMem > res.MemSwap+res.MemPhysical {
-		log.Debugf("canHandleRequest %v %v %v", req.sector, req.taskType, w.info.Hostname)
 		log.Debugf("res.MemReserved = %v a.memUsedMax = %v needRes = %v", res.MemReserved, a.memUsedMax, needRes)
 		log.Debugf("sched: not scheduling on worker %d for %s; not enough virtual memory - need: %dM, have %dM", wid, caller, maxNeedMem/mib, (res.MemSwap+res.MemPhysical)/mib)
 		return false

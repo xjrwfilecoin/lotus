@@ -41,17 +41,12 @@ func (s *allocSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt abi
 		return false, xerrors.Errorf("getting worker info: %w", err)
 	}
 
-	if group, exist := groupState[inf.Hostname]; exist && task == sealtasks.TTPreCommit1 {
+	if task == sealtasks.TTPreCommit1 {
 		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTAddPiece)
 		log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
 
 		if pwk == "" {
 			return false, xerrors.Errorf("%v not exist", s.sector)
-		}
-
-		if groupState[pwk].GroupName != group.GroupName {
-			log.Infof("%v not in group %v  %v  %v  %v", s.sector, groupState[pwk].GroupName, pwk, inf.Hostname, group.GroupName)
-			return false, nil
 		}
 
 		if pwk != inf.Hostname {
