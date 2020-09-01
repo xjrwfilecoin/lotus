@@ -128,8 +128,13 @@ var runCmd = &cli.Command{
 			Value: true,
 		},
 		&cli.BoolFlag{
-			Name:  "commit",
-			Usage: "enable commit (32G sectors: all cores or GPUs, 128GiB Memory + 64GiB swap)",
+			Name:  "commit1",
+			Usage: "enable commit1 (32G sectors: all cores or GPUs, 128GiB Memory + 64GiB swap)",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "commit2",
+			Usage: "enable commit2 (32G sectors: all cores or GPUs, 128GiB Memory + 64GiB swap)",
 			Value: true,
 		},
 		&cli.IntFlag{
@@ -213,7 +218,7 @@ var runCmd = &cli.Command{
 
 		var taskTypes []sealtasks.TaskType
 
-		taskTypes = append(taskTypes, sealtasks.TTFetch, sealtasks.TTCommit1, sealtasks.TTFinalize)
+		taskTypes = append(taskTypes, sealtasks.TTFetch, sealtasks.TTFinalize)
 
 		if cctx.Bool("addpiece") {
 			taskTypes = append(taskTypes, sealtasks.TTAddPiece)
@@ -227,7 +232,10 @@ var runCmd = &cli.Command{
 		if cctx.Bool("precommit2") {
 			taskTypes = append(taskTypes, sealtasks.TTPreCommit2)
 		}
-		if cctx.Bool("commit") {
+		if cctx.Bool("commit1") {
+			taskTypes = append(taskTypes, sealtasks.TTCommit1)
+		}
+		if cctx.Bool("commit2") {
 			taskTypes = append(taskTypes, sealtasks.TTCommit2)
 		}
 
@@ -467,7 +475,8 @@ func watchMinerConn(ctx context.Context, cctx *cli.Context, nodeApi api.StorageM
 			fmt.Sprintf("--precommit1=%t", cctx.Bool("precommit1")),
 			fmt.Sprintf("--unseal=%t", cctx.Bool("unseal")),
 			fmt.Sprintf("--precommit2=%t", cctx.Bool("precommit2")),
-			fmt.Sprintf("--commit=%t", cctx.Bool("commit")),
+			fmt.Sprintf("--commit1=%t", cctx.Bool("commit1")),
+			fmt.Sprintf("--commit2=%t", cctx.Bool("commit2")),
 			fmt.Sprintf("--parallel-fetch-limit=%d", cctx.Int("parallel-fetch-limit")),
 			fmt.Sprintf("--timeout=%s", cctx.String("timeout")),
 		}, os.Environ()); err != nil {

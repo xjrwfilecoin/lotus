@@ -12,16 +12,18 @@ import (
 )
 
 type allocSelector struct {
-	index stores.SectorIndex
-	alloc stores.SectorFileType
-	ptype stores.PathType
+	index  stores.SectorIndex
+	sector abi.SectorID
+	alloc  stores.SectorFileType
+	ptype  stores.PathType
 }
 
-func newAllocSelector(index stores.SectorIndex, alloc stores.SectorFileType, ptype stores.PathType) *allocSelector {
+func newAllocSelector(index stores.SectorIndex, sector abi.SectorID, alloc stores.SectorFileType, ptype stores.PathType) *allocSelector {
 	return &allocSelector{
-		index: index,
-		alloc: alloc,
-		ptype: ptype,
+		index:  index,
+		sector: sector,
+		alloc:  alloc,
+		ptype:  ptype,
 	}
 }
 
@@ -34,6 +36,29 @@ func (s *allocSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt abi
 		return false, nil
 	}
 
+	inf, err := whnd.w.Info(ctx)
+	if err != nil {
+		return false, xerrors.Errorf("getting worker info: %w", err)
+	}
+
+	if group, exist := groupState[inf.Hostname]; exist && task == sealtasks.TTPreCommit1 {
+		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTAddPiece)
+		log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
+
+		if pwk == "" {
+			return false, xerrors.Errorf("%v not exist", s.sector)
+		}
+
+		if groupState[pwk].GroupName != group.GroupName {
+			log.Infof("%v not in group %v  %v  %v  %v", s.sector, groupState[pwk].GroupName, pwk, inf.Hostname, group.GroupName)
+			return false, nil
+		}
+
+		if pwk != inf.Hostname {
+			log.Infof("%v not in same server %v  %v", s.sector, pwk, inf.Hostname)
+			return false, nil
+		}
+	}
 	paths, err := whnd.w.Paths(ctx)
 	if err != nil {
 		return false, xerrors.Errorf("getting worker paths: %w", err)
