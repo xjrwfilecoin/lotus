@@ -36,6 +36,23 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 		return false, nil
 	}
 
+	inf, err := whnd.w.Info(ctx)
+	if err != nil {
+		return false, xerrors.Errorf("getting worker info: %w", err)
+	}
+
+	if task == sealtasks.TTPreCommit2 {
+		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTPreCommit1)
+		log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
+		if pwk == "" {
+			return false, xerrors.Errorf("%v not exist", s.sector)
+		}
+		if pwk != inf.Hostname {
+			log.Infof("%v not in same server %v  %v", s.sector, pwk, inf.Hostname)
+			return false, nil
+		}
+	}
+
 	paths, err := whnd.w.Paths(ctx)
 	if err != nil {
 		return false, xerrors.Errorf("getting worker paths: %w", err)
