@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"io/ioutil"
-	"os"
-	"os/exec"
 )
 
 const sfiltask = "./taskconfig.json"
