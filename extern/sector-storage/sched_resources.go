@@ -61,7 +61,9 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 		return false
 	}
 
-	log.Infof("canHandleRequest %v ",a.memUsedMax/needRes.MaxMemory)
+	if needRes.MaxMemory != 0 {
+		log.Infof("canHandleRequest %v ", a.memUsedMax/needRes.MaxMemory)
+	}
 
 	maxNeedMem := res.MemReserved + a.memUsedMax + needRes.MaxMemory + needRes.BaseMinMemory
 
