@@ -126,17 +126,16 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		if fileType&existing == 0 {
 			continue
 		}
-		dest := PathByType(apaths, fileType)
-		storageID := PathByType(ids, fileType)
 
-		log.Infof("444444444444444   %v   %v  %v", dest, storageID, apaths)
-
-		log.Infof("11111111111111111   %v   %v", paths, fileType)
+		log.Infof("11111111111111111   %v  %v  %v", apaths, paths, fileType)
 		if PathByType(paths, fileType) != "" {
 			log.Infof("2222222222   %v ", PathByType(paths, fileType))
 			continue
 		}
 		log.Infof("333333333   %v   %v", paths, PathTypes)
+
+		dest := PathByType(apaths, fileType)
+		storageID := PathByType(ids, fileType)
 
 		if _, err := os.Stat(dest); err == nil {
 			log.Info("5555555555  %v %v", dest, err)
