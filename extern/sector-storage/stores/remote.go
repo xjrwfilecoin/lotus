@@ -138,6 +138,10 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		}
 		log.Infof("333333333   %v   %v", paths, PathTypes)
 
+		if _, err := os.Stat(dest); err == nil {
+			log.Info("5555555555  %v %v", dest, err)
+			continue
+		}
 
 		url, err := r.acquireFromRemote(ctx, s, fileType, dest)
 		if err != nil {
