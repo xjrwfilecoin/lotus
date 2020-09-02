@@ -79,7 +79,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	w Worker
+	w           Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -375,6 +375,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				if !ok {
+					log.Errorf("not req.sel.Ok : %v %v %v", task.sector, task.taskType, worker.info.Hostname)
 					continue
 				}
 
