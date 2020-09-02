@@ -139,15 +139,19 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 
 		if _, err := os.Stat(dest); err != nil {
 			log.Info("5555555555  %v %v", dest, err)
-			continue
+			url, err := r.acquireFromRemote(ctx, s, fileType, dest)
+			if err != nil {
+				return SectorPaths{}, SectorPaths{}, err
+			}
+
+			if op == AcquireMove {
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+				}
+			}
 		}
 
 		log.Info("6666666  %v", dest)
-
-		//url, err := r.acquireFromRemote(ctx, s, fileType, dest)
-		//if err != nil {
-		//	return SectorPaths{}, SectorPaths{}, err
-		//}
 
 		SetPathByType(&paths, fileType, dest)
 		SetPathByType(&stores, fileType, storageID)
@@ -157,11 +161,6 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 			continue
 		}
 
-		//if op == AcquireMove {
-		//	if err := r.deleteFromRemote(ctx, url); err != nil {
-		//		log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
-		//	}
-		//}
 	}
 
 	return paths, stores, nil
