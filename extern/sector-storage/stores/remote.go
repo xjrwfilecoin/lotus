@@ -199,7 +199,9 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 	for _, info := range si {
 		// TODO: see what we have local, prefer that
 
+		log.Infof("############   %v", info.URLs)
 		for _, url := range info.URLs {
+			log.Infof("@@@@@@@@@@   %v", url)
 			tempDest, err := tempFetchDest(dest, true)
 			if err != nil {
 				return "", err
