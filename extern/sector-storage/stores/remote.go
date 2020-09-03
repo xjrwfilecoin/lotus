@@ -150,20 +150,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		}
 
 		if op == AcquireMove {
-			si, err := r.index.StorageFindSector(ctx, s, fileType, 0, false)
-			if err != nil {
-				return SectorPaths{}, SectorPaths{}, err
-			}
-
-			for _, info := range si {
-				for _, url := range info.URLs {
-					if err := r.deleteFromRemote(ctx, url); err != nil {
-						log.Warnf("remove %s: %+v", url, err)
-						continue
-					}
-					return paths, stores, nil
-				}
-			}
+			r.RemoveEx(ctx, s, fileType)
 			//if err := r.deleteFromRemote(ctx, url); err != nil {
 			//	log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
 			//}
@@ -171,6 +158,25 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 	}
 
 	return paths, stores, nil
+}
+
+func (r *Remote) RemoveEx(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
+	si, err := r.index.StorageFindSector(ctx, sid, typ, 0, false)
+	if err != nil {
+		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", sid, typ, err)
+	}
+
+	for _, info := range si {
+		for _, url := range info.URLs {
+			if err := r.deleteFromRemote(ctx, url); err != nil {
+				log.Warnf("remove %s: %+v", url, err)
+				continue
+			}
+			return nil
+		}
+	}
+
+	return nil
 }
 
 func tempFetchDest(spath string, create bool) (string, error) {
