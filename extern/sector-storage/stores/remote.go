@@ -127,32 +127,25 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 			continue
 		}
 
-		log.Infof("11111111111111111   %v  %v  %v", apaths, paths, fileType)
 		if PathByType(paths, fileType) != "" {
-			log.Infof("2222222222   %v ", PathByType(paths, fileType))
+			log.Infof("already exist  %v %v  %v", apaths, paths, fileType)
 			continue
 		}
-		log.Infof("333333333   %v   %v", paths, PathTypes)
 
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
 		if _, err := os.Stat(dest); err != nil {
-			log.Info("5555555555  %v %v", dest, err)
+			log.Infof("%v not exist: %v", dest, err)
 			continue
-			//url, err := r.acquireFromRemote(ctx, s, fileType, dest)
-			//if err != nil {
-			//	return SectorPaths{}, SectorPaths{}, err
-			//}
-			//
-			//if op == AcquireMove {
-			//	if err := r.deleteFromRemote(ctx, url); err != nil {
-			//		log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
-			//	}
-			//}
 		}
 
-		log.Info("6666666  %v", dest)
+		log.Info("%v already exist", dest)
+
+		//url, err := r.acquireFromRemote(ctx, s, fileType, dest)
+		//if err != nil {
+		//	return SectorPaths{}, SectorPaths{}, err
+		//}
 
 		SetPathByType(&paths, fileType, dest)
 		SetPathByType(&stores, fileType, storageID)
@@ -161,6 +154,12 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 			log.Warnf("declaring sector %v in %s failed: %+v", s, storageID, err)
 			continue
 		}
+
+		//if op == AcquireMove {
+		//	if err := r.deleteFromRemote(ctx, url); err != nil {
+		//		log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+		//	}
+		//}
 
 	}
 
