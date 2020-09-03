@@ -12,6 +12,7 @@ import (
 	gopath "path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
@@ -138,7 +139,8 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		if _, err := os.Stat(dest); err != nil {
 			log.Infof("%v not exist: %v", dest, err)
 		} else {
-			temp = "temp.1"
+			index := strings.LastIndex(dest, "/")
+			temp = dest[:index] + "/temp.log"
 		}
 
 		url, err := r.acquireFromRemote(ctx, s, fileType, temp, temp == dest)
@@ -207,7 +209,8 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 					return "", xerrors.Errorf("removing dest: %w", err)
 				}
 			} else {
-				temurl = "temp.1"
+				index := strings.LastIndex(url, "/")
+				temurl = dest[:index] + "/temp.log"
 			}
 
 			err = r.fetch(ctx, temurl, tempDest)
