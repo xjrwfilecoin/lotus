@@ -138,7 +138,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		if _, err := os.Stat(dest); err != nil {
 			log.Infof("%v not exist: %v", dest, err)
 		} else {
-			temp += ".1"
+			temp = "temp.1"
 		}
 
 		url, err := r.acquireFromRemote(ctx, s, fileType, temp, temp == dest)
@@ -207,7 +207,7 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 					return "", xerrors.Errorf("removing dest: %w", err)
 				}
 			} else {
-				temurl += ".1"
+				temurl = "temp.1"
 			}
 
 			err = r.fetch(ctx, temurl, tempDest)
