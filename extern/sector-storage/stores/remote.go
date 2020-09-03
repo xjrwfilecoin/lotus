@@ -3,7 +3,6 @@ package stores
 import (
 	"context"
 	"encoding/json"
-	"github.com/hashicorp/go-multierror"
 	"io/ioutil"
 	"math/bits"
 	"mime"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/filecoin-project/specs-actors/actors/abi"
 
+	"github.com/hashicorp/go-multierror"
 	files "github.com/ipfs/go-ipfs-files"
 	"golang.org/x/xerrors"
 )
@@ -134,23 +134,13 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		fetch := false
-		//temp := dest
 		if _, err := os.Stat(dest); err != nil {
-			log.Infof("%v not exist: %v", dest, err)
-			fetch = true
-		} else {
-			//index := strings.LastIndex(dest, "/")
-			//temp = dest[:index] + "/temp.log"
-
+			_, err := r.acquireFromRemote(ctx, s, fileType, dest)
+			if err != nil {
+				return SectorPaths{}, SectorPaths{}, err
+			}
 		}
 
-		url, err := r.acquireFromRemote(ctx, s, fileType, dest, fetch)
-		if err != nil {
-			return SectorPaths{}, SectorPaths{}, err
-		}
-
-		log.Infof("url :%v dest:%v", url, dest)
 		SetPathByType(&paths, fileType, dest)
 		SetPathByType(&stores, fileType, storageID)
 
@@ -160,9 +150,23 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		}
 
 		if op == AcquireMove {
-			if err := r.deleteFromRemote(ctx, url); err != nil {
-				log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+			si, err := r.index.StorageFindSector(ctx, s, fileType, 0, false)
+			if err != nil {
+				return SectorPaths{}, SectorPaths{}, err
 			}
+
+			for _, info := range si {
+				for _, url := range info.URLs {
+					if err := r.deleteFromRemote(ctx, url); err != nil {
+						log.Warnf("remove %s: %+v", url, err)
+						continue
+					}
+					break
+				}
+			}
+			//if err := r.deleteFromRemote(ctx, url); err != nil {
+			//	log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+			//}
 		}
 	}
 
@@ -181,7 +185,7 @@ func tempFetchDest(spath string, create bool) (string, error) {
 	return filepath.Join(tempdir, b), nil
 }
 
-func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType SectorFileType, dest string, fetchFlag bool) (string, error) {
+func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType SectorFileType, dest string) (string, error) {
 	si, err := r.index.StorageFindSector(ctx, s, fileType, 0, false)
 	if err != nil {
 		return "", err
@@ -199,37 +203,24 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 	for _, info := range si {
 		// TODO: see what we have local, prefer that
 
-		log.Infof("############   %v", info.URLs)
 		for _, url := range info.URLs {
-			log.Infof("@@@@@@@@@@   %v", url)
 			tempDest, err := tempFetchDest(dest, true)
 			if err != nil {
 				return "", err
 			}
 
-			//temurl := url
-			if fetchFlag {
-				if err := os.RemoveAll(dest); err != nil {
-					return "", xerrors.Errorf("removing dest: %w", err)
-				}
-			} else {
-				//index := strings.LastIndex(url, "/")
-				//temurl = url[:index] + "/temp.log"
+			if err := os.RemoveAll(dest); err != nil {
+				return "", xerrors.Errorf("removing dest: %w", err)
 			}
 
-			if fetchFlag {
-				err = r.fetch(ctx, url, tempDest)
-				if err != nil {
-					log.Infof("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err)
-					merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
-					continue
-				}
+			err = r.fetch(ctx, url, tempDest)
+			if err != nil {
+				merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
+				continue
 			}
 
-			if fetchFlag {
-				if err := move(tempDest, dest); err != nil {
-					return "", xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
-				}
+			if err := move(tempDest, dest); err != nil {
+				return "", xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
 			}
 
 			if merr != nil {
