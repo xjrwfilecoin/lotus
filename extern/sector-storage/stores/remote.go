@@ -216,7 +216,7 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 			err = r.fetch(ctx, temurl, tempDest)
 			if err != nil {
 				log.Infof("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err)
-				merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
+				//merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
 				continue
 			}
 
