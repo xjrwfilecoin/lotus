@@ -161,7 +161,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 						log.Warnf("remove %s: %+v", url, err)
 						continue
 					}
-					break
+					return paths, stores, nil
 				}
 			}
 			//if err := r.deleteFromRemote(ctx, url); err != nil {
