@@ -21,7 +21,6 @@ import (
 
 	"github.com/filecoin-project/specs-actors/actors/abi"
 
-	"github.com/hashicorp/go-multierror"
 	files "github.com/ipfs/go-ipfs-files"
 	"golang.org/x/xerrors"
 )
