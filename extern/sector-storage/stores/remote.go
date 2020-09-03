@@ -128,26 +128,17 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		}
 
 		if PathByType(paths, fileType) != "" {
-			log.Infof("already exist  %v %v  %v", apaths, paths, fileType)
 			continue
 		}
 
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		fetchFlag := false
-		if _, err := os.Stat(dest); err != nil {
-			log.Infof("%v not exist: %v", dest, err)
-			fetchFlag = true
-
-		}
-
-		url, err := r.acquireFromRemote(ctx, s, fileType, dest, fetchFlag)
+		url, err := r.acquireFromRemote(ctx, s, fileType, dest)
 		if err != nil {
 			return SectorPaths{}, SectorPaths{}, err
 		}
 
-		log.Infof("url: %v", url)
 		SetPathByType(&paths, fileType, dest)
 		SetPathByType(&stores, fileType, storageID)
 
@@ -161,7 +152,6 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 				log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
 			}
 		}
-
 	}
 
 	return paths, stores, nil
@@ -179,7 +169,7 @@ func tempFetchDest(spath string, create bool) (string, error) {
 	return filepath.Join(tempdir, b), nil
 }
 
-func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType SectorFileType, dest string, fetchFlag bool) (string, error) {
+func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType SectorFileType, dest string) (string, error) {
 	si, err := r.index.StorageFindSector(ctx, s, fileType, 0, false)
 	if err != nil {
 		return "", err
@@ -198,10 +188,6 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 		// TODO: see what we have local, prefer that
 
 		for _, url := range info.URLs {
-			if fetchFlag == false {
-				return url, nil
-			}
-
 			tempDest, err := tempFetchDest(dest, true)
 			if err != nil {
 				return "", err
