@@ -210,7 +210,7 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 				}
 			} else {
 				index := strings.LastIndex(url, "/")
-				temurl = dest[:index] + "/temp.log"
+				temurl = url[:index] + "/temp.log"
 			}
 
 			err = r.fetch(ctx, temurl, tempDest)
