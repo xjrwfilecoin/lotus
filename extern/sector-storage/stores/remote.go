@@ -134,11 +134,18 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		url, err := r.acquireFromRemote(ctx, s, fileType, dest)
+		temp := dest
+		if _, err := os.Stat(dest); err != nil {
+			log.Infof("%v not exist: %v", dest, err)
+			temp += ".1"
+		}
+
+		url, err := r.acquireFromRemote(ctx, s, fileType, temp, temp != dest)
 		if err != nil {
 			return SectorPaths{}, SectorPaths{}, err
 		}
 
+		log.Infof("url :%v dest:%v", url, dest)
 		SetPathByType(&paths, fileType, dest)
 		SetPathByType(&stores, fileType, storageID)
 
@@ -169,7 +176,7 @@ func tempFetchDest(spath string, create bool) (string, error) {
 	return filepath.Join(tempdir, b), nil
 }
 
-func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType SectorFileType, dest string) (string, error) {
+func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType SectorFileType, dest string, fetchFlag bool) (string, error) {
 	si, err := r.index.StorageFindSector(ctx, s, fileType, 0, false)
 	if err != nil {
 		return "", err
@@ -193,18 +200,26 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 				return "", err
 			}
 
-			if err := os.RemoveAll(dest); err != nil {
-				return "", xerrors.Errorf("removing dest: %w", err)
+			temurl := url
+			if fetchFlag {
+				if err := os.RemoveAll(dest); err != nil {
+					return "", xerrors.Errorf("removing dest: %w", err)
+				}
+			} else {
+				temurl += ".1"
 			}
 
-			err = r.fetch(ctx, url, tempDest)
+			err = r.fetch(ctx, temurl, tempDest)
 			if err != nil {
+				log.Infof("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err)
 				merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
 				continue
 			}
 
-			if err := move(tempDest, dest); err != nil {
-				return "", xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
+			if fetchFlag {
+				if err := move(tempDest, dest); err != nil {
+					return "", xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
+				}
 			}
 
 			if merr != nil {

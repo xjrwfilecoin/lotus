@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"math/bits"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -113,11 +114,11 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 				log.Info("piece_info: ", piece_info)
 				b, err := cbor.Marshal(piece_info) // encode v to []byte b
 				ioutil.WriteFile(pre_add_committed, b, 0644)
-				//CopyFile(pre_add_piece, stagedPath.Unsealed)
+				CopyFile(pre_add_piece, stagedPath.Unsealed)
 				return piece_info, err
 			} else {
 				log.Errorf("sb.addPiece error: ", err)
-				//CopyFile(pre_add_piece, stagedPath.Unsealed)
+				CopyFile(pre_add_piece, stagedPath.Unsealed)
 				return abi.PieceInfo{}, err
 			}
 		} else {
@@ -130,11 +131,11 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 			piece_info := abi.PieceInfo{}
 			err = cbor.Unmarshal(bytes, &piece_info)
 			log.Info("piece_info: ", piece_info)
-			//dir := filepath.Dir(stagedPath.Unsealed)
-			//if _, err := os.Stat(dir); os.IsNotExist(err) {
-			//	os.Mkdir(dir, os.ModeDir|os.ModePerm)
-			//}
-			//CopyFile(pre_add_piece, stagedPath.Unsealed)
+			dir := filepath.Dir(stagedPath.Unsealed)
+			if _, err := os.Stat(dir); os.IsNotExist(err) {
+				os.Mkdir(dir, os.ModeDir|os.ModePerm)
+			}
+			CopyFile(pre_add_piece, stagedPath.Unsealed)
 			return piece_info, err
 		}
 
