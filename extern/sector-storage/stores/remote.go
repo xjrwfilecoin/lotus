@@ -137,6 +137,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		temp := dest
 		if _, err := os.Stat(dest); err != nil {
 			log.Infof("%v not exist: %v", dest, err)
+		} else {
 			temp += ".1"
 		}
 
