@@ -3,6 +3,7 @@ package stores
 import (
 	"context"
 	"encoding/json"
+	"github.com/hashicorp/go-multierror"
 	"io/ioutil"
 	"math/bits"
 	"mime"
@@ -12,7 +13,6 @@ import (
 	gopath "path"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
@@ -134,15 +134,18 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		temp := dest
+		fetch := false
+		//temp := dest
 		if _, err := os.Stat(dest); err != nil {
 			log.Infof("%v not exist: %v", dest, err)
+			fetch = true
 		} else {
-			index := strings.LastIndex(dest, "/")
-			temp = dest[:index] + "/temp.log"
+			//index := strings.LastIndex(dest, "/")
+			//temp = dest[:index] + "/temp.log"
+
 		}
 
-		url, err := r.acquireFromRemote(ctx, s, fileType, temp, temp == dest)
+		url, err := r.acquireFromRemote(ctx, s, fileType, dest, fetch)
 		if err != nil {
 			return SectorPaths{}, SectorPaths{}, err
 		}
@@ -202,21 +205,23 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 				return "", err
 			}
 
-			temurl := url
+			//temurl := url
 			if fetchFlag {
 				if err := os.RemoveAll(dest); err != nil {
 					return "", xerrors.Errorf("removing dest: %w", err)
 				}
 			} else {
-				index := strings.LastIndex(url, "/")
-				temurl = url[:index] + "/temp.log"
+				//index := strings.LastIndex(url, "/")
+				//temurl = url[:index] + "/temp.log"
 			}
 
-			err = r.fetch(ctx, temurl, tempDest)
-			if err != nil {
-				log.Infof("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err)
-				//merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
-				continue
+			if fetchFlag {
+				err = r.fetch(ctx, url, tempDest)
+				if err != nil {
+					log.Infof("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err)
+					merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
+					continue
+				}
 			}
 
 			if fetchFlag {
