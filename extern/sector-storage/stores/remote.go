@@ -54,6 +54,7 @@ func getLocalIP() string {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), "172.70") {
 				localIP = ipnet.IP.String()
+				log.Infof("ip: %v", localIP)
 				return localIP
 			}
 		}
