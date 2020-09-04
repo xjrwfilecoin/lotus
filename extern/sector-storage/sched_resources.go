@@ -1,13 +1,16 @@
 package sectorstorage
 
 import (
+	"os"
+	"strconv"
 	"sync"
 
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
-	for !a.canHandleRequest(r, id, "withResources", wr) {
+func (a *activeResources) withResources(taskType sealtasks.TaskType, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+	for !a.canHandleRequest(r, id, "withResources", wr, taskType) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
 		}
@@ -52,17 +55,21 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 	a.memUsedMax -= r.MaxMemory
 }
 
-func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources) bool {
-
+func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, taskType sealtasks.TaskType) bool {
+	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
+		if p1Num, err := strconv.Atoi(p1Str); err == nil && taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {
+			if a.memUsedMax/needRes.MaxMemory < uint64(p1Num) {
+				return true
+			}
+			log.Infof("canHandleRequest limit %v %v %v %v", a.memUsedMax, needRes.MaxMemory, a.memUsedMax/needRes.MaxMemory, p1Num)
+			return false
+		}
+	}
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
 	minNeedMem := res.MemReserved + a.memUsedMin + needRes.MinMemory + needRes.BaseMinMemory
 	if minNeedMem > res.MemPhysical {
 		log.Debugf("sched: not scheduling on worker %d for %s; not enough physical memory - need: %dM, have %dM", wid, caller, minNeedMem/mib, res.MemPhysical/mib)
 		return false
-	}
-
-	if needRes.MaxMemory != 0 {
-		log.Infof("canHandleRequest %v ", a.memUsedMax/needRes.MaxMemory)
 	}
 
 	maxNeedMem := res.MemReserved + a.memUsedMax + needRes.MaxMemory + needRes.BaseMinMemory
