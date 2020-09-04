@@ -3,25 +3,26 @@ package stores
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"math/bits"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	gopath "path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 	"github.com/filecoin-project/lotus/extern/sector-storage/tarutil"
-
 	"github.com/filecoin-project/specs-actors/actors/abi"
-
 	"github.com/hashicorp/go-multierror"
-	files "github.com/ipfs/go-ipfs-files"
+	"github.com/ipfs/go-ipfs-files"
 	"golang.org/x/xerrors"
 )
 
@@ -150,7 +151,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		}
 
 		if op == AcquireMove {
-			r.RemoveEx(ctx, s, fileType)
+			r.RemoveRemote(ctx, s, fileType)
 			//if err := r.deleteFromRemote(ctx, url); err != nil {
 			//	log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
 			//}
@@ -160,7 +161,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 	return paths, stores, nil
 }
 
-func (r *Remote) RemoveEx(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
+func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
 	si, err := r.index.StorageFindSector(ctx, sid, typ, 0, false)
 	if err != nil {
 		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", sid, typ, err)
@@ -168,15 +169,72 @@ func (r *Remote) RemoveEx(ctx context.Context, sid abi.SectorID, typ SectorFileT
 
 	for _, info := range si {
 		for _, url := range info.URLs {
-			if err := r.deleteFromRemote(ctx, url); err != nil {
-				log.Warnf("remove %s: %+v", url, err)
-				continue
+			if err, ip := getLocalIP(); err == nil && !strings.Contains(url, ip) {
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("remove %s: %+v", url, err)
+					continue
+				}
+				return nil
 			}
-			return nil
 		}
 	}
 
 	return nil
+}
+
+func externalIP() (net.IP, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 {
+			continue // interface down
+		}
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue // loopback interface
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		for _, addr := range addrs {
+			ip := getIpFromAddr(addr)
+			if ip == nil {
+				continue
+			}
+			return ip, nil
+		}
+	}
+	return nil, errors.New("connected to the network?")
+}
+
+func getIpFromAddr(addr net.Addr) net.IP {
+	var ip net.IP
+	switch v := addr.(type) {
+	case *net.IPNet:
+		ip = v.IP
+	case *net.IPAddr:
+		ip = v.IP
+	}
+	if ip == nil || ip.IsLoopback() {
+		return nil
+	}
+	ip = ip.To4()
+	if ip == nil {
+		return nil // not an ipv4 address
+	}
+
+	return ip
+}
+
+func getLocalIP() (error, string) {
+	ip, err := externalIP()
+	if err != nil {
+		return err, ""
+	}
+
+	return nil, ip.String()
 }
 
 func tempFetchDest(spath string, create bool) (string, error) {

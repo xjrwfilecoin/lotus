@@ -437,6 +437,10 @@ func (st *Local) Local(ctx context.Context) ([]StoragePath, error) {
 	return out, nil
 }
 
+func (r *Local) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
+	return nil
+}
+
 func (st *Local) Remove(ctx context.Context, sid abi.SectorID, typ SectorFileType, force bool) error {
 	if bits.OnesCount(uint(typ)) != 1 {
 		return xerrors.New("delete expects one file type")
