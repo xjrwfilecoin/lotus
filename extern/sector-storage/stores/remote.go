@@ -3,7 +3,6 @@ package stores
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"math/bits"
 	"mime"
@@ -37,6 +36,29 @@ type Remote struct {
 
 	fetchLk  sync.Mutex
 	fetching map[abi.SectorID]chan struct{}
+}
+
+var localIP = ""
+
+func getLocalIP() string {
+	if localIP != "" {
+		return localIP
+	}
+
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+
+	for _, address := range addrs {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), "172.70") {
+				localIP = ipnet.IP.String()
+				return localIP
+			}
+		}
+	}
+	return ""
 }
 
 func (r *Remote) RemoveCopies(ctx context.Context, s abi.SectorID, types SectorFileType) error {
@@ -170,7 +192,7 @@ func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorF
 	for _, info := range si {
 		for _, url := range info.URLs {
 			log.Infof("url  = %v", url)
-			if err, ip := getLocalIP(); err == nil && !strings.Contains(url, ip) {
+			if !strings.Contains(url, getLocalIP()) {
 				if err := r.deleteFromRemote(ctx, url); err != nil {
 					log.Warnf("remove %s: %+v", url, err)
 					continue
@@ -181,62 +203,6 @@ func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorF
 	}
 
 	return nil
-}
-
-func externalIP() (net.IP, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil, err
-	}
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
-		}
-		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
-		}
-		addrs, err := iface.Addrs()
-		if err != nil {
-			return nil, err
-		}
-		for _, addr := range addrs {
-			ip := getIpFromAddr(addr)
-			if ip == nil {
-				continue
-			}
-			return ip, nil
-		}
-	}
-	return nil, errors.New("connected to the network?")
-}
-
-func getIpFromAddr(addr net.Addr) net.IP {
-	var ip net.IP
-	switch v := addr.(type) {
-	case *net.IPNet:
-		ip = v.IP
-	case *net.IPAddr:
-		ip = v.IP
-	}
-	if ip == nil || ip.IsLoopback() {
-		return nil
-	}
-	ip = ip.To4()
-	if ip == nil {
-		return nil // not an ipv4 address
-	}
-
-	return ip
-}
-
-func getLocalIP() (error, string) {
-	ip, err := externalIP()
-	if err != nil {
-		return err, ""
-	}
-	log.Infof("ip: %v", ip.String())
-
-	return nil, ip.String()
 }
 
 func tempFetchDest(spath string, create bool) (string, error) {
