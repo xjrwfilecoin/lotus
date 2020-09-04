@@ -158,11 +158,9 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		if _, err := os.Stat(dest); err != nil {
-			_, err := r.acquireFromRemote(ctx, s, fileType, dest)
-			if err != nil {
-				return SectorPaths{}, SectorPaths{}, err
-			}
+		url, err := r.acquireFromRemote(ctx, s, fileType, dest)
+		if err != nil {
+			return SectorPaths{}, SectorPaths{}, err
 		}
 
 		SetPathByType(&paths, fileType, dest)
@@ -174,14 +172,14 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		}
 
 		if op == AcquireMove {
-			r.RemoveRemote(ctx, s, fileType)
-			//if err := r.deleteFromRemote(ctx, url); err != nil {
-			//	log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
-			//}
+			if err := r.deleteFromRemote(ctx, url); err != nil {
+				log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+			}
 		}
 	}
 
 	return paths, stores, nil
+
 }
 
 func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
