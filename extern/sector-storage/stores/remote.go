@@ -169,6 +169,7 @@ func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorF
 
 	for _, info := range si {
 		for _, url := range info.URLs {
+			log.Infof("url  = %v", url)
 			if err, ip := getLocalIP(); err == nil && !strings.Contains(url, ip) {
 				if err := r.deleteFromRemote(ctx, url); err != nil {
 					log.Warnf("remove %s: %+v", url, err)
@@ -233,6 +234,7 @@ func getLocalIP() (error, string) {
 	if err != nil {
 		return err, ""
 	}
+	log.Infof("ip: %v", ip.String())
 
 	return nil, ip.String()
 }

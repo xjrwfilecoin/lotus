@@ -148,8 +148,8 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector abi.SectorID, p
 		return storage2.SectorCids{}, err
 	}
 	log.Infof("in SealPreCommit2 %v", sector)
-	//l.storage.RemoveRemote(ctx, sector, stores.FTSealed)
-	//l.storage.RemoveRemote(ctx, sector, stores.FTCache)
+	l.storage.RemoveRemote(ctx, sector, stores.FTSealed)
+	l.storage.RemoveRemote(ctx, sector, stores.FTCache)
 
 	return sb.SealPreCommit2(ctx, sector, phase1Out)
 }
