@@ -2,6 +2,7 @@ package sectorstorage
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"io/ioutil"
 )
@@ -33,6 +34,7 @@ func loadGroup() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("group : %v \n", groupState)
 }
 
 func loadTask() {
