@@ -114,12 +114,13 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		index:      si,
 
 		mapReal: make(map[abi.SectorID]struct{}),
-		sched: newScheduler(cfg.SealProofType),
+		sched:   newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
 
 	initState()
+	loadGroup()
 	go m.sched.runSched()
 
 	localTasks := []sealtasks.TaskType{

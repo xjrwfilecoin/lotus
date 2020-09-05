@@ -19,10 +19,10 @@ var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
 
-func init() {
-	loadGroup()
-	loadTask()
-}
+//func init() {
+//	loadGroup()
+//	loadTask()
+//}
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
