@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
+	"math/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
