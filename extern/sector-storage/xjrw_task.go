@@ -26,7 +26,7 @@ func init() {
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
 	if err != nil {
-		//panic(err)
+		panic(err)
 		return
 	}
 	err = json.Unmarshal(data, &groupState)
