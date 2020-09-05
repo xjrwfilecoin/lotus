@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -78,6 +80,7 @@ type scheduler struct {
 
 type workerHandle struct {
 	w Worker
+	p1StartTime int64
 
 	info storiface.WorkerInfo
 
@@ -372,6 +375,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				if !ok {
+					log.Errorf("not req.sel.Ok : %v %v %v", task.sector, task.taskType, worker.info.Hostname)
 					continue
 				}
 
@@ -673,6 +677,7 @@ func (sh *scheduler) workerCompactWindows(worker *workerHandle, wid WorkerID) in
 }
 
 func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *workerHandle, req *workerRequest) error {
+	log.Infof("xjrw assignWorker %s <%v> => %v %v", req.taskType, req.sector, w.info.Hostname, w.info.Resources)
 	needRes := ResourceTable[req.taskType][sh.spt]
 
 	w.lk.Lock()
@@ -717,6 +722,20 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 			case <-sh.closing:
 			}
 
+			if timeStr := os.Getenv("P1_DELAY_TIME"); timeStr != "" && req.taskType == sealtasks.TTPreCommit1 {
+				timeNow := time.Now().Unix()
+				if timedelay, err := strconv.Atoi(timeStr); err == nil {
+					if w.p1StartTime != 0 && timeNow-w.p1StartTime < int64(timedelay) {
+						w.lk.Lock()
+						w.p1StartTime += int64(timedelay)
+						w.lk.Unlock()
+						log.Info("%v PreCommit1  delay ", req.sector, w.p1StartTime-timeNow)
+						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
+					} else {
+						w.p1StartTime = timeNow
+					}
+				}
+			}
 			err = req.work(req.ctx, w.wt.worker(w.w))
 
 			select {
