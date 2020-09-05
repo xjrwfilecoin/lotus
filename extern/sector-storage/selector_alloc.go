@@ -50,7 +50,7 @@ func (s *allocSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt abi
 		}
 
 		if pwk != inf.Hostname {
-			log.Infof("%v not in same server %v  %v", s.sector, pwk, inf.Hostname)
+			log.Infof("%v AP&P1 not in same server %v  %v", s.sector, pwk, inf.Hostname)
 			return false, nil
 		}
 	}

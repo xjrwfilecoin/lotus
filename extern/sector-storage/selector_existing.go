@@ -54,12 +54,12 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 				return false, nil
 			}
 			if index := int(s.sector.Number) % getGroupCount(group.GroupName); index != group.GroupIndex {
-				log.Infof("%v index %v  is different %v  %v", s.sector, index, inf.Hostname, group)
+				log.Infof("%v index %v P1&P2 is different %v  %v", s.sector, index, inf.Hostname, group)
 				return false, nil
 			}
 		} else {
 			if pwk != inf.Hostname {
-				log.Infof("%v not in same server %v  %v", s.sector, pwk, inf.Hostname)
+				log.Infof("%v P1&P2 not in same server %v  %v", s.sector, pwk, inf.Hostname)
 				return false, nil
 			}
 		}
