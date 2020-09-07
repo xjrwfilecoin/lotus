@@ -388,6 +388,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di miner.DeadlineInfo
 
 	if len(sinfos) == 0 {
 		// nothing to prove..
+		log.Info("runPost errNoPartitions")
 		return nil, errNoPartitions
 	}
 
