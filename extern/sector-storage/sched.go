@@ -79,7 +79,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	w Worker
+	w           Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -375,7 +375,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				if !ok {
-					log.Errorf("not req.sel.Ok : %v %v %v", task.sector, task.taskType, worker.info.Hostname)
+					log.Infof("not req.sel.Ok : %v %v %v", task.sector, task.taskType, worker.info.Hostname)
 					continue
 				}
 
@@ -417,7 +417,7 @@ func (sh *scheduler) trySched() {
 	wg.Wait()
 
 	log.Debugf("SCHED windows: %+v", windows)
-	log.Debugf("SCHED Acceptable win: %+v", acceptableWindows)
+	//log.Debugf("SCHED Acceptable win: %+v", acceptableWindows)
 
 	// Step 2
 	scheduled := 0
