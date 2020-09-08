@@ -161,6 +161,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		storageID := PathByType(ids, fileType)
 
 		if _, err := os.Stat(dest); err != nil || existing != FTSealed|FTCache {
+			log.Infof("not exist dest %v %v", dest, existing)
 			url, err := r.acquireFromRemote(ctx, s, fileType, dest)
 			if err != nil {
 				return SectorPaths{}, SectorPaths{}, err
@@ -171,6 +172,8 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 					log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
 				}
 			}
+		} else {
+			log.Infof("exist dest %v %v", dest, existing)
 		}
 
 		SetPathByType(&paths, fileType, dest)
