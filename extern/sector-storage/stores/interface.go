@@ -24,6 +24,7 @@ const (
 type Store interface {
 	AcquireSector(ctx context.Context, s abi.SectorID, spt abi.RegisteredSealProof, existing SectorFileType, allocate SectorFileType, sealing PathType, op AcquireMode) (paths SectorPaths, stores SectorPaths, err error)
 	Remove(ctx context.Context, s abi.SectorID, types SectorFileType, force bool) error
+	RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorFileType) error
 
 	// like remove, but doesn't remove the primary sector copy, nor the last
 	// non-primary copy if there no primary copies
