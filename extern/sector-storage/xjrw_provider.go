@@ -2,9 +2,9 @@ package sectorstorage
 
 import (
 	"context"
+	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
-	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/specs-storage/storage"
 	"golang.org/x/xerrors"
 	"io"
@@ -109,7 +109,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 	}()
 
 	_, exist := m.mapReal[sector]
-	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
+	if os.Getenv("LOTUS_PLDEGE") != "" && !exist && findSector(stores.SectorName(sector), sealtasks.TTPreCommit2) {
 		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 	}
 
