@@ -167,6 +167,12 @@ var runCmd = &cli.Command{
 			}
 		}
 
+		if os.Getenv("FIL_PROOFS_SSD_PARENT") == "" {
+			panic("FIL_PROOFS_SSD_PARENT not set")
+		}
+
+		sectorstorage.ShellExecute("rm -rf " + os.Getenv("FIL_PROOFS_SSD_PARENT") + "/*")
+
 		// Connect to storage-miner
 		var nodeApi api.StorageMiner
 		var closer func()
@@ -359,11 +365,6 @@ var runCmd = &cli.Command{
 
 		mux := mux.NewRouter()
 
-		if os.Getenv("FIL_PROOFS_SSD_PARENT") == "" {
-			panic("FIL_PROOFS_SSD_PARENT not set")
-		}
-
-		sectorstorage.ShellExecute("rm -rf " + os.Getenv("FIL_PROOFS_SSD_PARENT") + "/*")
 		log.Info("Setting up control endpoint at " + address)
 
 		readerHandler, readerServerOpt := rpcenc.ReaderParamDecoder()
