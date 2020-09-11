@@ -6,12 +6,14 @@ import (
 	"io/ioutil"
 	"math/bits"
 	"mime"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	gopath "path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
@@ -38,6 +40,29 @@ type Remote struct {
 	fetching map[abi.SectorID]chan struct{}
 }
 
+var localIP = ""
+
+func getLocalIP() string {
+	if localIP != "" {
+		return localIP
+	}
+
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+
+	for _, address := range addrs {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), "172.70") {
+				localIP = ipnet.IP.String()
+				log.Infof("ip: %v", localIP)
+				return localIP
+			}
+		}
+	}
+	return ""
+}
 func (r *Remote) RemoveCopies(ctx context.Context, s abi.SectorID, types SectorFileType) error {
 	// TODO: do this on remotes too
 	//  (not that we really need to do that since it's always called by the
@@ -134,9 +159,20 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		url, err := r.acquireFromRemote(ctx, s, fileType, dest)
-		if err != nil {
-			return SectorPaths{}, SectorPaths{}, err
+		if _, err := os.Stat(dest); err != nil || existing != FTSealed|FTCache {
+			log.Infof("not exist dest %v %v", dest, existing)
+			url, err := r.acquireFromRemote(ctx, s, fileType, dest)
+			if err != nil {
+				return SectorPaths{}, SectorPaths{}, err
+			}
+
+			if op == AcquireMove {
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+				}
+			}
+		} else {
+			log.Infof("exist dest %v %v", dest, existing)
 		}
 
 		SetPathByType(&paths, fileType, dest)
@@ -146,15 +182,32 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 			log.Warnf("declaring sector %v in %s failed: %+v", s, storageID, err)
 			continue
 		}
+	}
 
-		if op == AcquireMove {
-			if err := r.deleteFromRemote(ctx, url); err != nil {
-				log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+	return paths, stores, nil
+
+}
+
+func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
+	si, err := r.index.StorageFindSector(ctx, sid, typ, 0, false)
+	if err != nil {
+		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", sid, typ, err)
+	}
+
+	for _, info := range si {
+		for _, url := range info.URLs {
+			log.Infof("url  = %v", url)
+			if !strings.Contains(url, getLocalIP()) {
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("remove %s: %+v", url, err)
+					continue
+				}
+				return nil
 			}
 		}
 	}
 
-	return paths, stores, nil
+	return nil
 }
 
 func tempFetchDest(spath string, create bool) (string, error) {
