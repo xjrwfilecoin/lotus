@@ -392,6 +392,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 
 	if len(sinfos) == 0 {
 		// nothing to prove..
+		log.Info("runPost errNoPartitions")
 		return nil, errNoPartitions
 	}
 
@@ -513,6 +514,7 @@ func (s *WindowPoStScheduler) submitPost(ctx context.Context, proof *miner.Submi
 		}
 
 		if rec.Receipt.ExitCode == 0 {
+			log.Infof("Submitting window post %s success", sm.Cid())
 			return
 		}
 
