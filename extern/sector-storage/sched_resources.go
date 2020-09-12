@@ -80,7 +80,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	}
 
 	if needRes.MultiThread() {
-		if a.cpuUse > 0 {
+		if a.cpuUse > 0 && taskType != sealtasks.TTPreCommit2 {
 			log.Debugf("sched: not scheduling on worker %d for %s; multicore process needs %d threads, %d in use, target %d", wid, caller, res.CPUs, a.cpuUse, res.CPUs)
 			return false
 		}
