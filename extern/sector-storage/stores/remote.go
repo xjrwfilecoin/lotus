@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io/ioutil"
@@ -83,6 +84,32 @@ func NewRemote(local *Local, index SectorIndex, auth http.Header, fetchLimit int
 	}
 }
 
+func getTXTLine(fileName string) int {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return -1
+	}
+	defer file.Close()
+	fd := bufio.NewReader(file)
+	count := 0
+	for {
+		_, err := fd.ReadString('\n')
+		count++
+		if err != nil {
+			break
+		}
+	}
+	return count
+}
+
+func judgeCacheComplete(cache string) bool {
+	file := filepath.Join(cache, "files.txt")
+	if getTXTLine(file) == 12 {
+		return true
+	}
+	return false
+}
+
 func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.RegisteredSealProof, existing SectorFileType, allocate SectorFileType, pathType PathType, op AcquireMode) (SectorPaths, SectorPaths, error) {
 	if existing|allocate != existing^allocate {
 		return SectorPaths{}, SectorPaths{}, xerrors.New("can't both find and allocate a sector")
@@ -159,8 +186,8 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		if _, err := os.Stat(dest); err != nil || existing != FTSealed|FTCache {
-			log.Infof("not exist dest %v %v", dest, existing)
+		if _, err := os.Stat(dest); err != nil || existing != FTSealed|FTCache || (err == nil && fileType == FTCache && !judgeCacheComplete(dest)) {
+			log.Infof("not exist dest %v %v %v", dest, existing, err)
 			url, err := r.acquireFromRemote(ctx, s, fileType, dest)
 			if err != nil {
 				return SectorPaths{}, SectorPaths{}, err
