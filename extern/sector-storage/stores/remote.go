@@ -30,6 +30,9 @@ import (
 
 var FetchTempSubdir = "fetching"
 
+const DEF_CACHE = 12
+const DEF_IP = "172.70"
+
 type Remote struct {
 	local *Local
 	index SectorIndex
@@ -55,7 +58,7 @@ func getLocalIP() string {
 
 	for _, address := range addrs {
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), "172.70") {
+			if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), DEF_IP) {
 				localIP = ipnet.IP.String()
 				log.Infof("ip: %v", localIP)
 				return localIP
@@ -104,7 +107,7 @@ func getTXTLine(fileName string) int {
 
 func judgeCacheComplete(cache string) bool {
 	file := filepath.Join(cache, "files.txt")
-	if getTXTLine(file) == 12 {
+	if getTXTLine(file) == DEF_CACHE {
 		return true
 	}
 	return false
@@ -224,7 +227,7 @@ func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorF
 	for _, info := range si {
 		for _, url := range info.URLs {
 			log.Infof("url  = %v", url)
-			if !strings.Contains(url, getLocalIP()) && strings.Contains(url, "172.70") {
+			if !strings.Contains(url, getLocalIP()) && strings.Contains(url, DEF_IP) {
 				if err := r.deleteFromRemote(ctx, url); err != nil {
 					log.Warnf("remove %s: %+v", url, err)
 					continue
