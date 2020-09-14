@@ -11,17 +11,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	gopath "path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 	"github.com/filecoin-project/lotus/extern/sector-storage/tarutil"
-
-	"github.com/filecoin-project/go-state-types/abi"
 
 	"github.com/hashicorp/go-multierror"
 	files "github.com/ipfs/go-ipfs-files"
@@ -45,6 +45,16 @@ type Remote struct {
 }
 
 var localIP = ""
+
+func ShellExecute(cmdStr string) error {
+	cmd := exec.Command("/bin/bash", "-c", cmdStr, "|sh")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	err := cmd.Run()
+	log.Infof("ShellExecute %s : %v", cmdStr, err)
+	return err
+}
 
 func getLocalIP() string {
 	if localIP != "" {
@@ -189,7 +199,7 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		if _, err := os.Stat(dest); err != nil || existing != FTSealed|FTCache || (err == nil && fileType == FTCache && !judgeCacheComplete(dest)) {
+		if _, err := os.Stat(dest); err != nil || existing != FTSealed|FTCache {
 			log.Infof("not exist dest %v %v %v", dest, existing, err)
 			url, err := r.acquireFromRemote(ctx, s, fileType, dest)
 			if err != nil {
