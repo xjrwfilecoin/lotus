@@ -122,7 +122,7 @@ func ReadTXT(fileName string) []string {
 	return []string{}
 }
 
-func JudgeComplete(cache string) bool {
+func JudgeCacheComplete(cache string) bool {
 	file := cache + ".txt"
 	lines := ReadTXT(file)
 	if len(lines) < DEF_CACHE {
@@ -268,7 +268,7 @@ func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ Sect
 				}
 				dest = filepath.Join(dest, SectorName(s))
 
-				if _, err := os.Stat(dest); err != nil || (err == nil && typ == FTCache && !judgeCacheComplete(dest)) {
+				if _, err := os.Stat(dest); err != nil || (err == nil && typ == FTCache && !JudgeCacheComplete(dest)) {
 					tempDest, err := tempFetchDest(dest, true)
 					if err != nil {
 						return err
