@@ -148,8 +148,14 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector abi.SectorID, p
 		return storage2.SectorCids{}, err
 	}
 	log.Infof("in SealPreCommit2 %v", sector)
-	l.storage.RemoveRemote(ctx, sector, stores.FTSealed)
-	l.storage.RemoveRemote(ctx, sector, stores.FTCache)
+
+	if err := l.storage.FetchRemoveRemote(ctx, sector, stores.FTSealed); err != nil {
+		log.Errorf("FetchRemoveRemote Sealed :%w", err)
+	}
+
+	if err := l.storage.FetchRemoveRemote(ctx, sector, stores.FTCache); err != nil {
+		log.Errorf("FetchRemoveRemote Cache :%w", err)
+	}
 
 	return sb.SealPreCommit2(ctx, sector, phase1Out)
 }

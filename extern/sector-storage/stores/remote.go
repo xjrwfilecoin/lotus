@@ -218,16 +218,48 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 
 }
 
-func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
-	si, err := r.index.StorageFindSector(ctx, sid, typ, 0, false)
+func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ SectorFileType) error {
+	si, err := r.index.StorageFindSector(ctx, s, typ, 0, false)
 	if err != nil {
-		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", sid, typ, err)
+		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", s, typ, err)
 	}
 
+	var merr error
 	for _, info := range si {
 		for _, url := range info.URLs {
 			log.Infof("url  = %v", url)
 			if !strings.Contains(url, getLocalIP()) && strings.Contains(url, DEF_IP) {
+				dest := ""
+				if typ == FTSealed {
+					dest = filepath.Join(os.Getenv("WORKER_PATH"), "sealed")
+				} else if typ == FTCache {
+					dest = filepath.Join(os.Getenv("WORKER_PATH"), "cache")
+				} else {
+					return xerrors.Errorf(" %v not exist type", s)
+				}
+				dest = filepath.Join(dest, SectorName(s))
+
+				if _, err := os.Stat(dest); err != nil || (err == nil && typ == FTCache && !judgeCacheComplete(dest)) {
+					tempDest, err := tempFetchDest(dest, true)
+					if err != nil {
+						return err
+					}
+
+					if err := os.RemoveAll(dest); err != nil {
+						return xerrors.Errorf("removing dest: %w", err)
+					}
+
+					err = r.fetch(ctx, url, tempDest)
+					if err != nil {
+						merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
+						continue
+					}
+
+					if err := move(tempDest, dest); err != nil {
+						return xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
+					}
+				}
+
 				if err := r.deleteFromRemote(ctx, url); err != nil {
 					log.Warnf("remove %s: %+v", url, err)
 					continue

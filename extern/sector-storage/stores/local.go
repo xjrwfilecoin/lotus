@@ -437,7 +437,7 @@ func (st *Local) Local(ctx context.Context) ([]StoragePath, error) {
 	return out, nil
 }
 
-func (r *Local) RemoveRemote(ctx context.Context, sid abi.SectorID, typ SectorFileType) error {
+func (r *Local) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ SectorFileType) error {
 	return nil
 }
 func (st *Local) Remove(ctx context.Context, sid abi.SectorID, typ SectorFileType, force bool) error {
