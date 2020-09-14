@@ -119,7 +119,7 @@ func ReadTXT(fileName string) []string {
 			return []string{}
 		}
 	}
-	return []string{}
+	return files
 }
 
 func JudgeCacheComplete(cache string) bool {
