@@ -98,6 +98,7 @@ func NewRemote(local *Local, index SectorIndex, auth http.Header, fetchLimit int
 }
 
 func getTXTLine(fileName string) int {
+	log.Infof("getTXTLine %v", fileName)
 	file, err := os.Open(fileName)
 	if err != nil {
 		return -1
@@ -116,7 +117,7 @@ func getTXTLine(fileName string) int {
 }
 
 func judgeCacheComplete(cache string) bool {
-	file := filepath.Join(cache, "files.txt")
+	file := cache + ".txt"
 	if getTXTLine(file) == DEF_CACHE {
 		return true
 	}
