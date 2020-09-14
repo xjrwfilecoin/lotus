@@ -125,7 +125,7 @@ func ReadTXT(fileName string) []string {
 func JudgeCacheComplete(cache string) bool {
 	file := cache + ".txt"
 	lines := ReadTXT(file)
-	if len(lines) < DEF_CACHE {
+	if len(lines) < DEF_CACHE || !strings.Contains(lines[len(lines)-1], "layer-11") {
 		return false
 	}
 
