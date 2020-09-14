@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"math/bits"
 	"mime"
@@ -97,28 +98,45 @@ func NewRemote(local *Local, index SectorIndex, auth http.Header, fetchLimit int
 	}
 }
 
-func getTXTLine(fileName string) int {
+func ReadTXT(fileName string) []string {
+	files := []string{}
 	log.Infof("getTXTLine %v", fileName)
-	file, err := os.Open(fileName)
+	f, err := os.Open(fileName)
 	if err != nil {
-		return -1
+		return []string{}
 	}
-	defer file.Close()
-	fd := bufio.NewReader(file)
-	count := 0
+	buf := bufio.NewReader(f)
 	for {
-		_, err := fd.ReadString('\n')
-		count++
+		line, err := buf.ReadString('\n')
+		line = strings.TrimSpace(line)
+		if line != "" {
+			files = append(files, line)
+		}
 		if err != nil {
-			break
+			if err == io.EOF {
+				return files
+			}
+			return []string{}
 		}
 	}
-	return count
+	return []string{}
 }
 
-func judgeCacheComplete(cache string) bool {
+func JudgeComplete(cache string) bool {
 	file := cache + ".txt"
-	if getTXTLine(file) == DEF_CACHE {
+	lines := ReadTXT(file)
+	if len(lines) < DEF_CACHE {
+		return false
+	}
+
+	lines = lines[len(lines)-DEF_CACHE:]
+
+	mapData := make(map[string]struct{})
+	for _, file := range lines {
+		mapData[file] = struct{}{}
+	}
+
+	if len(mapData) == DEF_CACHE {
 		return true
 	}
 	return false
