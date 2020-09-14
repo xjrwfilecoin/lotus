@@ -173,7 +173,7 @@ var runCmd = &cli.Command{
 			panic("FIL_PROOFS_SSD_PARENT not set")
 		}
 
-		stores.ShellExecute("rm -rf " + os.Getenv("FIL_PROOFS_SSD_PARENT") + "/*")
+		sectorstorage.ShellExecute("rm -rf " + os.Getenv("FIL_PROOFS_SSD_PARENT") + "/*")
 		// Connect to storage-miner
 		var nodeApi api.StorageMiner
 		var closer func()

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	_ "github.com/mattn/go-sqlite3"
+	"os"
+	"os/exec"
 	"sync"
 	"time"
 )
@@ -17,6 +19,16 @@ type SectorState struct {
 var smu sync.Mutex
 var db *sql.DB = nil
 var state = map[string]map[sealtasks.TaskType]*SectorState{}
+
+func ShellExecute(cmdStr string) error {
+	cmd := exec.Command("/bin/bash", "-c", cmdStr, "|sh")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	err := cmd.Run()
+	log.Infof("ShellExecute %s : %v", cmdStr, err)
+	return err
+}
 
 func initState() {
 	var err error

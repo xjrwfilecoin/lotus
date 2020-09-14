@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	gopath "path"
 	"path/filepath"
 	"sort"
@@ -46,16 +45,6 @@ type Remote struct {
 }
 
 var localIP = ""
-
-func ShellExecute(cmdStr string) error {
-	cmd := exec.Command("/bin/bash", "-c", cmdStr, "|sh")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	err := cmd.Run()
-	log.Infof("ShellExecute %s : %v", cmdStr, err)
-	return err
-}
 
 func getLocalIP() string {
 	if localIP != "" {
@@ -277,6 +266,7 @@ func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ Sect
 					if err := os.RemoveAll(dest); err != nil {
 						return xerrors.Errorf("removing dest: %w", err)
 					}
+					log.Infof("Remove dest: %v", dest)
 
 					err = r.fetch(ctx, url, tempDest)
 					if err != nil {
