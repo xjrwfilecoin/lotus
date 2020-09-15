@@ -520,6 +520,13 @@ func (st *Local) removeSector(ctx context.Context, sid abi.SectorID, typ SectorF
 		log.Errorf("removing sector (%v) from %s: %+v", sid, spath, err)
 	}
 
+	if typ == FTCache {
+		file := spath + ".txt"
+		if err := os.Remove(file); err != nil {
+			log.Errorf("removing sector file (%v) from %s: %+v", sid, file, err)
+		}
+	}
+
 	return nil
 }
 
