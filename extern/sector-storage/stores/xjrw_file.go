@@ -83,7 +83,7 @@ func JudgeCacheComplete(cache string) bool {
 
 func appendToFile(fileName string, content string) error {
 	// 以只写的模式，打开文件
-	f, err := os.OpenFile(fileName, os.O_CREATE, 0644)
+	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Errorf("not open %v", fileName)
 	} else {

@@ -206,7 +206,7 @@ func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ Sect
 					}
 
 					if err := WriteTXT(dest); err != nil {
-						log.Warnf("WriteTXT %s.txt failed", dest)
+						log.Warnf("WriteTXT %s.txt failed : err", dest, err)
 					}
 				}
 
