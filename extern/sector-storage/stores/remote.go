@@ -1,14 +1,11 @@
 package stores
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"io"
 	"io/ioutil"
 	"math/bits"
 	"mime"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,9 +27,6 @@ import (
 
 var FetchTempSubdir = "fetching"
 
-const DEF_CACHE = 12
-const DEF_IP = "172.70"
-
 type Remote struct {
 	local *Local
 	index SectorIndex
@@ -44,29 +38,6 @@ type Remote struct {
 	fetching map[abi.SectorID]chan struct{}
 }
 
-var localIP = ""
-
-func getLocalIP() string {
-	if localIP != "" {
-		return localIP
-	}
-
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ""
-	}
-
-	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), DEF_IP) {
-				localIP = ipnet.IP.String()
-				log.Infof("ip: %v", localIP)
-				return localIP
-			}
-		}
-	}
-	return ""
-}
 func (r *Remote) RemoveCopies(ctx context.Context, s abi.SectorID, types SectorFileType) error {
 	// TODO: do this on remotes too
 	//  (not that we really need to do that since it's always called by the
@@ -85,50 +56,6 @@ func NewRemote(local *Local, index SectorIndex, auth http.Header, fetchLimit int
 
 		fetching: map[abi.SectorID]chan struct{}{},
 	}
-}
-
-func ReadTXT(fileName string) []string {
-	files := []string{}
-	log.Infof("getTXTLine %v", fileName)
-	f, err := os.Open(fileName)
-	if err != nil {
-		return []string{}
-	}
-	buf := bufio.NewReader(f)
-	for {
-		line, err := buf.ReadString('\n')
-		line = strings.TrimSpace(line)
-		if line != "" {
-			files = append(files, line)
-		}
-		if err != nil {
-			if err == io.EOF {
-				return files
-			}
-			return []string{}
-		}
-	}
-	return files
-}
-
-func JudgeCacheComplete(cache string) bool {
-	file := cache + ".txt"
-	lines := ReadTXT(file)
-	if len(lines) < DEF_CACHE || !strings.Contains(lines[len(lines)-1], "layer-11") {
-		return false
-	}
-
-	lines = lines[len(lines)-DEF_CACHE:]
-
-	mapData := make(map[string]struct{})
-	for _, file := range lines {
-		mapData[file] = struct{}{}
-	}
-
-	if len(mapData) == DEF_CACHE {
-		return true
-	}
-	return false
 }
 
 func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.RegisteredSealProof, existing SectorFileType, allocate SectorFileType, pathType PathType, op AcquireMode) (SectorPaths, SectorPaths, error) {
@@ -276,6 +203,10 @@ func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ Sect
 
 					if err := move(tempDest, dest); err != nil {
 						return xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
+					}
+
+					if err := WriteTXT(dest); err != nil {
+						log.Warnf("WriteTXT %s.txt failed", dest)
 					}
 				}
 
