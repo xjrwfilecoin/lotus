@@ -150,6 +150,12 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, spt abi.Regi
 			log.Infof("exist dest %v %v", dest, existing)
 		}
 
+		if existing == FTSealed|FTCache && fileType == FTCache && ScanDir(dest) == DEF_CACHE {
+			if err := WriteTXT(dest); err != nil {
+				log.Warnf("WriteTXT %s.txt failed", dest)
+			}
+		}
+
 		SetPathByType(&paths, fileType, dest)
 		SetPathByType(&stores, fileType, storageID)
 

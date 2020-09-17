@@ -3,6 +3,7 @@ package stores
 import (
 	"bufio"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -40,7 +41,7 @@ func ReadTXT(fileName string) []string {
 	log.Infof("getTXTLine %v", fileName)
 	f, err := os.Open(fileName)
 	if err != nil {
-		log.Errorf("not find %v", fileName)
+		log.Errorf("not find %v :%v", fileName, err)
 		return []string{}
 	}
 	buf := bufio.NewReader(f)
@@ -85,7 +86,7 @@ func appendToFile(fileName string, content string) error {
 	// 以只写的模式，打开文件
 	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Errorf("not open %v", fileName)
+		log.Errorf("not open %v : %v ", fileName, err)
 	} else {
 		n, _ := f.Seek(0, os.SEEK_END)
 		_, err = f.WriteAt([]byte(content), n)
@@ -105,4 +106,13 @@ func WriteTXT(cache string) error {
 		}
 	}
 	return nil
+}
+
+func ScanDir(dirName string) int {
+	files, err := ioutil.ReadDir(dirName)
+	if err != nil {
+		log.Errorf("not open %v : %v", dirName, err)
+		return -1
+	}
+	return len(files)
 }
