@@ -242,7 +242,7 @@ func (m *Manager) tryReadUnsealedPiece(ctx context.Context, sink io.Writer, sect
 			returnErr = xerrors.Errorf("reading piece from sealed sector: %w", err)
 		}
 	} else {
-		selector = newAllocSelector(m.index, stores.FTUnsealed, stores.PathSealing)
+		selector = newAllocSelector(m.index, sector, stores.FTUnsealed, stores.PathSealing)
 	}
 	return
 }
@@ -318,7 +318,7 @@ func (m *Manager) oldAddPiece(ctx context.Context, sector abi.SectorID, existing
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
-		selector = newAllocSelector(m.index, stores.FTUnsealed, stores.PathSealing)
+		selector = newAllocSelector(m.index, sector, stores.FTUnsealed, stores.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
 	}
@@ -346,7 +346,7 @@ func (m *Manager) oldSealPreCommit1(ctx context.Context, sector abi.SectorID, ti
 
 	// TODO: also consider where the unsealed data sits
 
-	selector := newAllocSelector(m.index, stores.FTCache|stores.FTSealed, stores.PathSealing)
+	selector := newAllocSelector(m.index, sector, stores.FTCache|stores.FTSealed, stores.PathSealing)
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, schedFetch(sector, stores.FTUnsealed, stores.PathSealing, stores.AcquireMove), func(ctx context.Context, w Worker) error {
 		p, err := w.SealPreCommit1(ctx, sector, ticket, pieces)
@@ -451,7 +451,7 @@ func (m *Manager) oldFinalizeSector(ctx context.Context, sector abi.SectorID, ke
 		return err
 	}
 
-	fetchSel := newAllocSelector(m.index, stores.FTCache|stores.FTSealed, stores.PathStorage)
+	fetchSel := newAllocSelector(m.index, sector, stores.FTCache|stores.FTSealed, stores.PathStorage)
 	moveUnsealed := unsealed
 	{
 		if len(keepUnsealed) == 0 {
