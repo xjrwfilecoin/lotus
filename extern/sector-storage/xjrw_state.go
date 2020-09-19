@@ -184,12 +184,12 @@ func findSector(sector string, tk sealtasks.TaskType) string {
 
 		defer rows.Close()
 		for rows.Next() {
-			var host string
+			var host sql.NullString
 			err = rows.Scan(&host)
 			if err != nil {
 				log.Errorf("sqllite scan %v %v", err, que)
 			}
-			return host
+			return host.String
 		}
 		return ""
 	}
