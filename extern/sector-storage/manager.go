@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
@@ -74,6 +75,9 @@ type Manager struct {
 
 	sched *scheduler
 
+	addPieceStartTime int64
+	lk                sync.Mutex
+
 	storage.Prover
 }
 
@@ -114,7 +118,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		index:      si,
 
 		mapReal: make(map[abi.SectorID]struct{}),
-		sched: newScheduler(cfg.SealProofType),
+		sched:   newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}

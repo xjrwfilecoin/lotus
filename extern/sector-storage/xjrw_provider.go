@@ -9,6 +9,7 @@ import (
 	"golang.org/x/xerrors"
 	"io"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -37,6 +38,21 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 		selector = newAllocSelector(m.index, sector, stores.FTUnsealed, stores.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
+	}
+
+	if timeStr := os.Getenv("ADDPIECE_DELAY_TIME"); timeStr != "" {
+		timeNow := time.Now().Unix()
+		if timedelay, err := strconv.Atoi(timeStr); err == nil {
+			if m.addPieceStartTime != 0 && timeNow-m.addPieceStartTime < int64(timedelay) {
+				m.lk.Lock()
+				m.addPieceStartTime += int64(timedelay)
+				m.lk.Unlock()
+				log.Info("%v addPiece  delay ", sector, m.addPieceStartTime-timeNow)
+				time.Sleep(time.Second * time.Duration(m.addPieceStartTime-timeNow))
+			} else {
+				m.addPieceStartTime = timeNow
+			}
+		}
 	}
 
 	var out abi.PieceInfo
