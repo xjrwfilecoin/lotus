@@ -313,9 +313,9 @@ var runCmd = &cli.Command{
 		}
 
 		lr, err := r.Lock(repo.Worker)
-		if err != nil {
-			return err
-		}
+		//if err != nil {
+		//	return err
+		//}
 
 		log.Info("Opening local storage; connecting to master")
 		const unspecifiedAddress = "0.0.0.0"
