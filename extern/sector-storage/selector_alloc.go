@@ -43,14 +43,14 @@ func (s *allocSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt abi
 
 	if task == sealtasks.TTPreCommit1 {
 		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTAddPiece)
-		log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
+		//log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
 
 		if pwk == "" {
 			return false, xerrors.Errorf("%v not exist", s.sector)
 		}
 
 		if pwk != inf.Hostname {
-			log.Infof("%v AP&P1 not in same server %v  %v", s.sector, pwk, inf.Hostname)
+			//log.Infof("%v AP&P1 not in same server %v  %v", s.sector, pwk, inf.Hostname)
 			return false, nil
 		}
 	}
