@@ -207,12 +207,12 @@ func (fsr *FsRepo) Lock(repoType RepoType) (LockedRepo, error) {
 		return nil, xerrors.Errorf("could not check lock status: %w", err)
 	}
 	if locked {
-		return nil, ErrRepoAlreadyLocked
+		//return nil, ErrRepoAlreadyLocked
 	}
 
 	closer, err := fslock.Lock(fsr.path, fsLock)
 	if err != nil {
-		return nil, xerrors.Errorf("could not lock the repo: %w", err)
+		//return nil, xerrors.Errorf("could not lock the repo: %w", err)
 	}
 	return &fsLockedRepo{
 		path:     fsr.path,
