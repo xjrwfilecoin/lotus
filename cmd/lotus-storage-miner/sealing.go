@@ -96,9 +96,13 @@ var sealingWorkersCmd = &cli.Command{
 
 			vmemBarsRes := int(stat.Info.Resources.MemReserved * barCols / vmem)
 			vmemBarsUsed := int(stat.MemUsedMax * barCols / vmem)
+			strvBar := " "
+			if int(barCols)-vmemBarsUsed-vmemBarsRes > 0 {
+				strvBar = strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+			}
 			vmemBar := color.YellowString(strings.Repeat("|", vmemBarsRes)) +
 				color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
-				strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+				strvBar
 
 			fmt.Printf("\tRAM:  [%s] %d%% %s/%s\n", ramBar,
 				(stat.Info.Resources.MemReserved+stat.MemUsedMin)*100/stat.Info.Resources.MemPhysical,
