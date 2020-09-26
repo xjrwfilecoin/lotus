@@ -263,9 +263,9 @@ func (fsr *fsLockedRepo) join(paths ...string) string {
 }
 
 func (fsr *fsLockedRepo) stillValid() error {
-	if fsr.closer == nil {
-		return ErrClosedRepo
-	}
+	//if fsr.closer == nil {
+	//	return ErrClosedRepo
+	//}
 	return nil
 }
 
