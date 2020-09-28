@@ -180,7 +180,7 @@ var runCmd = &cli.Command{
 		var err error
 		for {
 			nodeApi, closer, err = lcli.GetStorageMinerAPI(cctx,
-				jsonrpc.WithTimeout(300*time.Second))
+				jsonrpc.WithTimeout(30*time.Second))
 			if err == nil {
 				break
 			}
