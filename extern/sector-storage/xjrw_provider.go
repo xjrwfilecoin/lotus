@@ -125,9 +125,12 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 	}()
 
 	_, exist := m.mapReal[sector]
-	if os.Getenv("LOTUS_PLDEGE") != "" && !exist && findSector(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
+	if os.Getenv("LOTUS_PLDEGE") != "" && !exist && findState(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
+		log.Infof("ShellExecute %v", sector)
 		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 	}
+
+	saveState(stores.SectorName(sector), sealtasks.TTPreCommit2)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
