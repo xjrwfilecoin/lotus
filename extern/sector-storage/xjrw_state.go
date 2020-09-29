@@ -196,3 +196,79 @@ func findSector(sector string, tk sealtasks.TaskType) string {
 
 	return state[sector][tk].Worker
 }
+
+func saveState(sector string, tk sealtasks.TaskType) {
+	smu.Lock()
+	defer smu.Unlock()
+
+	_, ok := state[sector]
+	if !ok {
+		state[sector] = map[sealtasks.TaskType]*SectorState{}
+	}
+	_, ok = state[sector][tk]
+	if !ok {
+		state[sector][tk] = &SectorState{
+			Start: time.Now().Format(time.RFC3339),
+		}
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		log.Errorf("sqllite begin %v", err)
+	}
+
+	pre := ""
+	if tk == sealtasks.TTPreCommit2 {
+		pre = "update sector set p2start = ? where id = ?"
+	} else {
+		log.Errorf("not support type")
+		return
+	}
+
+	stmt, err := tx.Prepare(pre)
+	if err != nil {
+		log.Errorf("sqllite prepare %v", err)
+	}
+	defer stmt.Close()
+	_, err = stmt.Exec(state[sector][tk].Start, sector)
+
+	if err != nil {
+		log.Errorf("sqllite exec %v", err)
+	}
+	tx.Commit()
+}
+
+func findState(sector string, tk sealtasks.TaskType) string{
+	smu.Lock()
+	defer smu.Unlock()
+
+	_, ok := state[sector][tk]
+	if !ok {
+		que := ""
+		if tk == sealtasks.TTPreCommit2 {
+			que = "select p2start from sector where id = "
+		} else {
+			log.Errorf("not support type")
+			return ""
+		}
+		que += "'" + sector + "'"
+
+		rows, err := db.Query(que)
+		if err != nil {
+			log.Errorf("sqllite query %v %v ", err, que)
+		}
+
+		defer rows.Close()
+		for rows.Next() {
+			var p2start sql.NullString
+			err = rows.Scan(&p2start)
+			if err != nil {
+				log.Errorf("sqllite scan %v %v", err, que)
+			}
+			return p2start.String
+		}
+		return ""
+	}
+
+	return state[sector][tk].Start
+}
