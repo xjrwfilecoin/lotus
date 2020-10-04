@@ -819,6 +819,9 @@ func (sh *scheduler) workerCleanup(wid WorkerID, w *workerHandle) {
 
 		log.Debugf("dropWorker %d", wid)
 
+		if os.Getenv("CHECK_WORKER") != "" {
+			go ShellExecute(os.Getenv("CHECK_WORKER"))
+		}
 		go func() {
 			if err := w.w.Close(); err != nil {
 				log.Warnf("closing worker %d: %+v", err)

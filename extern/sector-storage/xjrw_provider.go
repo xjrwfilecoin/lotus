@@ -9,6 +9,7 @@ import (
 	"golang.org/x/xerrors"
 	"io"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -37,6 +38,21 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 		selector = newAllocSelector(m.index, sector, stores.FTUnsealed, stores.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
+	}
+
+	if timeStr := os.Getenv("ADDPIECE_DELAY_TIME"); timeStr != "" {
+		timeNow := time.Now().Unix()
+		if timedelay, err := strconv.Atoi(timeStr); err == nil {
+			if m.addPieceStartTime != 0 && timeNow-m.addPieceStartTime < int64(timedelay) {
+				m.lk.Lock()
+				m.addPieceStartTime += int64(timedelay)
+				m.lk.Unlock()
+				log.Info("%v addPiece  delay ", sector, m.addPieceStartTime-timeNow)
+				time.Sleep(time.Second * time.Duration(m.addPieceStartTime-timeNow))
+			} else {
+				m.addPieceStartTime = timeNow
+			}
+		}
 	}
 
 	var out abi.PieceInfo
@@ -109,9 +125,12 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 	}()
 
 	_, exist := m.mapReal[sector]
-	if os.Getenv("LOTUS_PLDEGE") != "" && !exist && findSector(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
+	if os.Getenv("LOTUS_PLDEGE") != "" && !exist && findState(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
+		log.Infof("ShellExecute %v", sector)
 		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 	}
+
+	saveState(stores.SectorName(sector), sealtasks.TTPreCommit2)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
