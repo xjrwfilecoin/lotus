@@ -84,17 +84,25 @@ var sealingWorkersCmd = &cli.Command{
 
 			ramBarsRes := int(stat.Info.Resources.MemReserved * barCols / stat.Info.Resources.MemPhysical)
 			ramBarsUsed := int(stat.MemUsedMin * barCols / stat.Info.Resources.MemPhysical)
+			strBar := " "
+			if int(barCols)-ramBarsUsed-ramBarsRes > 0 {
+				strBar = strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
+			}
 			ramBar := color.YellowString(strings.Repeat("|", ramBarsRes)) +
 				color.GreenString(strings.Repeat("|", ramBarsUsed)) +
-				strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
+				strBar
 
 			vmem := stat.Info.Resources.MemPhysical + stat.Info.Resources.MemSwap
 
 			vmemBarsRes := int(stat.Info.Resources.MemReserved * barCols / vmem)
 			vmemBarsUsed := int(stat.MemUsedMax * barCols / vmem)
+			strvBar := " "
+			if int(barCols)-vmemBarsUsed-vmemBarsRes > 0 {
+				strvBar = strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+			}
 			vmemBar := color.YellowString(strings.Repeat("|", vmemBarsRes)) +
 				color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
-				strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+				strvBar
 
 			fmt.Printf("\tRAM:  [%s] %d%% %s/%s\n", ramBar,
 				(stat.Info.Resources.MemReserved+stat.MemUsedMin)*100/stat.Info.Resources.MemPhysical,
