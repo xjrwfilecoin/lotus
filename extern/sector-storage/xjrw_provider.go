@@ -15,11 +15,6 @@ import (
 
 func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
 	log.Infof("xjrw AddPiece begin %v sz = %v", sector, sz)
-	t1 := time.Now()
-	defer func() {
-		t2 := time.Now()
-		log.Infof("xjrw cast mgr AddPiece %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
-	}()
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -63,12 +58,19 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 		}
 
 		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTAddPiece)
-		defer endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTAddPiece)
+
+		t1 := time.Now()
+		defer func() {
+			t2 := time.Now()
+			log.Infof("xjrw cast mgr AddPiece %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+		}()
 
 		p, err := w.AddPiece(ctx, sector, existingPieces, sz, r)
 		if err != nil {
 			return err
 		}
+
+		endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTAddPiece)
 		out = p
 		return nil
 	})
@@ -78,11 +80,6 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 
 func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
 	log.Info("xjrw SealPreCommit1 begin ", sector)
-	t1 := time.Now()
-	defer func() {
-		t2 := time.Now()
-		log.Infof("xjrw cast mgr SealPreCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
-	}()
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -102,13 +99,19 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 		}
 
 		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
-		defer endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
+
+		t1 := time.Now()
+		defer func() {
+			t2 := time.Now()
+			log.Infof("xjrw cast mgr SealPreCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+		}()
 
 		p, err := w.SealPreCommit1(ctx, sector, ticket, pieces)
 		if err != nil {
 			return err
 		}
 
+		endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
 		out = p
 		return nil
 	})
@@ -118,11 +121,6 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 
 func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
 	log.Info("xjrw SealPreCommit2 begin ", sector)
-	t1 := time.Now()
-	defer func() {
-		t2 := time.Now()
-		log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
-	}()
 
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist && findState(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
@@ -148,12 +146,19 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		}
 
 		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit2)
-		defer endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit2)
+
+		t1 := time.Now()
+		defer func() {
+			t2 := time.Now()
+			log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+		}()
 
 		p, err := w.SealPreCommit2(ctx, sector, phase1Out)
 		if err != nil {
 			return err
 		}
+
+		endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit2)
 		out = p
 		return nil
 	})
@@ -162,11 +167,6 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 
 func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (out storage.Commit1Out, err error) {
 	log.Info("xjrw SealCommit1 begin ", sector)
-	t1 := time.Now()
-	defer func() {
-		t2 := time.Now()
-		log.Infof("xjrw cast mgr SealCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
-	}()
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -187,12 +187,19 @@ func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 		}
 
 		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTCommit1)
-		defer endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTCommit1)
+
+		t1 := time.Now()
+		defer func() {
+			t2 := time.Now()
+			log.Infof("xjrw cast mgr SealCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+		}()
 
 		p, err := w.SealCommit1(ctx, sector, ticket, seed, pieces, cids)
 		if err != nil {
 			return err
 		}
+
+		endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTCommit1)
 		out = p
 		return nil
 	})
@@ -201,11 +208,6 @@ func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 
 func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
 	log.Info("xjrw SealCommit2 begin ", sector)
-	t1 := time.Now()
-	defer func() {
-		t2 := time.Now()
-		log.Infof("xjrw cast mgr SealCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
-	}()
 
 	selector := newTaskSelector()
 
@@ -216,12 +218,19 @@ func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Ou
 		}
 
 		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTCommit2)
-		defer endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTCommit2)
+
+		t1 := time.Now()
+		defer func() {
+			t2 := time.Now()
+			log.Infof("xjrw cast mgr SealCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
+		}()
 
 		p, err := w.SealCommit2(ctx, sector, phase1Out)
 		if err != nil {
 			return err
 		}
+
+		endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTCommit2)
 		out = p
 		return nil
 	})
