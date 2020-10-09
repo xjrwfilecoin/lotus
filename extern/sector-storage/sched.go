@@ -79,7 +79,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	w Worker
+	w           Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -785,6 +785,7 @@ func (sh *scheduler) dropWorker(wid WorkerID) {
 	defer sh.workersLk.Unlock()
 
 	w := sh.workers[wid]
+	log.Infof("dropWorker %v", w.info.Hostname)
 
 	sh.workerCleanup(wid, w)
 
