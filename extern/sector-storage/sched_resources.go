@@ -55,6 +55,16 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 			return false
 		}
 	}
+
+	if c2Str := os.Getenv("C2_LIMIT"); c2Str != "" {
+		if c2Num, err := strconv.Atoi(c2Str); err == nil && taskType == sealtasks.TTCommit2 && needRes.MaxMemory != 0 {
+			if a.memUsedMax/needRes.MaxMemory < uint64(c2Num) {
+				return true
+			}
+			log.Infof("C2 canHandleRequest limit %v %v %v %v", a.memUsedMax, needRes.MaxMemory, a.memUsedMax/needRes.MaxMemory, c2Num)
+			return false
+		}
+	}
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
 	minNeedMem := res.MemReserved + a.memUsedMin + needRes.MinMemory + needRes.BaseMinMemory
 	if minNeedMem > res.MemPhysical {
