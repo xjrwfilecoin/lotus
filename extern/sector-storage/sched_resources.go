@@ -51,7 +51,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 			if a.memUsedMax/needRes.MaxMemory < uint64(p1Num) {
 				return true
 			}
-			log.Infof("canHandleRequest limit %v %v %v %v", a.memUsedMax, needRes.MaxMemory, a.memUsedMax/needRes.MaxMemory, p1Num)
+			log.Infof("P1 canHandleRequest limit %v %v %v %v", a.memUsedMax, needRes.MaxMemory, a.memUsedMax/needRes.MaxMemory, p1Num)
 			return false
 		}
 	}
