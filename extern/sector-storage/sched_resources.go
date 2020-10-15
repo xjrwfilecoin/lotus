@@ -1,13 +1,16 @@
 package sectorstorage
 
 import (
+	"os"
+	"strconv"
 	"sync"
 
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
-	for !a.canHandleRequest(r, id, "withResources", wr) {
+func (a *activeResources) withResources(taskType sealtasks.TaskType, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+	for !a.canHandleRequest(r, id, "withResources", wr, taskType) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
 		}
@@ -42,8 +45,26 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 	a.memUsedMax -= r.MaxMemory
 }
 
-func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources) bool {
+func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, taskType sealtasks.TaskType) bool {
+	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
+		if p1Num, err := strconv.Atoi(p1Str); err == nil && taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {
+			if a.memUsedMax/needRes.MaxMemory < uint64(p1Num) {
+				return true
+			}
+			log.Infof("P1 canHandleRequest limit %v %v %v %v", a.memUsedMax, needRes.MaxMemory, a.memUsedMax/needRes.MaxMemory, p1Num)
+			return false
+		}
+	}
 
+	if c2Str := os.Getenv("C2_LIMIT"); c2Str != "" {
+		if c2Num, err := strconv.Atoi(c2Str); err == nil && taskType == sealtasks.TTCommit2 && needRes.MaxMemory != 0 {
+			if a.memUsedMax/needRes.MaxMemory < uint64(c2Num) {
+				return true
+			}
+			log.Infof("C2 canHandleRequest limit %v %v %v %v", a.memUsedMax, needRes.MaxMemory, a.memUsedMax/needRes.MaxMemory, c2Num)
+			return false
+		}
+	}
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
 	minNeedMem := res.MemReserved + a.memUsedMin + needRes.MinMemory + needRes.BaseMinMemory
 	if minNeedMem > res.MemPhysical {
