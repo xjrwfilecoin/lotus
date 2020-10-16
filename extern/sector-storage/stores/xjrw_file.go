@@ -54,6 +54,7 @@ func getLocalIP() string {
 	//		}
 	//	}
 	//}
+	panic("getLocalIP error")
 	return ""
 }
 
