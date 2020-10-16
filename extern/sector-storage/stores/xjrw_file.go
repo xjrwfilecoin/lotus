@@ -2,6 +2,7 @@ package stores
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -10,29 +11,49 @@ import (
 )
 
 const DEF_CACHE = 12
-const DEF_IP = "172.70"
 
 var localIP = ""
+
+func init() {
+	fmt.Println("localIP: ", getLocalIP())
+}
 
 func getLocalIP() string {
 	if localIP != "" {
 		return localIP
 	}
 
-	addrs, err := net.InterfaceAddrs()
+	name, err := os.Hostname()
 	if err != nil {
 		return ""
 	}
 
-	for _, address := range addrs {
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), DEF_IP) {
-				localIP = ipnet.IP.String()
-				log.Infof("ip: %v", localIP)
-				return localIP
-			}
+	addrs, err := net.LookupHost(name)
+	if err != nil {
+		return ""
+	}
+
+	for _, addr := range addrs {
+		if !strings.Contains(addr, "127.0") {
+			localIP = addr
+			return localIP
 		}
 	}
+
+	//addrs, err := net.InterfaceAddrs()
+	//if err != nil {
+	//	return ""
+	//}
+	//
+	//for _, address := range addrs {
+	//	if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+	//		if ipnet.IP.To4() != nil && strings.Contains(ipnet.IP.String(), DEF_IP) {
+	//			localIP = ipnet.IP.String()
+	//			log.Infof("ip: %v", localIP)
+	//			return localIP
+	//		}
+	//	}
+	//}
 	return ""
 }
 
