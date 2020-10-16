@@ -174,7 +174,7 @@ func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ Sect
 	for _, info := range si {
 		for _, url := range info.URLs {
 			log.Infof("url  = %v", url)
-			if !strings.Contains(url, getLocalIP()) && strings.Contains(url, DEF_IP) {
+			if !strings.Contains(url, getLocalIP()) && strings.Contains(url, localIP) {
 				dest := ""
 				if typ == FTSealed {
 					dest = filepath.Join(os.Getenv("WORKER_PATH"), "sealed")
