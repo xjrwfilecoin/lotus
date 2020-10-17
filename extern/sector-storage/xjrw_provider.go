@@ -33,6 +33,8 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 		selector = newAllocSelector(m.index, stores.FTUnsealed, stores.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector, stores.FTUnsealed, false)
+	}
+	
 	if timeStr := os.Getenv("ADDPIECE_DELAY_TIME"); timeStr != "" {
 		timeNow := time.Now().Unix()
 		if timedelay, err := strconv.Atoi(timeStr); err == nil {
