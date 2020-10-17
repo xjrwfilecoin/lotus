@@ -74,6 +74,8 @@ type Manager struct {
 
 	sched *scheduler
 
+	addPieceStartTime int64
+	lk                sync.Mutex
 	storage.Prover
 }
 
