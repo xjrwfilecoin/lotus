@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
