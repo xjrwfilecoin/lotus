@@ -93,8 +93,10 @@ type workerHandle struct {
 	activeWindows []*schedWindow
 
 	// stats / tracking
-	wt    *workTracker
-	tasks map[sealtasks.TaskType]struct{}
+	wt        *workTracker
+	taskTypes map[sealtasks.TaskType]struct{}
+
+	p2Tasks map[abi.SectorID]struct{}
 
 	// for sync manager goroutine closing
 	cleanupStarted bool

@@ -75,7 +75,7 @@ var sealingWorkersCmd = &cli.Command{
 			}
 
 			tasks := ""
-			for task, _ := range stat.Tasks {
+			for task, _ := range stat.TaskTypes {
 				tasks = tasks + task.Short() + "|"
 			}
 			tasks = strings.Replace(tasks, " ", "", -1)

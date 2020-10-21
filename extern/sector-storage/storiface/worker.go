@@ -26,7 +26,7 @@ type WorkerResources struct {
 type WorkerStats struct {
 	Info WorkerInfo
 
-	Tasks map[sealtasks.TaskType]struct{}
+	TaskTypes map[sealtasks.TaskType]struct{}
 
 	MemUsedMin uint64
 	MemUsedMax uint64

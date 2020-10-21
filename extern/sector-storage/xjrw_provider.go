@@ -157,6 +157,8 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 			log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 		}()
 
+		defer m.DeleteWorkerPreComit2(m.sched.findWorker(inf.Hostname), sector)
+
 		p, err := w.SealPreCommit2(ctx, sector, phase1Out)
 		if err != nil {
 			return err
@@ -253,36 +255,65 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepU
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
 }
 
+func (m *Manager) DeleteWorkerPreComit2(wid int64, sector abi.SectorID) {
+	if wid != -1 {
+		delete(m.sched.workers[WorkerID(wid)].p2Tasks, sector)
+	}
+}
+
 func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	m.sched.workersLk.Lock()
 	defer m.sched.workersLk.Unlock()
 
-	tasks := make(map[uint64]int)
+	tasks := make(map[WorkerID]int)
 	for wid, worker := range m.sched.workers {
-		if _, supported := worker.tasks[sealtasks.TTPreCommit2]; !supported {
+		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; !supported {
 			continue
 		}
-		tasks[uint64(wid)] = 0
+		tasks[wid] = len(worker.p2Tasks)
 	}
 
 	for wid, jobs := range m.WorkerJobs() {
 		for _, job := range jobs {
 			if job.Task == sealtasks.TTPreCommit2 {
-				tasks[wid]++
+				_, exist := m.sched.workers[WorkerID(wid)].p2Tasks[job.Sector]
+				if !exist {
+					tasks[WorkerID(wid)]++
+				} else {
+
+				}
 			}
 		}
 	}
 
 	host := ""
 	minNum := 100
+	var w WorkerID
 	for wid, num := range tasks {
 		if num < minNum {
-			host = m.sched.workers[WorkerID(wid)].info.Hostname
+			host = m.sched.workers[wid].info.Hostname
+			w = wid
 			minNum = num
 		}
 	}
 
-	saveP2Worker(stores.SectorName(sector), host, sealtasks.TTPreCommit2)
+	if host != "" {
+		m.sched.workers[WorkerID(w)].p2Tasks[sector] = struct{}{}
+		saveP2Worker(stores.SectorName(sector), host, sealtasks.TTPreCommit2)
+	}
 
 	return host
+}
+
+func (sh *scheduler) findWorker(host string) int64 {
+	sh.workersLk.Lock()
+	defer sh.workersLk.Unlock()
+
+	for wid, worker := range sh.workers {
+		if worker.info.Hostname == host {
+			return int64(wid)
+		}
+	}
+
+	return -1
 }

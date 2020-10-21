@@ -184,7 +184,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		return xerrors.Errorf("getting worker info: %w", err)
 	}
 
-	tasks, err := w.TaskTypes(ctx)
+	taskTypes, err := w.TaskTypes(ctx)
 	if err != nil {
 		return xerrors.Errorf("getting supported worker task types: %w", err)
 	}
@@ -195,7 +195,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 			running: map[uint64]storiface.WorkerJob{},
 		},
 		info:      info,
-		tasks:     tasks,
+		taskTypes: taskTypes,
 		preparing: &activeResources{},
 		active:    &activeResources{},
 	}
