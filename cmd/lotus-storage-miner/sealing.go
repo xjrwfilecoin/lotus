@@ -74,7 +74,14 @@ var sealingWorkersCmd = &cli.Command{
 				gpuUse = ""
 			}
 
-			fmt.Printf("Worker %d, host %s\n", stat.id, color.MagentaString(stat.Info.Hostname))
+			tasks := ""
+			for task, _ := range stat.Tasks {
+				tasks = tasks + task.Short() + "|"
+			}
+			tasks = strings.Replace(tasks, " ", "", -1)
+			tasks = strings.TrimRight(tasks, "|")
+
+			fmt.Printf("Worker %d, host %s, tasks %s\n", stat.id, color.MagentaString(stat.Info.Hostname), tasks)
 
 			var barCols = uint64(64)
 			cpuBars := int(stat.CpuUse * barCols / stat.Info.Resources.CPUs)

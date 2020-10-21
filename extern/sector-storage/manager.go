@@ -184,12 +184,18 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		return xerrors.Errorf("getting worker info: %w", err)
 	}
 
+	tasks, err := w.TaskTypes(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting supported worker task types: %w", err)
+	}
+
 	m.sched.newWorkers <- &workerHandle{
 		w: w,
 		wt: &workTracker{
 			running: map[uint64]storiface.WorkerJob{},
 		},
 		info:      info,
+		tasks:     tasks,
 		preparing: &activeResources{},
 		active:    &activeResources{},
 	}

@@ -79,7 +79,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	w Worker
+	w           Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -93,7 +93,8 @@ type workerHandle struct {
 	activeWindows []*schedWindow
 
 	// stats / tracking
-	wt *workTracker
+	wt    *workTracker
+	tasks map[sealtasks.TaskType]struct{}
 
 	// for sync manager goroutine closing
 	cleanupStarted bool

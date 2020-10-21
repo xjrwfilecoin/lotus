@@ -124,7 +124,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
-		if findState(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
+		if findP2Start(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
 			log.Infof("ShellExecute %v", sector)
 			go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 		} else {
@@ -132,7 +132,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		}
 	}
 
-	saveState(stores.SectorName(sector), sealtasks.TTPreCommit2)
+	saveP2Start(stores.SectorName(sector), sealtasks.TTPreCommit2)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -251,4 +251,38 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepU
 	}()
 
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
+}
+
+func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
+
+	tasks := make(map[uint64]int)
+	for wid, worker := range m.sched.workers {
+		if _, supported := worker.tasks[sealtasks.TTPreCommit2]; !supported {
+			continue
+		}
+		tasks[uint64(wid)] = 0
+	}
+
+	for wid, jobs := range m.WorkerJobs() {
+		for _, job := range jobs {
+			if job.Task == sealtasks.TTPreCommit2 {
+				tasks[wid]++
+			}
+		}
+	}
+
+	host := ""
+	minNum := 100
+	for wid, num := range tasks {
+		if num < minNum {
+			host = m.sched.workers[WorkerID(wid)].info.Hostname
+			minNum = num
+		}
+	}
+
+	saveP2Worker(stores.SectorName(sector), host, sealtasks.TTPreCommit2)
+
+	return host
 }
