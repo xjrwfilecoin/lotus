@@ -2,12 +2,15 @@ package sectorstorage
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
 	"github.com/filecoin-project/specs-storage/storage"
 	"golang.org/x/xerrors"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -278,19 +281,19 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v p2Tasks = %v", wid, worker.info.Hostname, len(worker.p2Tasks), worker.p2Tasks)
 	}
 
-	for wid, jobs := range m.WorkerJobs() {
-		for _, job := range jobs {
-			if job.Task == sealtasks.TTPreCommit2 {
-				_, exist := m.sched.workers[WorkerID(wid)].p2Tasks[job.Sector]
-				if !exist {
-					log.Infof("SelectWorkerPreComit2 add wid = %v sector = %v", wid, sector)
-					tasks[WorkerID(wid)]++
-				} else {
-					log.Infof("SelectWorkerPreComit2 exist wid = %v sector = %v", wid, sector)
-				}
-			}
-		}
-	}
+	//for wid, jobs := range m.WorkerJobs() {
+	//	for _, job := range jobs {
+	//		if job.Task == sealtasks.TTPreCommit2 {
+	//			_, exist := m.sched.workers[WorkerID(wid)].p2Tasks[job.Sector]
+	//			if !exist {
+	//				log.Infof("SelectWorkerPreComit2 add wid = %v sector = %v", wid, sector)
+	//				tasks[WorkerID(wid)]++
+	//			} else {
+	//				log.Infof("SelectWorkerPreComit2 exist wid = %v sector = %v", wid, sector)
+	//			}
+	//		}
+	//	}
+	//}
 
 	host := ""
 	minNum := 100
@@ -309,6 +312,34 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	}
 
 	return host
+}
+
+func (m *Manager) handler(w http.ResponseWriter, r *http.Request) {
+	log.Info("method = ", r.Method) //请求方法
+	log.Info("URL = ", r.URL)       // 浏览器发送请求文件路径
+	log.Info("header = ", r.Header) // 请求头
+	log.Info("body = ", r.Body)     // 请求包体
+	log.Info(r.RemoteAddr, "连接成功")  //客户端网络地址
+
+	body, _ := ioutil.ReadAll(r.Body)
+	data := make(map[string]string)
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		log.Error("Unmarshal error %+v", err)
+		return
+	}
+
+	sector, err := stores.ParseSectorID(data["sector"])
+	if err != nil {
+		log.Error("data error %+v", err)
+		return
+	}
+
+	log.Info("sector = ", sector)
+	host := m.SelectWorkerPreComit2(sector)
+	log.Info("return host = ", host)
+
+	w.Write([]byte(host))
 }
 
 func (sh *scheduler) findWorker(host string) int64 {

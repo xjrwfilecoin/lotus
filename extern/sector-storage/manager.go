@@ -123,9 +123,9 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		Prover: prover,
 	}
 
-	initDispatchServer()
+	go initDispatchServer(m)
 	initState()
-	loadGroup()
+	//loadGroup()
 	go m.sched.runSched()
 
 	localTasks := []sealtasks.TaskType{
@@ -197,6 +197,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		},
 		info:      info,
 		taskTypes: taskTypes,
+		p2Tasks:   make(map[abi.SectorID]struct{}),
 		preparing: &activeResources{},
 		active:    &activeResources{},
 	}
