@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"io/ioutil"
+	"net/http"
+	"os"
 )
 
 const sfiltask = "./taskconfig.json"
@@ -58,4 +60,31 @@ func getGroupCount(groupName string) int {
 	}
 	groupCount[groupName] = sum
 	return sum
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("method = ", r.Method) //请求方法
+	fmt.Println("URL = ", r.URL)       // 浏览器发送请求文件路径
+	fmt.Println("header = ", r.Header) // 请求头
+	fmt.Println("body = ", r.Body)     // 请求包体
+	fmt.Println(r.RemoteAddr, "连接成功")  //客户端网络地址
+
+	body, _ := ioutil.ReadAll(r.Body)
+	// 打印
+	data := make(map[string]interface{})
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(data["sector"])
+
+	w.Write([]byte("host12"))
+}
+
+func initDispatchServer() {
+	http.HandleFunc("/getHost", handler)
+	if os.Getenv("DISPATCH_SERVER") == "" {
+		panic("DISPATCH_SERVER not set")
+	}
+	http.ListenAndServe(os.Getenv("DISPATCH_SERVER"), nil)
 }

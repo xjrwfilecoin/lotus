@@ -157,7 +157,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 			log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 		}()
 
-		defer m.DeleteWorkerPreComit2(m.sched.findWorker(inf.Hostname), sector)
+		defer m.UnselectWorkerPreComit2(inf.Hostname, sector)
 
 		p, err := w.SealPreCommit2(ctx, sector, phase1Out)
 		if err != nil {
@@ -255,9 +255,13 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepU
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
 }
 
-func (m *Manager) DeleteWorkerPreComit2(wid int64, sector abi.SectorID) {
+func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
+	wid := m.sched.findWorker(host)
 	if wid != -1 {
 		delete(m.sched.workers[WorkerID(wid)].p2Tasks, sector)
+		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Tasks = %v", wid, host, sector, m.sched.workers[WorkerID(wid)].p2Tasks)
+	} else {
+		log.Errorf("UnselectWorkerPreComit2 not find %v", host)
 	}
 }
 
@@ -271,6 +275,7 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			continue
 		}
 		tasks[wid] = len(worker.p2Tasks)
+		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v p2Tasks = %v", wid, worker.info.Hostname, len(worker.p2Tasks), worker.p2Tasks)
 	}
 
 	for wid, jobs := range m.WorkerJobs() {
@@ -278,9 +283,10 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			if job.Task == sealtasks.TTPreCommit2 {
 				_, exist := m.sched.workers[WorkerID(wid)].p2Tasks[job.Sector]
 				if !exist {
+					log.Infof("SelectWorkerPreComit2 add wid = %v sector = %v", wid, sector)
 					tasks[WorkerID(wid)]++
 				} else {
-
+					log.Infof("SelectWorkerPreComit2 exist wid = %v sector = %v", wid, sector)
 				}
 			}
 		}

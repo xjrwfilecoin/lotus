@@ -123,6 +123,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		Prover: prover,
 	}
 
+	initDispatchServer()
 	initState()
 	loadGroup()
 	go m.sched.runSched()
