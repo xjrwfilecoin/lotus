@@ -208,6 +208,8 @@ func saveP2Start(sector string, tk sealtasks.TaskType) {
 		state[sector][tk] = &SectorState{
 			Start: time.Now().Format(time.RFC3339),
 		}
+	} else {
+		state[sector][tk].Start = time.Now().Format(time.RFC3339)
 	}
 
 	tx, err := db.Begin()
@@ -284,6 +286,8 @@ func saveP2Worker(sector string, wk string, tk sealtasks.TaskType) {
 		state[sector][tk] = &SectorState{
 			Worker: wk,
 		}
+	} else {
+		state[sector][tk].Worker = wk
 	}
 
 	tx, err := db.Begin()
