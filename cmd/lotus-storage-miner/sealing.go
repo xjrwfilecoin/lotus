@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -76,6 +77,9 @@ var sealingWorkersCmd = &cli.Command{
 
 			tasks := ""
 			for task, _ := range stat.TaskTypes {
+				if task.Short() == "PC2" {
+					tasks = tasks + strconv.Itoa(stat.P2Tasks) + "-"
+				}
 				tasks = tasks + task.Short() + "|"
 			}
 			tasks = strings.Replace(tasks, " ", "", -1)

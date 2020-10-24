@@ -18,6 +18,7 @@ func (m *Manager) WorkerStats() map[uint64]storiface.WorkerStats {
 			GpuUsed:    handle.active.gpuUsed,
 			CpuUse:     handle.active.cpuUse,
 			TaskTypes:  handle.taskTypes,
+			P2Tasks:    len(handle.p2Tasks),
 		}
 	}
 
