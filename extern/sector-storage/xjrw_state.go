@@ -195,6 +195,46 @@ func findSector(sector string, tk sealtasks.TaskType) string {
 	return state[sector][tk].Worker
 }
 
+func findSectorEx(sector string, tk sealtasks.TaskType) string {
+	_, ok := state[sector][tk]
+	if !ok {
+		que := ""
+		if tk == sealtasks.TTAddPiece {
+			que = "select addpiecehost from sector where id = "
+		} else if tk == sealtasks.TTPreCommit1 {
+			que = "select p1host from sector where id = "
+		} else if tk == sealtasks.TTPreCommit2 {
+			que = "select p2host from sector where id = "
+		} else if tk == sealtasks.TTCommit1 {
+			que = "select c1host from sector where id = "
+		} else if tk == sealtasks.TTCommit2 {
+			que = "select c2host from sector where id = "
+		} else {
+			log.Errorf("not support type")
+			return ""
+		}
+		que += "'" + sector + "'"
+
+		rows, err := db.Query(que)
+		if err != nil {
+			log.Errorf("sqllite query %v %v ", err, que)
+		}
+
+		defer rows.Close()
+		for rows.Next() {
+			var host sql.NullString
+			err = rows.Scan(&host)
+			if err != nil {
+				log.Errorf("sqllite scan %v %v", err, que)
+			}
+			return host.String
+		}
+		return ""
+	}
+
+	return state[sector][tk].Worker
+}
+
 func saveP2Start(sector string, tk sealtasks.TaskType) {
 	smu.Lock()
 	defer smu.Unlock()
@@ -206,7 +246,8 @@ func saveP2Start(sector string, tk sealtasks.TaskType) {
 	_, ok = state[sector][tk]
 	if !ok {
 		state[sector][tk] = &SectorState{
-			Start: time.Now().Format(time.RFC3339),
+			Start:  time.Now().Format(time.RFC3339),
+			Worker: findSectorEx(sector, tk),
 		}
 	} else {
 		state[sector][tk].Start = time.Now().Format(time.RFC3339)
