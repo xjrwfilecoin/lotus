@@ -738,6 +738,12 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 					}
 				}
 			}
+			if req.taskType == sealtasks.TTPreCommit2 {
+				sh.workersLk.Lock()
+				w.p2Tasks[req.sector] = struct{}{}
+				sh.workersLk.Unlock()
+				log.Infof("assign %v %v %v %v", wid, w.info.Hostname, req.sector, req.taskType)
+			}
 			err = req.work(req.ctx, w.wt.worker(w.w))
 
 			select {

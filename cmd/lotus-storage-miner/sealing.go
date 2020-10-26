@@ -89,10 +89,10 @@ var sealingWorkersCmd = &cli.Command{
 						tasks = strings.TrimRight(tasks, ",")
 						tasks = tasks + ")|"
 					}
-				} else if sTask == "FIN" || sTask == "GET" || sTask == "UNS" || sTask == "RD " {
-					continue
-				} else {
-					tasks = tasks + sTask + "|"
+					//} else if sTask == "FIN" || sTask == "GET" || sTask == "UNS" || sTask == "RD " {
+					//	continue
+					//} else {
+					//	tasks = tasks + sTask + "|"
 				}
 			}
 			tasks = strings.Replace(tasks, " ", "", -1)
