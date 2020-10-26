@@ -206,10 +206,11 @@ func saveP2Start(sector string, tk sealtasks.TaskType) {
 	_, ok = state[sector][tk]
 	if !ok {
 		smu.Unlock()
-		defer smu.Lock()
+		wk := findSector(sector, tk)
+		smu.Lock()
 		state[sector][tk] = &SectorState{
 			Start:  time.Now().Format(time.RFC3339),
-			Worker: findSector(sector, tk),
+			Worker: wk,
 		}
 	} else {
 		state[sector][tk].Start = time.Now().Format(time.RFC3339)
