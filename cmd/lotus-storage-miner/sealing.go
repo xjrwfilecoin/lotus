@@ -79,7 +79,16 @@ var sealingWorkersCmd = &cli.Command{
 			for task, _ := range stat.TaskTypes {
 				sTask := task.Short()
 				if sTask == "PC2" {
-					tasks = tasks + sTask + "-" + strconv.Itoa(stat.P2Tasks) + "|"
+					if len(stat.P2Tasks) == 0 {
+						tasks = tasks + sTask + "-0|"
+					} else {
+						tasks = tasks + sTask + "-" + strconv.Itoa(len(stat.P2Tasks)) + "("
+						for sector, _ := range stat.P2Tasks {
+							tasks = tasks + strconv.Itoa(sector) + ","
+						}
+						tasks = strings.TrimRight(tasks, ",")
+						tasks = tasks + ")|"
+					}
 				} else if sTask == "FIN" || sTask == "GET" || sTask == "UNS" || sTask == "RD " {
 					continue
 				} else {
