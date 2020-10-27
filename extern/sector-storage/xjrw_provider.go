@@ -160,9 +160,10 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 
 	host := findSector(stores.SectorName(sector), sealtasks.TTPreCommit2)
 	if host == "" {
-		log.Infof("not find p2host: %v", sector)
+		log.Errorf("not find p2host: %v", sector)
 		host = m.SelectWorkerPreComit2(sector)
 		if host == "" {
+			log.Errorf("p2 not online: %v", sector)
 			return storage.SectorCids{}, xerrors.Errorf("p2 not online: %v", sector)
 		}
 	}
@@ -198,6 +199,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		}
 
 		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit2)
+		log.Infof("startworker %v %v", inf.Hostname, sector)
 
 		t1 := time.Now()
 		defer func() {
