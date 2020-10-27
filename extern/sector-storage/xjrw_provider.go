@@ -173,7 +173,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
-		if findP2Start(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
+		if findP2Start(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" && m.getP2Worker() {
 			log.Infof("ShellExecute %v", sector)
 			go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 		} else {
@@ -405,4 +405,18 @@ func (sh *scheduler) setWorker(host string, sector abi.SectorID) {
 	} else {
 		log.Infof("p2 not online %v %v", sector, host)
 	}
+}
+
+func (m *Manager) getP2Worker() bool {
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
+
+	for _, worker := range m.sched.workers {
+		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; supported {
+			return true
+		}
+	}
+
+	log.Errorf("have no p2 worker")
+	return false
 }
