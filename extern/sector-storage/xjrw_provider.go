@@ -122,8 +122,53 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 	return out, err
 }
 
+func (m *Manager) add(host string, sector abi.SectorID) {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+	_, ok := m.mapP2Tasks[host]
+	if !ok {
+		m.mapP2Tasks[host] = map[abi.SectorID]struct{}{}
+	}
+
+	m.mapP2Tasks[host][sector] = struct{}{}
+}
+
+func (m *Manager) remove(host string, sector abi.SectorID) {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+	mapSector, ok := m.mapP2Tasks[host]
+	if !ok {
+		return
+	}
+
+	delete(mapSector, sector)
+}
+
+func (m *Manager) getWorker(host string) map[abi.SectorID]struct{} {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+	mapSector, ok := m.mapP2Tasks[host]
+	if !ok {
+		return map[abi.SectorID]struct{}{}
+	}
+
+	return mapSector
+}
+
 func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
 	log.Info("xjrw SealPreCommit2 begin ", sector)
+
+	host := findSector(stores.SectorName(sector), sealtasks.TTPreCommit2)
+	if host == "" {
+		log.Infof("not find p2host: %v", sector)
+		host = m.SelectWorkerPreComit2(sector)
+		if host == "" {
+			return storage.SectorCids{}, xerrors.Errorf("p2 not online: %v", sector)
+		}
+	}
+	m.add(host, sector)
+	defer m.remove(host, sector)
+	m.sched.setWorker(host, sector)
 
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
@@ -280,20 +325,6 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		tasks[wid] = len(worker.p2Tasks)
 		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v p2Tasks = %v", wid, worker.info.Hostname, len(worker.p2Tasks), worker.p2Tasks)
 	}
-
-	//for wid, jobs := range m.WorkerJobs() {
-	//	for _, job := range jobs {
-	//		if job.Task == sealtasks.TTPreCommit2 {
-	//			_, exist := m.sched.workers[WorkerID(wid)].p2Tasks[job.Sector]
-	//			if !exist {
-	//				log.Infof("SelectWorkerPreComit2 add wid = %v sector = %v", wid, sector)
-	//				tasks[WorkerID(wid)]++
-	//			} else {
-	//				log.Infof("SelectWorkerPreComit2 exist wid = %v sector = %v", wid, sector)
-	//			}
-	//		}
-	//	}
-	//}
 
 	host := ""
 	minNum := 100
