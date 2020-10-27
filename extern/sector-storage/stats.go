@@ -1,7 +1,6 @@
 package sectorstorage
 
 import (
-	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
@@ -42,10 +41,6 @@ func (m *Manager) WorkerJobs() map[uint64][]storiface.WorkerJob {
 		handle.wndLk.Lock()
 		for wi, window := range handle.activeWindows {
 			for _, request := range window.todo {
-				if request.taskType == sealtasks.TTPreCommit2 {
-					handle.p2Tasks[request.sector] = struct{}{}
-					log.Infof("WorkerJobs %v %v %v %v", id, handle.info.Hostname, request.sector, request.taskType)
-				}
 				out[uint64(id)] = append(out[uint64(id)], storiface.WorkerJob{
 					ID:      0,
 					Sector:  request.sector,

@@ -67,6 +67,9 @@ type Manager struct {
 	scfg *ffiwrapper.Config
 
 	mapReal    map[abi.SectorID]struct{}
+	mapP2Tasks map[string]map[abi.SectorID]struct{}
+	lkTask     sync.Mutex
+
 	ls         stores.LocalStorage
 	storage    *stores.Remote
 	localStore *stores.Local
@@ -117,8 +120,9 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		remoteHnd:  &stores.FetchHandler{Local: lstor},
 		index:      si,
 
-		mapReal: make(map[abi.SectorID]struct{}),
-		sched:   newScheduler(cfg.SealProofType),
+		mapReal:    make(map[abi.SectorID]struct{}),
+		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
+		sched:      newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
@@ -197,7 +201,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		},
 		info:      info,
 		taskTypes: taskTypes,
-		p2Tasks:   make(map[abi.SectorID]struct{}),
+		p2Tasks:   m.getWorker(info.Hostname),
 		preparing: &activeResources{},
 		active:    &activeResources{},
 	}

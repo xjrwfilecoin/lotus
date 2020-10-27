@@ -385,3 +385,22 @@ func (sh *scheduler) findWorker(host string) int64 {
 
 	return -1
 }
+
+func (sh *scheduler) setWorker(host string, sector abi.SectorID) {
+	sh.workersLk.Lock()
+	defer sh.workersLk.Unlock()
+
+	id := -1
+	for wid, handle := range sh.workers {
+		if handle.info.Hostname == host {
+			sh.workers[wid].p2Tasks[sector] = struct{}{}
+			id = int(wid)
+		}
+	}
+
+	if id != -1 {
+		log.Infof("p2 online %v %v %v", id, sector, host)
+	} else {
+		log.Infof("p2 not online %v %v", sector, host)
+	}
+}
