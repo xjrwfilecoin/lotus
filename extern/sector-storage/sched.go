@@ -333,6 +333,13 @@ func (sh *scheduler) trySched() {
 		return
 	}
 
+	querylist := ""
+	for i := 0; i < sh.schedQueue.Len(); i++ {
+		task := (*sh.schedQueue)[i]
+		querylist = querylist + strconv.Itoa(int(task.sector.Number)) + ","
+	}
+	log.Info("querylist: ", querylist)
+
 	// Step 1
 	concurrency := len(sh.openWindows)
 	throttle := make(chan struct{}, concurrency)
@@ -456,6 +463,7 @@ func (sh *scheduler) trySched() {
 
 		windows[selectedWindow].todo = append(windows[selectedWindow].todo, task)
 
+		log.Info("schedQueue Remove %v %v", task.sector, task.taskType)
 		sh.schedQueue.Remove(sqi)
 		sqi--
 		scheduled++
