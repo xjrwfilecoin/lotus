@@ -151,6 +151,7 @@ func (m *Manager) getWorker(host string) map[abi.SectorID]struct{} {
 	if !ok {
 		return map[abi.SectorID]struct{}{}
 	}
+	log.Infof("%v getWorker %v", host, m.mapP2Tasks[host])
 
 	return mapSector
 }
