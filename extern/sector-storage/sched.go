@@ -336,11 +336,12 @@ func (sh *scheduler) trySched() {
 		return
 	}
 
-	querylist := "querylist: "
+	querylist := ""
 	for i := 0; i < sh.schedQueue.Len(); i++ {
 		task := (*sh.schedQueue)[i]
 		querylist = querylist + strconv.Itoa(int(task.sector.Number)) + ","
 	}
+	log.Info("querylist: ", querylist)
 
 	// Step 1
 	concurrency := len(sh.openWindows)
