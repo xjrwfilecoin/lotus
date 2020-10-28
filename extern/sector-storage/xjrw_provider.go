@@ -282,7 +282,7 @@ func (m *Manager) addTask(host string, sector abi.SectorID) {
 	}
 
 	m.mapP2Tasks[host][sector] = struct{}{}
-	log.Infof("addTask %v %v %v", host, sector, m.mapP2Tasks[host])
+	log.Infof("addTask %v %v %v", sector, host, m.mapP2Tasks[host])
 }
 
 func (m *Manager) removeTask(host string, sector abi.SectorID) {
@@ -291,12 +291,12 @@ func (m *Manager) removeTask(host string, sector abi.SectorID) {
 
 	mapSector, ok := m.mapP2Tasks[host]
 	if !ok {
-		log.Infof("removeTask no exit %v %v", host, sector)
+		log.Infof("removeTask no exit %v %v", sector, host)
 		return
 	}
 
 	delete(mapSector, sector)
-	log.Infof("removeTask %v %v %v", host, sector, mapSector)
+	log.Infof("removeTask %v %v %v", sector, host, mapSector)
 }
 
 func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
