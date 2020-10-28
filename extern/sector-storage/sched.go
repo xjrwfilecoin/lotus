@@ -94,6 +94,9 @@ type workerHandle struct {
 
 	// stats / tracking
 	wt *workTracker
+	taskTypes map[sealtasks.TaskType]struct{}
+
+	p2Tasks map[abi.SectorID]struct{}
 
 	// for sync manager goroutine closing
 	cleanupStarted bool

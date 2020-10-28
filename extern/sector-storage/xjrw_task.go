@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"io/ioutil"
+	"net/http"
+	"os"
 )
 
 const sfiltask = "./taskconfig.json"
@@ -58,4 +60,12 @@ func getGroupCount(groupName string) int {
 	}
 	groupCount[groupName] = sum
 	return sum
+}
+
+func initDispatchServer(m *Manager) {
+	http.HandleFunc("/getHost", m.handler)
+	if os.Getenv("DISPATCH_SERVER") == "" {
+		panic("DISPATCH_SERVER not set")
+	}
+	http.ListenAndServe(os.Getenv("DISPATCH_SERVER"), nil)
 }

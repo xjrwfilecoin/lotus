@@ -2,12 +2,15 @@ package sectorstorage
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
 	"github.com/filecoin-project/specs-storage/storage"
 	"golang.org/x/xerrors"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -122,9 +125,22 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
 	log.Info("xjrw SealPreCommit2 begin ", sector)
 
+	host := findSector(stores.SectorName(sector), sealtasks.TTPreCommit2)
+	if host == "" {
+		log.Errorf("not find p2host: %v", sector)
+		host = m.SelectWorkerPreComit2(sector)
+		if host == "" {
+			log.Errorf("p2 not online: %v", sector)
+			return storage.SectorCids{}, xerrors.Errorf("p2 not online: %v", sector)
+		}
+	}
+	m.addTask(host, sector)
+	defer m.removeTask(host, sector)
+	m.sched.setWorker(host, sector)
+
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
-		if findState(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" {
+		if findP2Start(stores.SectorName(sector), sealtasks.TTPreCommit2) == "" && m.getP2Worker() {
 			log.Infof("ShellExecute %v", sector)
 			go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 		} else {
@@ -132,7 +148,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		}
 	}
 
-	saveState(stores.SectorName(sector), sealtasks.TTPreCommit2)
+	saveP2Start(stores.SectorName(sector), sealtasks.TTPreCommit2)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -150,12 +166,15 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		}
 
 		startSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit2)
+		log.Infof("startworker %v %v", inf.Hostname, sector)
 
 		t1 := time.Now()
 		defer func() {
 			t2 := time.Now()
 			log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 		}()
+
+		defer m.UnselectWorkerPreComit2(inf.Hostname, sector)
 
 		p, err := w.SealPreCommit2(ctx, sector, phase1Out)
 		if err != nil {
@@ -251,4 +270,160 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepU
 	}()
 
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
+}
+
+func (m *Manager) addTask(host string, sector abi.SectorID) {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+
+	_, ok := m.mapP2Tasks[host]
+	if !ok {
+		m.mapP2Tasks[host] = map[abi.SectorID]struct{}{}
+	}
+
+	m.mapP2Tasks[host][sector] = struct{}{}
+	log.Infof("addTask %v %v %v", sector, host, m.mapP2Tasks[host])
+}
+
+func (m *Manager) removeTask(host string, sector abi.SectorID) {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+
+	mapSector, ok := m.mapP2Tasks[host]
+	if !ok {
+		log.Infof("removeTask no exit %v %v", sector, host)
+		return
+	}
+
+	delete(mapSector, sector)
+	log.Infof("removeTask %v %v %v", sector, host, mapSector)
+}
+
+func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+
+	mapSector, ok := m.mapP2Tasks[host]
+	if !ok {
+		log.Infof("%v getTask %v %v", host, mapSector, ok)
+		return map[abi.SectorID]struct{}{}
+	}
+	log.Infof("%v getTask %v", host, mapSector)
+
+	return mapSector
+}
+
+func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
+
+	id := -1
+	for wid, worker := range m.sched.workers {
+		if worker.info.Hostname == host {
+			id = int(wid)
+			break
+		}
+	}
+	if id != -1 {
+		delete(m.sched.workers[WorkerID(id)].p2Tasks, sector)
+		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Tasks = %v", id, host, sector, m.sched.workers[WorkerID(id)].p2Tasks)
+	} else {
+		log.Errorf("UnselectWorkerPreComit2 not find %v %v", host, sector)
+	}
+}
+
+func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
+
+	tasks := make(map[WorkerID]int)
+	for wid, worker := range m.sched.workers {
+		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; !supported {
+			continue
+		}
+		tasks[wid] = len(worker.p2Tasks)
+		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v p2Tasks = %v", wid, worker.info.Hostname, len(worker.p2Tasks), worker.p2Tasks)
+	}
+
+	host := ""
+	minNum := 100
+	var w WorkerID
+	for wid, num := range tasks {
+		if num < minNum {
+			host = m.sched.workers[wid].info.Hostname
+			w = wid
+			minNum = num
+		}
+	}
+
+	if host != "" {
+		m.sched.workers[WorkerID(w)].p2Tasks[sector] = struct{}{}
+		saveP2Worker(stores.SectorName(sector), host, sealtasks.TTPreCommit2)
+		log.Info("saveP2Worker %v %v", sector, host)
+	} else {
+		log.Info("saveP2Worker not find %v", sector)
+	}
+
+	return host
+}
+
+func (m *Manager) handler(w http.ResponseWriter, r *http.Request) {
+	log.Info("method = ", r.Method)
+	log.Info("URL = ", r.URL)
+	log.Info("header = ", r.Header)
+	log.Info("body = ", r.Body)
+	log.Info(r.RemoteAddr, "connect success")
+
+	body, _ := ioutil.ReadAll(r.Body)
+	data := make(map[string]string)
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		log.Error("Unmarshal error %+v", err)
+		return
+	}
+
+	sector, err := stores.ParseSectorID(data["sector"])
+	if err != nil {
+		log.Error("data error %+v", err)
+		return
+	}
+
+	log.Info("sector = ", sector)
+	host := m.SelectWorkerPreComit2(sector)
+	log.Info("return host = ", host)
+
+	w.Write([]byte(host))
+}
+
+func (sh *scheduler) setWorker(host string, sector abi.SectorID) {
+	sh.workersLk.Lock()
+	defer sh.workersLk.Unlock()
+
+	id := -1
+	for wid, handle := range sh.workers {
+		if handle.info.Hostname == host {
+			sh.workers[wid].p2Tasks[sector] = struct{}{}
+			id = int(wid)
+		}
+	}
+
+	if id != -1 {
+		log.Infof("p2 online %v %v %v", id, sector, host)
+	} else {
+		log.Infof("p2 not online %v %v", sector, host)
+	}
+}
+
+func (m *Manager) getP2Worker() bool {
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
+
+	for _, worker := range m.sched.workers {
+		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; supported {
+			return true
+		}
+	}
+
+	log.Errorf("have no p2 worker")
+	return false
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -74,7 +75,30 @@ var sealingWorkersCmd = &cli.Command{
 				gpuUse = ""
 			}
 
-			fmt.Printf("Worker %d, host %s\n", stat.id, color.MagentaString(stat.Info.Hostname))
+			tasks := ""
+			for task, _ := range stat.TaskTypes {
+				sTask := task.Short()
+				if sTask == "PC2" {
+					if len(stat.P2Tasks) == 0 {
+						tasks = tasks + sTask + "-0|"
+					} else {
+						tasks = tasks + sTask + "-" + strconv.Itoa(len(stat.P2Tasks)) + "("
+						for sector, _ := range stat.P2Tasks {
+							tasks = tasks + strconv.Itoa(sector) + ","
+						}
+						tasks = strings.TrimRight(tasks, ",")
+						tasks = tasks + ")|"
+					}
+				} else if sTask == "FIN" || sTask == "GET" || sTask == "UNS" || sTask == "RD " {
+					continue
+				} else {
+					tasks = tasks + sTask + "|"
+				}
+			}
+			tasks = strings.Replace(tasks, " ", "", -1)
+			tasks = strings.TrimRight(tasks, "|")
+
+			fmt.Printf("Worker %d, host %s, tasks %s\n", stat.id, color.MagentaString(stat.Info.Hostname), tasks)
 
 			var barCols = uint64(64)
 			cpuBars := int(stat.CpuUse * barCols / stat.Info.Resources.CPUs)
