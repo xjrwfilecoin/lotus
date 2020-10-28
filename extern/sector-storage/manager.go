@@ -201,7 +201,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		},
 		info:      info,
 		taskTypes: taskTypes,
-		p2Tasks:   m.getWorker(info.Hostname),
+		p2Tasks:   m.getTask(info.Hostname),
 		preparing: &activeResources{},
 		active:    &activeResources{},
 	}

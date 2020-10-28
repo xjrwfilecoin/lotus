@@ -122,40 +122,6 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 	return out, err
 }
 
-func (m *Manager) add(host string, sector abi.SectorID) {
-	m.lkTask.Lock()
-	defer m.lkTask.Unlock()
-	_, ok := m.mapP2Tasks[host]
-	if !ok {
-		m.mapP2Tasks[host] = map[abi.SectorID]struct{}{}
-	}
-
-	m.mapP2Tasks[host][sector] = struct{}{}
-}
-
-func (m *Manager) remove(host string, sector abi.SectorID) {
-	m.lkTask.Lock()
-	defer m.lkTask.Unlock()
-	mapSector, ok := m.mapP2Tasks[host]
-	if !ok {
-		return
-	}
-
-	delete(mapSector, sector)
-}
-
-func (m *Manager) getWorker(host string) map[abi.SectorID]struct{} {
-	m.lkTask.Lock()
-	defer m.lkTask.Unlock()
-	mapSector, ok := m.mapP2Tasks[host]
-	if !ok {
-		return map[abi.SectorID]struct{}{}
-	}
-	log.Infof("%v getWorker %v", host, m.mapP2Tasks[host])
-
-	return mapSector
-}
-
 func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
 	log.Info("xjrw SealPreCommit2 begin ", sector)
 
@@ -168,8 +134,8 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 			return storage.SectorCids{}, xerrors.Errorf("p2 not online: %v", sector)
 		}
 	}
-	m.add(host, sector)
-	defer m.remove(host, sector)
+	m.addTask(host, sector)
+	defer m.removeTask(host, sector)
 	m.sched.setWorker(host, sector)
 
 	_, exist := m.mapReal[sector]
@@ -306,11 +272,60 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepU
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
 }
 
+func (m *Manager) addTask(host string, sector abi.SectorID) {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+	_, ok := m.mapP2Tasks[host]
+	if !ok {
+		m.mapP2Tasks[host] = map[abi.SectorID]struct{}{}
+	}
+
+	m.mapP2Tasks[host][sector] = struct{}{}
+	log.Infof("addTask %v %v", host, sector, m.mapP2Tasks[host])
+}
+
+func (m *Manager) removeTask(host string, sector abi.SectorID) {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+
+	mapSector, ok := m.mapP2Tasks[host]
+	if !ok {
+		log.Infof("removeTask no exit %v %v", host, sector)
+		return
+	}
+
+	delete(mapSector, sector)
+	log.Infof("removeTask %v %v", host, sector, mapSector)
+}
+
+func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
+	m.lkTask.Lock()
+	defer m.lkTask.Unlock()
+
+	mapSector, ok := m.mapP2Tasks[host]
+	if !ok {
+		log.Infof("%v getTask %v %v", host, mapSector, ok)
+		return map[abi.SectorID]struct{}{}
+	}
+	log.Infof("%v getTask %v", host, mapSector)
+
+	return mapSector
+}
+
 func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
-	wid := m.sched.findWorker(host)
-	if wid != -1 {
-		delete(m.sched.workers[WorkerID(wid)].p2Tasks, sector)
-		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Tasks = %v", wid, host, sector, m.sched.workers[WorkerID(wid)].p2Tasks)
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
+
+	id := -1
+	for wid, worker := range m.sched.workers {
+		if worker.info.Hostname == host {
+			id = int(wid)
+			break
+		}
+	}
+	if id != -1 {
+		delete(m.sched.workers[WorkerID(id)].p2Tasks, sector)
+		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Tasks = %v", id, host, sector, m.sched.workers[WorkerID(id)].p2Tasks)
 	} else {
 		log.Errorf("UnselectWorkerPreComit2 not find %v", host)
 	}
@@ -349,11 +364,11 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 }
 
 func (m *Manager) handler(w http.ResponseWriter, r *http.Request) {
-	log.Info("method = ", r.Method) //请求方法
-	log.Info("URL = ", r.URL)       // 浏览器发送请求文件路径
-	log.Info("header = ", r.Header) // 请求头
-	log.Info("body = ", r.Body)     // 请求包体
-	log.Info(r.RemoteAddr, "连接成功")  //客户端网络地址
+	log.Info("method = ", r.Method)
+	log.Info("URL = ", r.URL)
+	log.Info("header = ", r.Header)
+	log.Info("body = ", r.Body)
+	log.Info(r.RemoteAddr, "connect success")
 
 	body, _ := ioutil.ReadAll(r.Body)
 	data := make(map[string]string)
@@ -374,19 +389,6 @@ func (m *Manager) handler(w http.ResponseWriter, r *http.Request) {
 	log.Info("return host = ", host)
 
 	w.Write([]byte(host))
-}
-
-func (sh *scheduler) findWorker(host string) int64 {
-	sh.workersLk.Lock()
-	defer sh.workersLk.Unlock()
-
-	for wid, worker := range sh.workers {
-		if worker.info.Hostname == host {
-			return int64(wid)
-		}
-	}
-
-	return -1
 }
 
 func (sh *scheduler) setWorker(host string, sector abi.SectorID) {
