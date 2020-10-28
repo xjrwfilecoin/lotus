@@ -275,13 +275,14 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector abi.SectorID, keepU
 func (m *Manager) addTask(host string, sector abi.SectorID) {
 	m.lkTask.Lock()
 	defer m.lkTask.Unlock()
+
 	_, ok := m.mapP2Tasks[host]
 	if !ok {
 		m.mapP2Tasks[host] = map[abi.SectorID]struct{}{}
 	}
 
 	m.mapP2Tasks[host][sector] = struct{}{}
-	log.Infof("addTask %v %v", host, sector, m.mapP2Tasks[host])
+	log.Infof("addTask %v %v %v", host, sector, m.mapP2Tasks[host])
 }
 
 func (m *Manager) removeTask(host string, sector abi.SectorID) {
@@ -295,7 +296,7 @@ func (m *Manager) removeTask(host string, sector abi.SectorID) {
 	}
 
 	delete(mapSector, sector)
-	log.Infof("removeTask %v %v", host, sector, mapSector)
+	log.Infof("removeTask %v %v %v", host, sector, mapSector)
 }
 
 func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
@@ -327,7 +328,7 @@ func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
 		delete(m.sched.workers[WorkerID(id)].p2Tasks, sector)
 		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Tasks = %v", id, host, sector, m.sched.workers[WorkerID(id)].p2Tasks)
 	} else {
-		log.Errorf("UnselectWorkerPreComit2 not find %v", host)
+		log.Errorf("UnselectWorkerPreComit2 not find %v %v", host, sector)
 	}
 }
 
@@ -358,6 +359,9 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	if host != "" {
 		m.sched.workers[WorkerID(w)].p2Tasks[sector] = struct{}{}
 		saveP2Worker(stores.SectorName(sector), host, sealtasks.TTPreCommit2)
+		log.Info("saveP2Worker %v %v", sector, host)
+	} else {
+		log.Info("saveP2Worker not find %v", sector)
 	}
 
 	return host
