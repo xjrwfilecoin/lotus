@@ -136,7 +136,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 	}
 	m.addTask(host, sector)
 	defer m.removeTask(host, sector)
-	m.sched.setWorker(host, sector)
+	m.setWorker(host, sector)
 
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
@@ -395,14 +395,14 @@ func (m *Manager) handler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(host))
 }
 
-func (sh *scheduler) setWorker(host string, sector abi.SectorID) {
-	sh.workersLk.Lock()
-	defer sh.workersLk.Unlock()
+func (m *Manager) setWorker(host string, sector abi.SectorID) {
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
 
 	id := -1
-	for wid, handle := range sh.workers {
+	for wid, handle := range m.sched.workers {
 		if handle.info.Hostname == host {
-			sh.workers[wid].p2Tasks[sector] = struct{}{}
+			m.sched.workers[wid].p2Tasks[sector] = struct{}{}
 			id = int(wid)
 		}
 	}
