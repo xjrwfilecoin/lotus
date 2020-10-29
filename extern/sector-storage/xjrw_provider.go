@@ -359,9 +359,9 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	if host != "" {
 		m.sched.workers[WorkerID(w)].p2Tasks[sector] = struct{}{}
 		saveP2Worker(stores.SectorName(sector), host, sealtasks.TTPreCommit2)
-		log.Info("saveP2Worker %v %v", sector, host)
+		log.Infof("saveP2Worker %v %v", sector, host)
 	} else {
-		log.Info("saveP2Worker not find %v", sector)
+		log.Infof("saveP2Worker not find %v", sector)
 	}
 
 	return host
