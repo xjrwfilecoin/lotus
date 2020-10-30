@@ -67,6 +67,11 @@ type Manager struct {
 	scfg *ffiwrapper.Config
 
 	mapReal    map[abi.SectorID]struct{}
+	mapP2Tasks map[string]map[abi.SectorID]struct{}
+	lkTask     sync.Mutex
+
+	mapChan map[abi.SectorID]chan struct{}
+	lkChan  sync.Mutex
 	ls         stores.LocalStorage
 	storage    *stores.Remote
 	localStore *stores.Local
@@ -118,13 +123,16 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		index:      si,
 
 		mapReal: make(map[abi.SectorID]struct{}),
+		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
+		mapChan:    make(map[abi.SectorID]chan struct{}),
 		sched: newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
 
+	go initDispatchServer(m)
 	initState()
-	loadGroup()
+	//loadGroup()
 	go m.sched.runSched()
 
 	localTasks := []sealtasks.TaskType{
@@ -184,12 +192,19 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		return xerrors.Errorf("getting worker info: %w", err)
 	}
 
+	taskTypes, err := w.TaskTypes(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting supported worker task types: %w", err)
+	}
+
 	m.sched.newWorkers <- &workerHandle{
 		w: w,
 		wt: &workTracker{
 			running: map[uint64]storiface.WorkerJob{},
 		},
 		info:      info,
+		taskTypes: taskTypes,
+		p2Tasks:   m.getTask(info.Hostname),
 		preparing: &activeResources{},
 		active:    &activeResources{},
 	}
