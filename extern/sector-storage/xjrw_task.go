@@ -63,7 +63,8 @@ func getGroupCount(groupName string) int {
 }
 
 func initDispatchServer(m *Manager) {
-	http.HandleFunc("/getHost", m.handler)
+	http.HandleFunc("/getHost", m.handlerP2)
+	http.HandleFunc("/setFinish", m.handlerP1)
 	if os.Getenv("DISPATCH_SERVER") == "" {
 		panic("DISPATCH_SERVER not set")
 	}

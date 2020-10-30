@@ -66,9 +66,13 @@ type WorkerID uint64
 type Manager struct {
 	scfg *ffiwrapper.Config
 
-	mapReal    map[abi.SectorID]struct{}
+	mapReal map[abi.SectorID]struct{}
+
 	mapP2Tasks map[string]map[abi.SectorID]struct{}
 	lkTask     sync.Mutex
+
+	mapChan map[abi.SectorID]chan struct{}
+	lkChan  sync.Mutex
 
 	ls         stores.LocalStorage
 	storage    *stores.Remote
@@ -122,6 +126,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 
 		mapReal:    make(map[abi.SectorID]struct{}),
 		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
+		mapChan:    make(map[abi.SectorID]chan struct{}),
 		sched:      newScheduler(cfg.SealProofType),
 
 		Prover: prover,

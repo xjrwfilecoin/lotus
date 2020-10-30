@@ -114,6 +114,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 			return err
 		}
 
+		m.mapChan[sector] = make(chan struct{})
 		endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
 		out = p
 		return nil
@@ -124,6 +125,24 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 
 func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
 	log.Info("xjrw SealPreCommit2 begin ", sector)
+
+	m.lkChan.Lock()
+	ch, ok := m.mapChan[sector]
+	m.lkChan.Unlock()
+	if ok {
+		log.Info("xjrw start wait for %v", sector)
+		select {
+		case res := <-ch:
+			log.Info("xjrw get channel %v %v", sector, res)
+		case <-time.After(time.Minute * 30):
+			m.lkChan.Lock()
+			delete(m.mapChan, sector)
+			log.Info("xjrw timeout %v %v", sector, m.mapChan)
+			m.lkChan.Unlock()
+		}
+	} else {
+		log.Info("possible already get channle %v", sector)
+	}
 
 	host := findSector(stores.SectorName(sector), sealtasks.TTPreCommit2)
 	if host == "" {
@@ -367,7 +386,41 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	return host
 }
 
-func (m *Manager) handler(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) handlerP1(w http.ResponseWriter, r *http.Request) {
+	log.Info("method = ", r.Method)
+	log.Info("URL = ", r.URL)
+	log.Info("header = ", r.Header)
+	log.Info("body = ", r.Body)
+	log.Info(r.RemoteAddr, "connect success")
+
+	body, _ := ioutil.ReadAll(r.Body)
+	data := make(map[string]string)
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		log.Error("Unmarshal error %+v", err)
+		return
+	}
+
+	sector, err := stores.ParseSectorID(data["sector"])
+	if err != nil {
+		log.Error("data error %+v", err)
+		return
+	}
+
+	m.lkChan.Lock()
+	if ch, ok := m.mapChan[sector]; ok {
+		close(ch)
+		delete(m.mapChan, sector)
+		log.Infof("delete channel %v %v", sector, m.mapChan)
+	} else {
+		log.Error("handlerP1 not find ", sector)
+	}
+	m.lkChan.Unlock()
+
+	w.Write([]byte("ok"))
+}
+
+func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 	log.Info("method = ", r.Method)
 	log.Info("URL = ", r.URL)
 	log.Info("header = ", r.Header)
