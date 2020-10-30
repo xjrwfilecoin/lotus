@@ -114,9 +114,9 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 			return err
 		}
 
-		m.lkChan.Lock()
-		m.mapChan[sector] = make(chan struct{})
-		m.lkChan.Unlock()
+		//m.lkChan.Lock()
+		//m.mapChan[sector] = make(chan struct{})
+		//m.lkChan.Unlock()
 		endSector(stores.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
 		out = p
 		return nil
