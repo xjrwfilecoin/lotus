@@ -130,18 +130,18 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 	ch, ok := m.mapChan[sector]
 	m.lkChan.Unlock()
 	if ok {
-		log.Info("xjrw start wait for %v", sector)
+		log.Infof("xjrw start wait for %v", sector)
 		select {
 		case res := <-ch:
-			log.Info("xjrw get channel %v %v", sector, res)
+			log.Infof("xjrw get channel %v %v", sector, res)
 		case <-time.After(time.Minute * 30):
 			m.lkChan.Lock()
 			delete(m.mapChan, sector)
-			log.Info("xjrw timeout %v %v", sector, m.mapChan)
+			log.Infof("xjrw timeout %v %v", sector, m.mapChan)
 			m.lkChan.Unlock()
 		}
 	} else {
-		log.Info("possible already get channle %v", sector)
+		log.Infof("possible already get channle %v %v", sector, m.mapChan)
 	}
 
 	host := findSector(stores.SectorName(sector), sealtasks.TTPreCommit2)
@@ -391,19 +391,23 @@ func (m *Manager) handlerP1(w http.ResponseWriter, r *http.Request) {
 	log.Info("URL = ", r.URL)
 	log.Info("header = ", r.Header)
 	log.Info("body = ", r.Body)
-	log.Info(r.RemoteAddr, "connect success")
+	log.Info(r.RemoteAddr, " connect success")
 
 	body, _ := ioutil.ReadAll(r.Body)
 	data := make(map[string]string)
 	err := json.Unmarshal(body, &data)
 	if err != nil {
 		log.Error("Unmarshal error %+v", err)
+		w.Write([]byte(err.Error()))
 		return
 	}
+
+	log.Info("result :", data["result"])
 
 	sector, err := stores.ParseSectorID(data["sector"])
 	if err != nil {
 		log.Error("data error %+v", err)
+		w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -417,7 +421,7 @@ func (m *Manager) handlerP1(w http.ResponseWriter, r *http.Request) {
 	}
 	m.lkChan.Unlock()
 
-	w.Write([]byte("ok"))
+	w.Write([]byte(""))
 }
 
 func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
@@ -425,19 +429,21 @@ func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 	log.Info("URL = ", r.URL)
 	log.Info("header = ", r.Header)
 	log.Info("body = ", r.Body)
-	log.Info(r.RemoteAddr, "connect success")
+	log.Info(r.RemoteAddr, " connect success")
 
 	body, _ := ioutil.ReadAll(r.Body)
 	data := make(map[string]string)
 	err := json.Unmarshal(body, &data)
 	if err != nil {
 		log.Error("Unmarshal error %+v", err)
+		w.Write([]byte(""))
 		return
 	}
 
 	sector, err := stores.ParseSectorID(data["sector"])
 	if err != nil {
 		log.Error("data error %+v", err)
+		w.Write([]byte(""))
 		return
 	}
 
