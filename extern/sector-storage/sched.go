@@ -79,7 +79,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	w Worker
+	w           Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -93,7 +93,7 @@ type workerHandle struct {
 	activeWindows []*schedWindow
 
 	// stats / tracking
-	wt *workTracker
+	wt        *workTracker
 	taskTypes map[sealtasks.TaskType]struct{}
 
 	p2Tasks map[abi.SectorID]struct{}
@@ -466,7 +466,7 @@ func (sh *scheduler) trySched() {
 
 		windows[selectedWindow].todo = append(windows[selectedWindow].todo, task)
 
-		log.Info("schedQueue Remove %v %v", task.sector, task.taskType)
+		log.Infof("schedQueue Remove %v %v", task.sector, task.taskType)
 		sh.schedQueue.Remove(sqi)
 		sqi--
 		scheduled++
