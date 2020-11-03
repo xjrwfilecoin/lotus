@@ -9,8 +9,8 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(taskType sealtasks.TaskType, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
-	for !a.canHandleRequest(r, id, "withResources", wr, taskType) {
+func (a *activeResources) withResources(req *workerRequest, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+	for !a.canHandleRequest(r, id, "withResources", wr, req) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
 		}
@@ -45,9 +45,10 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 	a.memUsedMax -= r.MaxMemory
 }
 
-func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, taskType sealtasks.TaskType) bool {
+func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, req *workerRequest) bool {
+	log.Infof("canHandleRequest %v %v %v", req.sector, req.taskType, caller)
 	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
-		if p1Num, err := strconv.Atoi(p1Str); err == nil && taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {
+		if p1Num, err := strconv.Atoi(p1Str); err == nil && req.taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {
 			if a.memUsedMax/needRes.MaxMemory < uint64(p1Num) {
 				return true
 			}
@@ -57,7 +58,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	}
 
 	if c2Str := os.Getenv("C2_LIMIT"); c2Str != "" {
-		if c2Num, err := strconv.Atoi(c2Str); err == nil && taskType == sealtasks.TTCommit2 && needRes.MaxMemory != 0 {
+		if c2Num, err := strconv.Atoi(c2Str); err == nil && req.taskType == sealtasks.TTCommit2 && needRes.MaxMemory != 0 {
 			if a.memUsedMax/needRes.MaxMemory < uint64(c2Num) {
 				return true
 			}

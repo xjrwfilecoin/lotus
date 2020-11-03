@@ -372,7 +372,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				// TODO: allow bigger windows
-				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources, task.taskType) {
+				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources, task) {
 					continue
 				}
 
@@ -443,7 +443,7 @@ func (sh *scheduler) trySched() {
 			log.Debugf("SCHED try assign sqi:%d sector %d to window %d", sqi, task.sector.Number, wnd)
 
 			// TODO: allow bigger windows
-			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr, task.taskType) {
+			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr, task) {
 				continue
 			}
 
@@ -594,7 +594,7 @@ func (sh *scheduler) runWorker(wid WorkerID) {
 					worker.lk.Lock()
 					for t, todo := range firstWindow.todo {
 						needRes := ResourceTable[todo.taskType][sh.spt]
-						if worker.preparing.canHandleRequest(needRes, wid, "startPreparing", worker.info.Resources, todo.taskType) {
+						if worker.preparing.canHandleRequest(needRes, wid, "startPreparing", worker.info.Resources, todo) {
 							tidx = t
 							break
 						}
@@ -644,7 +644,7 @@ func (sh *scheduler) workerCompactWindows(worker *workerHandle, wid WorkerID) in
 
 			for ti, todo := range window.todo {
 				needRes := ResourceTable[todo.taskType][sh.spt]
-				if !lower.allocated.canHandleRequest(needRes, wid, "compactWindows", worker.info.Resources, todo.taskType) {
+				if !lower.allocated.canHandleRequest(needRes, wid, "compactWindows", worker.info.Resources, todo) {
 					continue
 				}
 
@@ -720,7 +720,7 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 			return
 		}
 
-		err = w.active.withResources(req.taskType, wid, w.info.Resources, needRes, &sh.workersLk, func() error {
+		err = w.active.withResources(req, wid, w.info.Resources, needRes, &sh.workersLk, func() error {
 			w.lk.Lock()
 			w.preparing.free(w.info.Resources, needRes)
 			w.lk.Unlock()

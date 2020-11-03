@@ -346,7 +346,7 @@ func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
 	}
 	if id != -1 {
 		delete(m.sched.workers[WorkerID(id)].p2Tasks, sector)
-		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Tasks = %v", id, host, sector, m.sched.workers[WorkerID(id)].p2Tasks)
+		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Size = %v", id, host, sector, len(m.sched.workers[WorkerID(id)].p2Tasks))
 	} else {
 		log.Errorf("UnselectWorkerPreComit2 not find %v %v", host, sector)
 	}
@@ -362,7 +362,7 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			continue
 		}
 		tasks[wid] = len(worker.p2Tasks)
-		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v p2Tasks = %v", wid, worker.info.Hostname, len(worker.p2Tasks), worker.p2Tasks)
+		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v", wid, worker.info.Hostname, len(worker.p2Tasks))
 	}
 
 	host := ""
