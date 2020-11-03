@@ -339,7 +339,7 @@ func (sh *scheduler) trySched() {
 	querylist := ""
 	for i := 0; i < sh.schedQueue.Len(); i++ {
 		task := (*sh.schedQueue)[i]
-		querylist = querylist + strconv.Itoa(int(task.sector.Number)) + ","
+		querylist = querylist + strconv.Itoa(int(task.sector.Number)) + "-" + string(task.taskType) + ","
 	}
 	log.Info("querylist: ", querylist)
 
