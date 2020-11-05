@@ -111,7 +111,6 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 
 		p, err := w.SealPreCommit1(ctx, sector, ticket, pieces)
 		if err != nil {
-			m.UnselectWorkerPreComit2(inf.Hostname, sector)
 			return err
 		}
 
@@ -362,6 +361,12 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; !supported {
 			continue
 		}
+
+		if _, exit := worker.p2Tasks[sector]; exit {
+			log.Infof("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
+			delete(worker.p2Tasks, sector)
+		}
+
 		tasks[wid] = len(worker.p2Tasks)
 		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v", wid, worker.info.Hostname, len(worker.p2Tasks))
 	}
