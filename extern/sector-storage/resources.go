@@ -143,7 +143,7 @@ var ResourceTable = map[sealtasks.TaskType]map[abi.RegisteredSealProof]Resources
 			MaxMemory: 15 << 30,
 			MinMemory: 15 << 30,
 
-			MaxParallelism: -1,
+			MaxParallelism: 20,
 			CanGPU:         true,
 
 			BaseMinMemory: 1 << 30,
