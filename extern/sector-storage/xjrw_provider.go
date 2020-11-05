@@ -111,6 +111,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 
 		p, err := w.SealPreCommit1(ctx, sector, ticket, pieces)
 		if err != nil {
+			m.UnselectWorkerPreComit2(inf.Hostname, sector)
 			return err
 		}
 
