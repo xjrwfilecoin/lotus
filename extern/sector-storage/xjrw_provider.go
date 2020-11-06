@@ -158,6 +158,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 	m.addTask(host, sector)
 	defer m.removeTask(host, sector)
 	m.setWorker(host, sector)
+	defer m.UnselectWorkerPreComit2(host, sector)
 
 	_, exist := m.mapReal[sector]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
@@ -195,7 +196,6 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 			log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 		}()
 
-		defer m.UnselectWorkerPreComit2(inf.Hostname, sector)
 		p, err := w.SealPreCommit2(ctx, sector, phase1Out)
 		if err != nil {
 			return err
@@ -361,6 +361,12 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; !supported {
 			continue
 		}
+
+		if _, exit := worker.p2Tasks[sector]; exit {
+			log.Infof("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
+			delete(worker.p2Tasks, sector)
+		}
+
 		tasks[wid] = len(worker.p2Tasks)
 		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v", wid, worker.info.Hostname, len(worker.p2Tasks))
 	}

@@ -98,7 +98,7 @@ var sealingWorkersCmd = &cli.Command{
 			tasks = strings.Replace(tasks, " ", "", -1)
 			tasks = strings.TrimRight(tasks, "|")
 
-			fmt.Printf("Worker %d, host %s, tasks %s\n", stat.id, color.MagentaString(stat.Info.Hostname), tasks)
+			fmt.Printf("Worker %d, host %s tasks %s\n", stat.id, color.MagentaString(stat.Info.Hostname), tasks)
 
 			var barCols = uint64(64)
 			cpuBars := int(stat.CpuUse * barCols / stat.Info.Resources.CPUs)
