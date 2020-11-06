@@ -362,6 +362,22 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			continue
 		}
 
+		var avai int64
+		log.Infof("storeIDs %v", worker.storeIDs)
+		for id, _ := range worker.storeIDs {
+			si, err := m.index.StorageFsi(stores.ID(id))
+			if err == nil {
+				avai = avai + si.Available
+			}
+		}
+
+		avai = avai / 1024 / 1024 / 1024
+		log.Infof("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
+		if avai < p2SpaceLimit {
+			log.Infof("%v P2 no space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
+			continue
+		}
+
 		if _, exit := worker.p2Tasks[sector]; exit {
 			log.Infof("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
 			delete(worker.p2Tasks, sector)
@@ -486,7 +502,22 @@ func (m *Manager) getP2Worker() bool {
 
 	for _, worker := range m.sched.workers {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; supported {
-			return true
+			var avai int64
+			log.Infof("storeIDs %v", worker.storeIDs)
+			for id, _ := range worker.storeIDs {
+				si, err := m.index.StorageFsi(stores.ID(id))
+				if err == nil {
+					avai = avai + si.Available
+				}
+			}
+
+			avai = avai / 1024 / 1024 / 1024
+			log.Infof("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
+			if avai < p2SpaceLimit {
+				log.Infof("%v P2 no space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
+			} else {
+				return true
+			}
 		}
 	}
 
