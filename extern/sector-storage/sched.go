@@ -798,6 +798,15 @@ func (sh *scheduler) dropWorker(wid WorkerID) {
 	w := sh.workers[wid]
 	log.Infof("dropWorker %v", w.info.Hostname)
 
+	w.wndLk.Lock()
+	for _, win := range w.activeWindows {
+		for _, do := range win.todo {
+			log.Infof("dropWorker activeWindows %v %v %v", do.sector, do.taskType, do)
+			sh.schedQueue.Push(do)
+		}
+	}
+	w.wndLk.Unlock()
+
 	sh.workerCleanup(wid, w)
 
 	delete(sh.workers, wid)
