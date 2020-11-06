@@ -132,6 +132,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 
 	go initDispatchServer(m)
 	initState()
+	initTask()
 	//loadGroup()
 	go m.sched.runSched()
 
