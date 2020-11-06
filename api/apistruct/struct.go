@@ -313,6 +313,7 @@ type StorageMinerStruct struct {
 		StorageDropSector    func(context.Context, stores.ID, abi.SectorID, stores.SectorFileType) error                                                            `perm:"admin"`
 		StorageFindSector    func(context.Context, abi.SectorID, stores.SectorFileType, abi.SectorSize, bool) ([]stores.SectorStorageInfo, error)                   `perm:"admin"`
 		StorageInfo          func(context.Context, stores.ID) (stores.StorageInfo, error)                                                                           `perm:"admin"`
+		StorageFsi           func(stores.ID) (fsutil.FsStat, error)                                                                                                 `perm:"admin"`
 		StorageBestAlloc     func(ctx context.Context, allocate stores.SectorFileType, ssize abi.SectorSize, sealing stores.PathType) ([]stores.StorageInfo, error) `perm:"admin"`
 		StorageReportHealth  func(ctx context.Context, id stores.ID, report stores.HealthReport) error                                                              `perm:"admin"`
 		StorageLock          func(ctx context.Context, sector abi.SectorID, read stores.SectorFileType, write stores.SectorFileType) error                          `perm:"admin"`
@@ -1254,6 +1255,10 @@ func (c *StorageMinerStruct) StorageStat(ctx context.Context, id stores.ID) (fsu
 
 func (c *StorageMinerStruct) StorageInfo(ctx context.Context, id stores.ID) (stores.StorageInfo, error) {
 	return c.Internal.StorageInfo(ctx, id)
+}
+
+func (c *StorageMinerStruct) StorageFsi(id stores.ID) (fsutil.FsStat, error) {
+	return c.Internal.StorageFsi(id)
 }
 
 func (c *StorageMinerStruct) StorageBestAlloc(ctx context.Context, allocate stores.SectorFileType, ssize abi.SectorSize, pt stores.PathType) ([]stores.StorageInfo, error) {

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 const sfiltask = "./taskconfig.json"
@@ -20,6 +21,7 @@ type GroupConfig struct {
 var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
+var p1SpaceLimit int64
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
@@ -69,4 +71,10 @@ func initDispatchServer(m *Manager) {
 		panic("DISPATCH_SERVER not set")
 	}
 	http.ListenAndServe(os.Getenv("DISPATCH_SERVER"), nil)
+
+	if p1Str := os.Getenv("P1_SPACE"); p1Str != "" {
+		if p1SpaceNum, err := strconv.ParseInt(p1Str, 10, 64); err == nil {
+			p1SpaceLimit = p1SpaceNum
+		}
+	}
 }
