@@ -251,7 +251,7 @@ func (m *Sealing) plan(events []statemachine.Event, state *SectorInfo) (func(sta
 				v
 				FailedUnrecoverable
 
-				UndefinedSectorState <- ¯\_(�?_/¯
+				UndefinedSectorState <- ¯\_(ツ)_/¯
 					|                     ^
 					*---------------------/
 
