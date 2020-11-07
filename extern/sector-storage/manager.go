@@ -54,6 +54,7 @@ type Worker interface {
 type SectorManager interface {
 	SectorSize() abi.SectorSize
 
+	SetSectorState(ctx context.Context, sector abi.SectorNumber, state string)
 	ReadPiece(context.Context, io.Writer, abi.SectorID, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) error
 
 	ffiwrapper.StorageSealer

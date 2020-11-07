@@ -493,3 +493,32 @@ func (m *Manager) getP2Worker() bool {
 	log.Errorf("have no p2 worker")
 	return false
 }
+
+func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
+	if state != "Removed" && state != "FailedUnrecoverable" && state != "Removing" {
+		return
+	}
+
+	log.Infof("SetSectorState %v %v", sector, state)
+	m.sched.workersLk.Lock()
+	for id, handle := range m.sched.workers {
+		for s, _ := range handle.p2Tasks {
+			if s.Number == sector {
+				log.Infof("SetSectorState delete %v %v", sector, state)
+				delete(m.sched.workers[id].p2Tasks, s)
+			}
+		}
+	}
+	m.sched.workersLk.Unlock()
+
+	m.lkTask.Lock()
+	for host, mp := range m.mapP2Tasks {
+		for s, _ := range mp {
+			if s.Number == sector {
+				log.Infof("SetSectorState remove %v %v", sector, state)
+				delete(m.mapP2Tasks[host], s)
+			}
+		}
+	}
+	m.lkTask.Unlock()
+}
