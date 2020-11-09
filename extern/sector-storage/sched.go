@@ -447,7 +447,7 @@ func (sh *scheduler) trySched() {
 				continue
 			}
 
-			log.Debugf("SCHED ASSIGNED sqi:%d sector %d task %s to window %d", sqi, task.sector.Number, task.taskType, wnd)
+			log.Debugf("SCHED ASSIGNED sqi:%d sector %d task %s to window %d %v", sqi, task.sector.Number, task.taskType, wnd, sh.workers[wid].info.Hostname)
 
 			windows[wnd].allocated.add(wr, needRes)
 			// TODO: We probably want to re-sort acceptableWindows here based on new
