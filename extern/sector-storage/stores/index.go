@@ -51,6 +51,7 @@ type SectorStorageInfo struct {
 type SectorIndex interface { // part of storage-miner api
 	StorageAttach(context.Context, StorageInfo, fsutil.FsStat) error
 	StorageInfo(context.Context, ID) (StorageInfo, error)
+	StorageFsi(ID) (fsutil.FsStat, error)
 	StorageReportHealth(context.Context, ID, HealthReport) error
 
 	StorageDeclareSector(ctx context.Context, storageID ID, s abi.SectorID, ft SectorFileType, primary bool) error
@@ -363,6 +364,18 @@ func (i *Index) StorageInfo(ctx context.Context, id ID) (StorageInfo, error) {
 	}
 
 	return *si.info, nil
+}
+
+func (i *Index) StorageFsi(id ID) (fsutil.FsStat, error) {
+	i.lk.RLock()
+	defer i.lk.RUnlock()
+
+	si, found := i.stores[id]
+	if !found {
+		return fsutil.FsStat{}, xerrors.Errorf("sector store not found")
+	}
+
+	return si.fsi, nil
 }
 
 func (i *Index) StorageBestAlloc(ctx context.Context, allocate SectorFileType, spt abi.RegisteredSealProof, pathType PathType) ([]StorageInfo, error) {

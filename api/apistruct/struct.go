@@ -313,6 +313,7 @@ type StorageMinerStruct struct {
 		StorageDropSector    func(context.Context, stores.ID, abi.SectorID, stores.SectorFileType) error                                                                   `perm:"admin"`
 		StorageFindSector    func(context.Context, abi.SectorID, stores.SectorFileType, abi.RegisteredSealProof, bool) ([]stores.SectorStorageInfo, error)                 `perm:"admin"`
 		StorageInfo          func(context.Context, stores.ID) (stores.StorageInfo, error)                                                                                  `perm:"admin"`
+		StorageFsi           func(stores.ID) (fsutil.FsStat, error)                                                                                                 `perm:"admin"`
 		StorageBestAlloc     func(ctx context.Context, allocate stores.SectorFileType, spt abi.RegisteredSealProof, sealing stores.PathType) ([]stores.StorageInfo, error) `perm:"admin"`
 		StorageReportHealth  func(ctx context.Context, id stores.ID, report stores.HealthReport) error                                                                     `perm:"admin"`
 		StorageLock          func(ctx context.Context, sector abi.SectorID, read stores.SectorFileType, write stores.SectorFileType) error                                 `perm:"admin"`
@@ -362,6 +363,7 @@ type WorkerStruct struct {
 		Remove          func(ctx context.Context, sector abi.SectorID) error                                                                                                                                       `perm:"admin"`
 		MoveStorage     func(ctx context.Context, sector abi.SectorID, types stores.SectorFileType) error                                                                                                          `perm:"admin"`
 		StorageAddLocal func(ctx context.Context, path string) error                                                                                                                                               `perm:"admin"`
+		SetSectorState  func(ctx context.Context, sector abi.SectorNumber, state string)                                                                                                                           `perm:"admin"`
 
 		UnsealPiece func(context.Context, abi.SectorID, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) error `perm:"admin"`
 		ReadPiece   func(context.Context, io.Writer, abi.SectorID, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize) (bool, error)           `perm:"admin"`
@@ -1244,6 +1246,9 @@ func (c *StorageMinerStruct) StorageInfo(ctx context.Context, id stores.ID) (sto
 	return c.Internal.StorageInfo(ctx, id)
 }
 
+func (c *StorageMinerStruct) StorageFsi(id stores.ID) (fsutil.FsStat, error) {
+	return c.Internal.StorageFsi(id)
+}
 func (c *StorageMinerStruct) StorageBestAlloc(ctx context.Context, allocate stores.SectorFileType, spt abi.RegisteredSealProof, pt stores.PathType) ([]stores.StorageInfo, error) {
 	return c.Internal.StorageBestAlloc(ctx, allocate, spt, pt)
 }
@@ -1432,6 +1437,10 @@ func (w *WorkerStruct) MoveStorage(ctx context.Context, sector abi.SectorID, typ
 
 func (w *WorkerStruct) StorageAddLocal(ctx context.Context, path string) error {
 	return w.Internal.StorageAddLocal(ctx, path)
+}
+
+func (w *WorkerStruct) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
+	w.Internal.SetSectorState(ctx, sector, state)
 }
 
 func (w *WorkerStruct) UnsealPiece(ctx context.Context, id abi.SectorID, index storiface.UnpaddedByteIndex, size abi.UnpaddedPieceSize, randomness abi.SealRandomness, c cid.Cid) error {
