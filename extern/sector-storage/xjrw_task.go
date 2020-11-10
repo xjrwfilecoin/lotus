@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"io/ioutil"
+	"net/http"
+	"os"
+	"strconv"
 )
 
 const sfiltask = "./taskconfig.json"
@@ -18,6 +21,7 @@ type GroupConfig struct {
 var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
+var p2SpaceLimit int64
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
@@ -44,6 +48,13 @@ func loadTask() {
 	}
 }
 
+func initTask() {
+	if p2Str := os.Getenv("P2_SPACE"); p2Str != "" {
+		if p2SpaceNum, err := strconv.ParseInt(p2Str, 10, 64); err == nil {
+			p2SpaceLimit = p2SpaceNum
+		}
+	}
+}
 func getGroupCount(groupName string) int {
 	sum := 0
 
@@ -58,4 +69,13 @@ func getGroupCount(groupName string) int {
 	}
 	groupCount[groupName] = sum
 	return sum
+}
+
+func initDispatchServer(m *Manager) {
+	http.HandleFunc("/getHost", m.handlerP2)
+	http.HandleFunc("/setFinish", m.handlerP1)
+	if os.Getenv("DISPATCH_SERVER") == "" {
+		panic("DISPATCH_SERVER not set")
+	}
+	http.ListenAndServe(os.Getenv("DISPATCH_SERVER"), nil)
 }

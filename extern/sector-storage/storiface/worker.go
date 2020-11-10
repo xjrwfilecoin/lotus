@@ -26,6 +26,8 @@ type WorkerResources struct {
 type WorkerStats struct {
 	Info WorkerInfo
 
+	TaskTypes map[sealtasks.TaskType]struct{}
+	P2Tasks   map[int]struct{}
 	MemUsedMin uint64
 	MemUsedMax uint64
 	GpuUsed    bool   // nolint

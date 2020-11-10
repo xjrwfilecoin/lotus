@@ -54,6 +54,7 @@ type Worker interface {
 type SectorManager interface {
 	SectorSize() abi.SectorSize
 
+	SetSectorState(ctx context.Context, sector abi.SectorNumber, state string)
 	ReadPiece(context.Context, io.Writer, abi.SectorID, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) error
 
 	ffiwrapper.StorageSealer
@@ -67,6 +68,11 @@ type Manager struct {
 	scfg *ffiwrapper.Config
 
 	mapReal    map[abi.SectorID]struct{}
+	mapP2Tasks map[string]map[abi.SectorID]struct{}
+	lkTask     sync.Mutex
+
+	mapChan map[abi.SectorID]chan struct{}
+	lkChan  sync.Mutex
 	ls         stores.LocalStorage
 	storage    *stores.Remote
 	localStore *stores.Local
@@ -118,13 +124,17 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		index:      si,
 
 		mapReal: make(map[abi.SectorID]struct{}),
+		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
+		mapChan:    make(map[abi.SectorID]chan struct{}),
 		sched: newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
 
+	go initDispatchServer(m)
 	initState()
-	loadGroup()
+	initTask()
+	//loadGroup()
 	go m.sched.runSched()
 
 	localTasks := []sealtasks.TaskType{
@@ -184,12 +194,30 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		return xerrors.Errorf("getting worker info: %w", err)
 	}
 
+	taskTypes, err := w.TaskTypes(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting supported worker task types: %w", err)
+	}
+
+	paths, err := w.Paths(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting worker paths: %w", err)
+	}
+
+	ids := make(map[string]struct{})
+	for _, path := range paths {
+		ids[string(path.ID)] = struct{}{}
+	}
+
 	m.sched.newWorkers <- &workerHandle{
 		w: w,
 		wt: &workTracker{
 			running: map[uint64]storiface.WorkerJob{},
 		},
 		info:      info,
+		taskTypes: taskTypes,
+		p2Tasks:   m.getTask(info.Hostname),
+		storeIDs:  ids,
 		preparing: &activeResources{},
 		active:    &activeResources{},
 	}
