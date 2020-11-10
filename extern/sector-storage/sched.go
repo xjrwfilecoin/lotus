@@ -98,6 +98,7 @@ type workerHandle struct {
 
 	p2Tasks map[abi.SectorID]struct{}
 
+	storeIDs map[string]struct{}
 	// for sync manager goroutine closing
 	cleanupStarted bool
 	closedMgr      chan struct{}
