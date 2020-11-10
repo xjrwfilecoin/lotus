@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"os"
 	"sort"
 	"strconv"
@@ -75,9 +76,15 @@ var sealingWorkersCmd = &cli.Command{
 				gpuUse = ""
 			}
 
+			var keys []string
+			for k, _ := range stat.TaskTypes {
+				keys = append(keys, string(k))
+			}
+			sort.Strings(keys)
+
 			tasks := ""
-			for task, _ := range stat.TaskTypes {
-				sTask := task.Short()
+			for _, key := range keys {
+				sTask := sealtasks.TaskType(key).Short()
 				if sTask == "PC2" {
 					if len(stat.P2Tasks) == 0 {
 						tasks = tasks + sTask + "-0|"
