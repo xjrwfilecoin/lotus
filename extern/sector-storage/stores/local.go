@@ -516,6 +516,10 @@ func (st *Local) removeSector(ctx context.Context, sid abi.SectorID, typ SectorF
 	spath := p.sectorPath(sid, typ)
 	log.Infof("remove %s", spath)
 
+	if _, err := os.Stat(spath); err != nil {
+		log.Errorf("stat sector (%v) from %s: %+v", sid, spath, err)
+	}
+
 	if err := os.RemoveAll(spath); err != nil {
 		log.Errorf("removing sector (%v) from %s: %+v", sid, spath, err)
 	}
