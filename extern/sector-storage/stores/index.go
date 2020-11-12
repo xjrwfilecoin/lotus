@@ -184,7 +184,6 @@ func (i *Index) StorageReportHealth(ctx context.Context, id ID, report HealthRep
 func (i *Index) StorageDeclareSector(ctx context.Context, storageID ID, s abi.SectorID, ft SectorFileType, primary bool) error {
 	i.lk.Lock()
 	defer i.lk.Unlock()
-	log.Infof("StorageDeclareSector %v %v %v %v", storageID, s, ft, primary)
 
 loop:
 	for _, fileType := range PathTypes {
@@ -205,6 +204,7 @@ loop:
 			}
 		}
 
+		log.Infof("StorageDeclareSector %v %v %v %v", storageID, s, ft, primary)
 		i.sectors[d] = append(i.sectors[d], &declMeta{
 			storage: storageID,
 			primary: primary,
