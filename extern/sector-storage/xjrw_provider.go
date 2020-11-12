@@ -367,7 +367,7 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			delete(worker.p2Tasks, sector)
 		}
 
-		if len(worker.p2Tasks) >= P2NumberLimit {
+		if P2NumberLimit > 0 && len(worker.p2Tasks) >= P2NumberLimit {
 			log.Infof("%v P2 exceed %v %v", worker.info.Hostname, len(worker.p2Tasks), P2NumberLimit)
 			continue
 		}
