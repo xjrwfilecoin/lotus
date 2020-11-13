@@ -218,6 +218,7 @@ func (i *Index) StorageDropSector(ctx context.Context, storageID ID, s abi.Secto
 	i.lk.Lock()
 	defer i.lk.Unlock()
 
+	log.Infof("StorageDeclareSector %v %v %v", storageID, s, ft)
 	for _, fileType := range PathTypes {
 		if fileType&ft == 0 {
 			continue
@@ -238,6 +239,7 @@ func (i *Index) StorageDropSector(ctx context.Context, storageID ID, s abi.Secto
 			rewritten = append(rewritten, sid)
 		}
 		if len(rewritten) == 0 {
+			log.Infof("StorageDropSector delete %v %v %v", storageID, s, ft)
 			delete(i.sectors, d)
 			return nil
 		}
