@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 const sfiltask = "./taskconfig.json"
@@ -20,6 +21,7 @@ type GroupConfig struct {
 var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
+var p2SpaceLimit int64
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
@@ -43,6 +45,14 @@ func loadTask() {
 	err = json.Unmarshal(data, &taskState)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func initTask() {
+	if p2Str := os.Getenv("P2_SPACE"); p2Str != "" {
+		if p2SpaceNum, err := strconv.ParseInt(p2Str, 10, 64); err == nil {
+			p2SpaceLimit = p2SpaceNum
+		}
 	}
 }
 

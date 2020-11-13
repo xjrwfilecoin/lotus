@@ -98,6 +98,7 @@ type workerHandle struct {
 
 	p2Tasks map[abi.SectorID]struct{}
 
+	storeIDs map[string]struct{}
 	// for sync manager goroutine closing
 	cleanupStarted bool
 	closedMgr      chan struct{}
@@ -447,7 +448,7 @@ func (sh *scheduler) trySched() {
 				continue
 			}
 
-			log.Debugf("SCHED ASSIGNED sqi:%d sector %d task %s to window %d", sqi, task.sector.Number, task.taskType, wnd)
+			log.Debugf("SCHED ASSIGNED sqi:%d sector %d task %s to window %d %v", sqi, task.sector.Number, task.taskType, wnd, sh.workers[wid].info.Hostname)
 
 			windows[wnd].allocated.add(wr, needRes)
 			// TODO: We probably want to re-sort acceptableWindows here based on new
@@ -739,7 +740,7 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 						w.lk.Lock()
 						w.p1StartTime += int64(timedelay)
 						w.lk.Unlock()
-						log.Info("%v PreCommit1  delay ", req.sector, w.p1StartTime-timeNow)
+						log.Infof("%v PreCommit1  delay ", req.sector, w.p1StartTime-timeNow)
 						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
 					} else {
 						w.p1StartTime = timeNow

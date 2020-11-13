@@ -51,6 +51,7 @@ type SectorStorageInfo struct {
 type SectorIndex interface { // part of storage-miner api
 	StorageAttach(context.Context, StorageInfo, fsutil.FsStat) error
 	StorageInfo(context.Context, ID) (StorageInfo, error)
+	StorageFsi(ID) (fsutil.FsStat, error)
 	StorageReportHealth(context.Context, ID, HealthReport) error
 
 	StorageDeclareSector(ctx context.Context, storageID ID, s abi.SectorID, ft SectorFileType, primary bool) error
@@ -197,12 +198,13 @@ loop:
 				if !sid.primary && primary {
 					sid.primary = true
 				} else {
-					log.Warnf("sector %v redeclared in %s", s, storageID)
+					log.Warnf("sector %v %v redeclared in %s", s, ft, storageID)
 				}
 				continue loop
 			}
 		}
 
+		log.Infof("StorageDeclareSector %v %v %v %v", storageID, s, ft, primary)
 		i.sectors[d] = append(i.sectors[d], &declMeta{
 			storage: storageID,
 			primary: primary,
@@ -216,6 +218,7 @@ func (i *Index) StorageDropSector(ctx context.Context, storageID ID, s abi.Secto
 	i.lk.Lock()
 	defer i.lk.Unlock()
 
+	log.Infof("StorageDeclareSector %v %v %v", storageID, s, ft)
 	for _, fileType := range PathTypes {
 		if fileType&ft == 0 {
 			continue
@@ -236,6 +239,7 @@ func (i *Index) StorageDropSector(ctx context.Context, storageID ID, s abi.Secto
 			rewritten = append(rewritten, sid)
 		}
 		if len(rewritten) == 0 {
+			log.Infof("StorageDropSector delete %v %v %v", storageID, s, ft)
 			delete(i.sectors, d)
 			return nil
 		}
@@ -363,6 +367,18 @@ func (i *Index) StorageInfo(ctx context.Context, id ID) (StorageInfo, error) {
 	}
 
 	return *si.info, nil
+}
+
+func (i *Index) StorageFsi(id ID) (fsutil.FsStat, error) {
+	i.lk.RLock()
+	defer i.lk.RUnlock()
+
+	si, found := i.stores[id]
+	if !found {
+		return fsutil.FsStat{}, xerrors.Errorf("sector store not found")
+	}
+
+	return si.fsi, nil
 }
 
 func (i *Index) StorageBestAlloc(ctx context.Context, allocate SectorFileType, ssize abi.SectorSize, pathType PathType) ([]StorageInfo, error) {

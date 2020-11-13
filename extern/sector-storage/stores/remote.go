@@ -170,8 +170,10 @@ func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ Sect
 		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", s, typ, err)
 	}
 
+	log.Infof("FetchRemoveRemote %v %v", s, si)
 	var merr error
 	for _, info := range si {
+		log.Infof("urls  = %v", info.URLs)
 		for _, url := range info.URLs {
 			log.Infof("url  = %v", url)
 			if !strings.Contains(url, getLocalIP()) {
