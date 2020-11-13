@@ -45,7 +45,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 				m.lk.Lock()
 				m.addPieceStartTime += int64(timedelay)
 				m.lk.Unlock()
-				log.Info("%v addPiece  delay ", sector, m.addPieceStartTime-timeNow)
+				log.Infof("%v addPiece  delay ", sector, m.addPieceStartTime-timeNow)
 				time.Sleep(time.Second * time.Duration(m.addPieceStartTime-timeNow))
 			} else {
 				m.addPieceStartTime = timeNow
