@@ -411,6 +411,7 @@ assignLoop:
 
 func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRequest) error {
 	w, sh := sw.worker, sw.sched
+	log.Infof("xjrw assignWorker %s <%v> => %v %v", req.taskType, req.sector, w.info.Hostname, w.info.Resources)
 
 	needRes := ResourceTable[req.taskType][sh.spt]
 

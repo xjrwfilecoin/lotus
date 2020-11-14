@@ -608,6 +608,8 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 
 		return nil, xerrors.Errorf("StandaloneSealCommit: %w", err)
 	}
+	log.Infof("SealCommit1 clear cache %v", paths.Cache)
+	ffi.ClearCache(uint64(sb.ssize), paths.Cache)
 	return output, nil
 }
 
