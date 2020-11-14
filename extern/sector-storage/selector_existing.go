@@ -37,13 +37,13 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 		return false, nil
 	}
 
-	inf, err := whnd.w.Info(ctx)
+	inf, err := whnd.workerRpc.Info(ctx)
 	if err != nil {
 		return false, xerrors.Errorf("getting worker info: %w", err)
 	}
 
 	if task == sealtasks.TTPreCommit2 {
-		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTPreCommit2)
+		pwk := findSector(storiface.SectorName(s.sector), sealtasks.TTPreCommit2)
 		//log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
 
 		if pwk == "" {

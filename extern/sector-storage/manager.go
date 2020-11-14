@@ -68,8 +68,8 @@ type Manager struct {
 	mapP2Tasks map[string]map[abi.SectorID]struct{}
 	lkTask     sync.Mutex
 
-	mapChan map[abi.SectorID]chan struct{}
-	lkChan  sync.Mutex
+	mapChan    map[abi.SectorID]chan struct{}
+	lkChan     sync.Mutex
 	ls         stores.LocalStorage
 	storage    *stores.Remote
 	localStore *stores.Local
@@ -105,7 +105,8 @@ type SealerConfig struct {
 	AllowAddPiece   bool
 	AllowPreCommit1 bool
 	AllowPreCommit2 bool
-	AllowCommit     bool
+	AllowCommit1    bool
+	AllowCommit2    bool
 	AllowUnseal     bool
 }
 
@@ -136,10 +137,10 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		remoteHnd:  &stores.FetchHandler{Local: lstor},
 		index:      si,
 
-		mapReal: make(map[abi.SectorID]struct{}),
+		mapReal:    make(map[abi.SectorID]struct{}),
 		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
 		mapChan:    make(map[abi.SectorID]chan struct{}),
-		sched: newScheduler(cfg.SealProofType),
+		sched:      newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 
@@ -209,7 +210,12 @@ func (m *Manager) AddLocalStorage(ctx context.Context, path string) error {
 }
 
 func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
-	return m.sched.runWorker(ctx, w)
+	info, err := w.Info(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting worker info: %w", err)
+	}
+
+	return m.sched.runWorker(ctx, w, m.getTask(info.Hostname))
 }
 
 func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +281,7 @@ func (m *Manager) tryReadUnsealedPiece(ctx context.Context, sink io.Writer, sect
 			returnErr = xerrors.Errorf("reading piece from sealed sector: %w", err)
 		}
 	} else {
-		selector = newAllocSelector(m.index, storiface.FTUnsealed, storiface.PathSealing)
+		selector = newAllocSelector(m.index, sector, storiface.FTUnsealed, storiface.PathSealing)
 	}
 	return
 }
@@ -351,7 +357,7 @@ func (m *Manager) oldAddPiece(ctx context.Context, sector abi.SectorID, existing
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
-		selector = newAllocSelector(m.index, storiface.FTUnsealed, storiface.PathSealing)
+		selector = newAllocSelector(m.index, sector, storiface.FTUnsealed, storiface.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector, storiface.FTUnsealed, false)
 	}
@@ -404,7 +410,7 @@ func (m *Manager) oldSealPreCommit1(ctx context.Context, sector abi.SectorID, ti
 
 	// TODO: also consider where the unsealed data sits
 
-	selector := newAllocSelector(m.index, storiface.FTCache|storiface.FTSealed, storiface.PathSealing)
+	selector := newAllocSelector(m.index, sector, storiface.FTCache|storiface.FTSealed, storiface.PathSealing)
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, m.schedFetch(sector, storiface.FTUnsealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
 		err := m.startWork(ctx, w, wk)(w.SealPreCommit1(ctx, sector, ticket, pieces))
@@ -598,7 +604,7 @@ func (m *Manager) oldFinalizeSector(ctx context.Context, sector abi.SectorID, ke
 		return err
 	}
 
-	fetchSel := newAllocSelector(m.index, storiface.FTCache|storiface.FTSealed, storiface.PathStorage)
+	fetchSel := newAllocSelector(m.index, sector, storiface.FTCache|storiface.FTSealed, storiface.PathStorage)
 	moveUnsealed := unsealed
 	{
 		if len(keepUnsealed) == 0 {

@@ -493,7 +493,7 @@ func (st *Local) Local(ctx context.Context) ([]StoragePath, error) {
 	return out, nil
 }
 
-func (r *Local) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ SectorFileType) error {
+func (r *Local) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ storiface.SectorFileType) error {
 	return nil
 }
 func (st *Local) Remove(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {
@@ -581,7 +581,7 @@ func (st *Local) removeSector(ctx context.Context, sid abi.SectorID, typ storifa
 	}
 
 	st.reportStorage(ctx) // report freed space
-	if typ == FTCache {
+	if typ == storiface.FTCache {
 		file := spath + ".txt"
 		if _, err := os.Stat(file); err == nil {
 			log.Infof("remove %s", file)

@@ -3,7 +3,6 @@ package sectorstorage
 import (
 	"context"
 	"math/rand"
-	"os"
 	"sort"
 	"strconv"
 	"sync"
@@ -77,7 +76,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	workerRpc Worker
+	workerRpc   Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -91,8 +90,8 @@ type workerHandle struct {
 	activeWindows []*schedWindow
 
 	taskTypes map[sealtasks.TaskType]struct{}
-	enabled bool
-	p2Tasks map[abi.SectorID]struct{}
+	enabled   bool
+	p2Tasks   map[abi.SectorID]struct{}
 
 	storeIDs map[string]struct{}
 	// for sync manager goroutine closing

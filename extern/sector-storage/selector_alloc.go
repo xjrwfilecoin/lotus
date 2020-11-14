@@ -13,18 +13,18 @@ import (
 )
 
 type allocSelector struct {
-	index stores.SectorIndex
+	index  stores.SectorIndex
 	sector abi.SectorID
-	alloc storiface.SectorFileType
-	ptype storiface.PathType
+	alloc  storiface.SectorFileType
+	ptype  storiface.PathType
 }
 
 func newAllocSelector(index stores.SectorIndex, sector abi.SectorID, alloc storiface.SectorFileType, ptype storiface.PathType) *allocSelector {
 	return &allocSelector{
-		index: index,
+		index:  index,
 		sector: sector,
-		alloc: alloc,
-		ptype: ptype,
+		alloc:  alloc,
+		ptype:  ptype,
 	}
 }
 
@@ -37,13 +37,13 @@ func (s *allocSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt abi
 		return false, nil
 	}
 
-	inf, err := whnd.w.Info(ctx)
+	inf, err := whnd.workerRpc.Info(ctx)
 	if err != nil {
 		return false, xerrors.Errorf("getting worker info: %w", err)
 	}
 
 	if task == sealtasks.TTPreCommit1 {
-		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTAddPiece)
+		pwk := findSector(storiface.SectorName(s.sector), sealtasks.TTAddPiece)
 		//log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
 
 		if pwk == "" {

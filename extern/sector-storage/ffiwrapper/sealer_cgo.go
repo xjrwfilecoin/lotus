@@ -26,7 +26,6 @@ import (
 	"github.com/filecoin-project/specs-storage/storage"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fr32"
-	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 	"github.com/filecoin-project/lotus/extern/sector-storage/zerocomm"
 )
@@ -34,6 +33,7 @@ import (
 var _ Storage = &Sealer{}
 
 const ssd_parent = "FIL_PROOFS_ADDPIECE_CACHE"
+
 func New(sectors SectorProvider, cfg *Config) (*Sealer, error) {
 	sectorSize, err := sizeFromConfig(*cfg)
 	if err != nil {
@@ -96,7 +96,7 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 	oType := reflect.TypeOf(file)
 	log.Infof("AddPiece sector = %v existingPieceSizes = %v oType = %v", sector, existingPieceSizes, oType)
 	if parent_path != "" && len(existingPieceSizes) == 0 && strings.Contains(oType.String(), "NullReader") {
-		stagedPath, done, _ := sb.sectors.AcquireSector(ctx, sector, 0, stores.FTUnsealed, stores.PathSealing)
+		stagedPath, done, _ := sb.sectors.AcquireSector(ctx, sector, 0, storiface.FTUnsealed, storiface.PathSealing)
 		done()
 
 		pre_add_piece := parent_path + "/cached_add_piece.dat"
