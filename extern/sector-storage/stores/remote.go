@@ -12,7 +12,6 @@ import (
 	gopath "path"
 	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
@@ -135,20 +134,9 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, ssize abi.Se
 		dest := PathByType(apaths, fileType)
 		storageID := PathByType(ids, fileType)
 
-		if _, err := os.Stat(dest); err != nil || existing != FTSealed|FTCache {
-			log.Infof("not exist dest %v %v %v", dest, existing, err)
-			url, err := r.acquireFromRemote(ctx, s, fileType, dest)
-			if err != nil {
-				return SectorPaths{}, SectorPaths{}, err
-			}
-
-			if op == AcquireMove {
-				if err := r.deleteFromRemote(ctx, url); err != nil {
-					log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
-				}
-			}
-		} else {
-			log.Infof("exist dest %v %v", dest, existing)
+		url, err := r.acquireFromRemote(ctx, s, fileType, dest)
+		if err != nil {
+			return SectorPaths{}, SectorPaths{}, err
 		}
 
 		SetPathByType(&paths, fileType, dest)
@@ -158,71 +146,15 @@ func (r *Remote) AcquireSector(ctx context.Context, s abi.SectorID, ssize abi.Se
 			log.Warnf("declaring sector %v in %s failed: %+v", s, storageID, err)
 			continue
 		}
-	}
 
-	return paths, stores, nil
-
-}
-
-func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ SectorFileType) error {
-	si, err := r.index.StorageFindSector(ctx, s, typ, 0, false)
-	if err != nil {
-		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", s, typ, err)
-	}
-
-	log.Infof("FetchRemoveRemote %v %v", s, si)
-	var merr error
-	for _, info := range si {
-		log.Infof("urls  = %v", info.URLs)
-		for _, url := range info.URLs {
-			log.Infof("url  = %v", url)
-			if !strings.Contains(url, getLocalIP()) {
-				dest := ""
-				if typ == FTSealed {
-					dest = filepath.Join(os.Getenv("WORKER_PATH"), "sealed")
-				} else if typ == FTCache {
-					dest = filepath.Join(os.Getenv("WORKER_PATH"), "cache")
-				} else {
-					return xerrors.Errorf(" %v not exist type", s)
-				}
-				dest = filepath.Join(dest, SectorName(s))
-
-				if _, err := os.Stat(dest); err != nil || (err == nil && typ == FTCache && !JudgeCacheComplete(dest)) {
-					tempDest, err := tempFetchDest(dest, true)
-					if err != nil {
-						return err
-					}
-
-					if err := os.RemoveAll(dest); err != nil {
-						return xerrors.Errorf("removing dest: %w", err)
-					}
-					log.Infof("Remove dest: %v", dest)
-
-					err = r.fetch(ctx, url, tempDest)
-					if err != nil {
-						merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
-						continue
-					}
-
-					if err := move(tempDest, dest); err != nil {
-						return xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
-					}
-
-					if err := WriteTXT(dest); err != nil {
-						log.Warnf("WriteTXT %s.txt failed : err", dest, err)
-					}
-				}
-
-				if err := r.deleteFromRemote(ctx, url); err != nil {
-					log.Warnf("remove %s: %+v", url, err)
-					continue
-				}
-				return nil
+		if op == AcquireMove {
+			if err := r.deleteFromRemote(ctx, url); err != nil {
+				log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
 			}
 		}
 	}
 
-	return nil
+	return paths, stores, nil
 }
 
 func tempFetchDest(spath string, create bool) (string, error) {

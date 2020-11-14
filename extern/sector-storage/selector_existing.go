@@ -36,56 +36,6 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 		return false, nil
 	}
 
-	inf, err := whnd.w.Info(ctx)
-	if err != nil {
-		return false, xerrors.Errorf("getting worker info: %w", err)
-	}
-
-	if task == sealtasks.TTPreCommit2 {
-		pwk := findSector(stores.SectorName(s.sector), sealtasks.TTPreCommit2)
-		//log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk, inf.Hostname)
-
-		if pwk == "" {
-			return false, xerrors.Errorf("%v not exist", s.sector)
-		}
-
-		if pwk != inf.Hostname {
-			//log.Infof("%v P1&P2 not in same server %v  %v", s.sector, pwk, inf.Hostname)
-			return false, nil
-		}
-	}
-
-	//if group, exist := groupState[inf.Hostname]; task == sealtasks.TTPreCommit2 {
-	//	pwk1 := findSector(stores.SectorName(s.sector), sealtasks.TTPreCommit1)
-	//	//log.Infof("xjrw %v task = %s  pwk = %s hostname = %s", s.sector, task, pwk1, inf.Hostname)
-	//	if pwk1 == "" {
-	//		return false, xerrors.Errorf("%v not exist", s.sector)
-	//	}
-	//
-	//	if exist {
-	//		if groupState[pwk1].GroupName != group.GroupName {
-	//			//log.Infof("%v not in group %v  %v  %v  %v", s.sector, groupState[pwk1].GroupName, pwk1, inf.Hostname, group.GroupName)
-	//			return false, nil
-	//		}
-	//		pwk2 := findSector(stores.SectorName(s.sector), sealtasks.TTPreCommit2)
-	//		if pwk2 != "" {
-	//			if pwk2 != inf.Hostname {
-	//				//log.Infof("%v P1&P2 not in same server %v  %v", s.sector, pwk1, inf.Hostname)
-	//				return false, nil
-	//			}
-	//		} else {
-	//			if index := int(s.sector.Number) % getGroupCount(group.GroupName); index != group.GroupIndex {
-	//				//log.Infof("%v index %v P1&P2 is different %v  %v", s.sector, index, inf.Hostname, group)
-	//				return false, nil
-	//			}
-	//		}
-	//	} else {
-	//		if pwk1 != inf.Hostname {
-	//			//log.Infof("%v P1&P2 not in same server %v  %v", s.sector, pwk1, inf.Hostname)
-	//			return false, nil
-	//		}
-	//	}
-	//}
 	paths, err := whnd.w.Paths(ctx)
 	if err != nil {
 		return false, xerrors.Errorf("getting worker paths: %w", err)

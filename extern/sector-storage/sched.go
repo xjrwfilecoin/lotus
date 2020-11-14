@@ -93,12 +93,8 @@ type workerHandle struct {
 	activeWindows []*schedWindow
 
 	// stats / tracking
-	wt        *workTracker
-	taskTypes map[sealtasks.TaskType]struct{}
+	wt *workTracker
 
-	p2Tasks map[abi.SectorID]struct{}
-
-	storeIDs map[string]struct{}
 	// for sync manager goroutine closing
 	cleanupStarted bool
 	closedMgr      chan struct{}
@@ -799,14 +795,6 @@ func (sh *scheduler) dropWorker(wid WorkerID) {
 	w := sh.workers[wid]
 	log.Infof("dropWorker %v", w.info.Hostname)
 
-	//w.wndLk.Lock()
-	//for _, win := range w.activeWindows {
-	//	for _, do := range win.todo {
-	//		log.Infof("dropWorker activeWindows %v %v %v", do.sector, do.taskType, do)
-	//		sh.schedQueue.Push(do)
-	//	}
-	//}
-	//w.wndLk.Unlock()
 	sh.workerCleanup(wid, w)
 
 	delete(sh.workers, wid)

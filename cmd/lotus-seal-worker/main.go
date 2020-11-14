@@ -182,6 +182,7 @@ var runCmd = &cli.Command{
 		}
 
 		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
+		sectorstorage.ShellExecute("rm -rf " + os.Getenv("WORKER_PATH") + "repo.lock")
 		// Connect to storage-miner
 		var nodeApi api.StorageMiner
 		var closer func()

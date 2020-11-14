@@ -3,10 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -76,36 +74,7 @@ var sealingWorkersCmd = &cli.Command{
 				gpuUse = ""
 			}
 
-			var keys []string
-			for k, _ := range stat.TaskTypes {
-				keys = append(keys, string(k))
-			}
-			sort.Strings(keys)
-
-			tasks := ""
-			for _, key := range keys {
-				sTask := sealtasks.TaskType(key).Short()
-				if sTask == "PC2" {
-					if len(stat.P2Tasks) == 0 {
-						tasks = tasks + sTask + "-0|"
-					} else {
-						tasks = tasks + sTask + "-" + strconv.Itoa(len(stat.P2Tasks)) + "("
-						for sector, _ := range stat.P2Tasks {
-							tasks = tasks + strconv.Itoa(sector) + ","
-						}
-						tasks = strings.TrimRight(tasks, ",")
-						tasks = tasks + ")|"
-					}
-				} else if sTask == "FIN" || sTask == "GET" || sTask == "UNS" || sTask == "RD " {
-					continue
-				} else {
-					tasks = tasks + sTask + "|"
-				}
-			}
-			tasks = strings.Replace(tasks, " ", "", -1)
-			tasks = strings.TrimRight(tasks, "|")
-
-			fmt.Printf("Worker %d, host %s tasks %s\n", stat.id, color.MagentaString(stat.Info.Hostname), tasks)
+			fmt.Printf("Worker %d, host %s\n", stat.id, color.MagentaString(stat.Info.Hostname))
 
 			var barCols = uint64(64)
 			cpuBars := int(stat.CpuUse * barCols / stat.Info.Resources.CPUs)
@@ -116,25 +85,17 @@ var sealingWorkersCmd = &cli.Command{
 
 			ramBarsRes := int(stat.Info.Resources.MemReserved * barCols / stat.Info.Resources.MemPhysical)
 			ramBarsUsed := int(stat.MemUsedMin * barCols / stat.Info.Resources.MemPhysical)
-			strBar := " "
-			if int(barCols)-ramBarsUsed-ramBarsRes > 0 {
-				strBar = strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
-			}
 			ramBar := color.YellowString(strings.Repeat("|", ramBarsRes)) +
 				color.GreenString(strings.Repeat("|", ramBarsUsed)) +
-				strBar
+				strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
 
 			vmem := stat.Info.Resources.MemPhysical + stat.Info.Resources.MemSwap
 
 			vmemBarsRes := int(stat.Info.Resources.MemReserved * barCols / vmem)
 			vmemBarsUsed := int(stat.MemUsedMax * barCols / vmem)
-			strvBar := " "
-			if int(barCols)-vmemBarsUsed-vmemBarsRes > 0 {
-				strvBar = strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
-			}
 			vmemBar := color.YellowString(strings.Repeat("|", vmemBarsRes)) +
 				color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
-				strvBar
+				strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
 
 			fmt.Printf("\tRAM:  [%s] %d%% %s/%s\n", ramBar,
 				(stat.Info.Resources.MemReserved+stat.MemUsedMin)*100/stat.Info.Resources.MemPhysical,

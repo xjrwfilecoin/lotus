@@ -11,19 +11,13 @@ func (m *Manager) WorkerStats() map[uint64]storiface.WorkerStats {
 	out := map[uint64]storiface.WorkerStats{}
 
 	for id, handle := range m.sched.workers {
-		state := storiface.WorkerStats{
+		out[uint64(id)] = storiface.WorkerStats{
 			Info:       handle.info,
 			MemUsedMin: handle.active.memUsedMin,
 			MemUsedMax: handle.active.memUsedMax,
 			GpuUsed:    handle.active.gpuUsed,
 			CpuUse:     handle.active.cpuUse,
-			TaskTypes:  handle.taskTypes,
-			P2Tasks:    make(map[int]struct{}),
 		}
-		for sector, _ := range handle.p2Tasks {
-			state.P2Tasks[int(sector.Number)] = struct{}{}
-		}
-		out[uint64(id)] = state
 	}
 
 	return out
