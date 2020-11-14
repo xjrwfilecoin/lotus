@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"sync"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-cid"
@@ -65,7 +66,7 @@ type WorkerID uint64
 type Manager struct {
 	scfg *ffiwrapper.Config
 
-	mapReal    map[abi.SectorID]struct{}
+	mapReal map[abi.SectorID]struct{}
 
 	ls         stores.LocalStorage
 	storage    *stores.Remote
@@ -118,7 +119,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, cfg
 		index:      si,
 
 		mapReal: make(map[abi.SectorID]struct{}),
-		sched: newScheduler(cfg.SealProofType),
+		sched:   newScheduler(cfg.SealProofType),
 
 		Prover: prover,
 	}
