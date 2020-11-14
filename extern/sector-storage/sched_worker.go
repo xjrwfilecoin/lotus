@@ -37,9 +37,28 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker) error {
 		return xerrors.Errorf("worker already closed")
 	}
 
+	taskTypes, err := w.TaskTypes(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting supported worker task types: %w", err)
+	}
+
+	paths, err := w.Paths(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting worker paths: %w", err)
+	}
+
+	ids := make(map[string]struct{})
+	for _, path := range paths {
+		ids[string(path.ID)] = struct{}{}
+	}
+
 	worker := &workerHandle{
 		workerRpc: w,
 		info:      info,
+
+		taskTypes: taskTypes,
+		p2Tasks:   sh.getTask(info.Hostname),
+		storeIDs:  ids,
 
 		preparing: &activeResources{},
 		active:    &activeResources{},
