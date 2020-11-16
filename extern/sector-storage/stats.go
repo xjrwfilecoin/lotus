@@ -15,14 +15,15 @@ func (m *Manager) WorkerStats() map[uuid.UUID]storiface.WorkerStats {
 	out := map[uuid.UUID]storiface.WorkerStats{}
 
 	for id, handle := range m.sched.workers {
-	    p2Tasks := make(map[int]struct{})
+		p2Tasks := make(map[int]struct{})
 		for sector, _ := range handle.p2Tasks {
 			p2Tasks[int(sector.Number)] = struct{}{}
 		}
 		out[uuid.UUID(id)] = storiface.WorkerStats{
-			Info:    handle.info,
-			Enabled: handle.enabled,
-			P2Tasks: p2Tasks,
+			Info:      handle.info,
+			Enabled:   handle.enabled,
+			P2Tasks:   p2Tasks,
+			TaskTypes: handle.taskTypes,
 
 			MemUsedMin: handle.active.memUsedMin,
 			MemUsedMax: handle.active.memUsedMax,
