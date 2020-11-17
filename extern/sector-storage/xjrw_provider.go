@@ -140,9 +140,11 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 		if err != nil {
 			return err
 		}
-		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
 
 		waitRes()
+
+		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
+
 		return nil
 	})
 	if err != nil {
@@ -249,9 +251,11 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		if err != nil {
 			return err
 		}
-		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit2)
 
 		waitRes()
+
+		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit2)
+
 		return nil
 	})
 	if err != nil {
@@ -263,7 +267,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 
 func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (out storage.Commit1Out, err error) {
 	log.Info("xjrw SealCommit1 begin ", sector)
-	
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -317,9 +321,11 @@ func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 		if err != nil {
 			return err
 		}
-		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTCommit1)
 
 		waitRes()
+
+		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTCommit1)
+
 		return nil
 	})
 	if err != nil {
@@ -375,9 +381,11 @@ func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Ou
 		if err != nil {
 			return err
 		}
-		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTCommit2)
 
 		waitRes()
+
+		endSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTCommit2)
+
 		return nil
 	})
 
