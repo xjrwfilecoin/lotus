@@ -64,6 +64,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector abi.SectorID, existingPie
 		startSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTAddPiece)
 
 		t1 := time.Now()
+		log.Infof("start AddPiece : %v", sector)
 		defer func() {
 			t2 := time.Now()
 			log.Infof("xjrw cast mgr AddPiece %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
@@ -131,6 +132,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector abi.SectorID, ticke
 		startSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTPreCommit1)
 
 		t1 := time.Now()
+		log.Infof("start SealPreCommit1 : %v", sector)
 		defer func() {
 			t2 := time.Now()
 			log.Infof("xjrw cast mgr SealPreCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
@@ -242,6 +244,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector abi.SectorID, phase
 		log.Infof("startworker %v %v", inf.Hostname, sector)
 
 		t1 := time.Now()
+		log.Infof("start SealPreCommit2 : %v", sector)
 		defer func() {
 			t2 := time.Now()
 			log.Infof("xjrw cast mgr SealPreCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
@@ -312,6 +315,7 @@ func (m *Manager) SealCommit1(ctx context.Context, sector abi.SectorID, ticket a
 		startSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTCommit1)
 
 		t1 := time.Now()
+		log.Infof("start SealCommit1 : %v", sector)
 		defer func() {
 			t2 := time.Now()
 			log.Infof("xjrw cast mgr SealCommit1 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
@@ -372,6 +376,7 @@ func (m *Manager) SealCommit2(ctx context.Context, sector abi.SectorID, phase1Ou
 		startSector(storiface.SectorName(sector), inf.Hostname, sealtasks.TTCommit2)
 
 		t1 := time.Now()
+		log.Infof("start SealCommit2 : %v", sector)
 		defer func() {
 			t2 := time.Now()
 			log.Infof("xjrw cast mgr SealCommit2 %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
