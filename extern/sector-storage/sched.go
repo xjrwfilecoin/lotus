@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -78,6 +80,7 @@ type scheduler struct {
 
 type workerHandle struct {
 	w Worker
+	p1StartTime int64
 
 	info storiface.WorkerInfo
 
@@ -90,7 +93,12 @@ type workerHandle struct {
 	activeWindows []*schedWindow
 
 	// stats / tracking
-	wt *workTracker
+	wt        *workTracker
+	taskTypes map[sealtasks.TaskType]struct{}
+
+	p2Tasks map[abi.SectorID]struct{}
+
+	storeIDs map[string]struct{}
 
 	// for sync manager goroutine closing
 	cleanupStarted bool
@@ -330,6 +338,12 @@ func (sh *scheduler) trySched() {
 		return
 	}
 
+	querylist := ""
+	for i := 0; i < sh.schedQueue.Len(); i++ {
+		task := (*sh.schedQueue)[i]
+		querylist = querylist + strconv.Itoa(int(task.sector.Number)) + "-" + string(task.taskType) + ","
+	}
+	log.Info("querylist: ", querylist)
 	// Step 1
 	concurrency := len(sh.openWindows)
 	throttle := make(chan struct{}, concurrency)
@@ -353,13 +367,13 @@ func (sh *scheduler) trySched() {
 			for wnd, windowRequest := range sh.openWindows {
 				worker, ok := sh.workers[windowRequest.worker]
 				if !ok {
-					log.Errorf("worker referenced by windowRequest not found (worker: %d)", windowRequest.worker)
+					//log.Errorf("worker referenced by windowRequest not found (worker: %d)", windowRequest.worker)
 					// TODO: How to move forward here?
 					continue
 				}
 
 				// TODO: allow bigger windows
-				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources) {
+				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources, task) {
 					continue
 				}
 
@@ -412,8 +426,8 @@ func (sh *scheduler) trySched() {
 
 	wg.Wait()
 
-	log.Debugf("SCHED windows: %+v", windows)
-	log.Debugf("SCHED Acceptable win: %+v", acceptableWindows)
+	//log.Debugf("SCHED windows: %+v", windows)
+	//log.Debugf("SCHED Acceptable win: %+v", acceptableWindows)
 
 	// Step 2
 	scheduled := 0
@@ -430,7 +444,7 @@ func (sh *scheduler) trySched() {
 			log.Debugf("SCHED try assign sqi:%d sector %d to window %d", sqi, task.sector.Number, wnd)
 
 			// TODO: allow bigger windows
-			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr) {
+			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr, task) {
 				continue
 			}
 
@@ -453,6 +467,7 @@ func (sh *scheduler) trySched() {
 
 		windows[selectedWindow].todo = append(windows[selectedWindow].todo, task)
 
+		log.Infof("schedQueue Remove %v %v", task.sector, task.taskType)
 		sh.schedQueue.Remove(sqi)
 		sqi--
 		scheduled++
@@ -580,7 +595,7 @@ func (sh *scheduler) runWorker(wid WorkerID) {
 					worker.lk.Lock()
 					for t, todo := range firstWindow.todo {
 						needRes := ResourceTable[todo.taskType][sh.spt]
-						if worker.preparing.canHandleRequest(needRes, wid, "startPreparing", worker.info.Resources) {
+						if worker.preparing.canHandleRequest(needRes, wid, "startPreparing", worker.info.Resources, todo) {
 							tidx = t
 							break
 						}
@@ -630,7 +645,7 @@ func (sh *scheduler) workerCompactWindows(worker *workerHandle, wid WorkerID) in
 
 			for ti, todo := range window.todo {
 				needRes := ResourceTable[todo.taskType][sh.spt]
-				if !lower.allocated.canHandleRequest(needRes, wid, "compactWindows", worker.info.Resources) {
+				if !lower.allocated.canHandleRequest(needRes, wid, "compactWindows", worker.info.Resources, todo) {
 					continue
 				}
 
@@ -673,6 +688,7 @@ func (sh *scheduler) workerCompactWindows(worker *workerHandle, wid WorkerID) in
 }
 
 func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *workerHandle, req *workerRequest) error {
+	log.Infof("xjrw assignWorker %s <%v> => %v %v", req.taskType, req.sector, w.info.Hostname, w.info.Resources)
 	needRes := ResourceTable[req.taskType][sh.spt]
 
 	w.lk.Lock()
@@ -705,7 +721,7 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 			return
 		}
 
-		err = w.active.withResources(wid, w.info.Resources, needRes, &sh.workersLk, func() error {
+		err = w.active.withResources(req, wid, w.info.Resources, needRes, &sh.workersLk, func() error {
 			w.lk.Lock()
 			w.preparing.free(w.info.Resources, needRes)
 			w.lk.Unlock()
@@ -717,6 +733,20 @@ func (sh *scheduler) assignWorker(taskDone chan struct{}, wid WorkerID, w *worke
 			case <-sh.closing:
 			}
 
+			if timeStr := os.Getenv("P1_DELAY_TIME"); timeStr != "" && req.taskType == sealtasks.TTPreCommit1 {
+				timeNow := time.Now().Unix()
+				if timedelay, err := strconv.Atoi(timeStr); err == nil {
+					if w.p1StartTime != 0 && timeNow-w.p1StartTime < int64(timedelay) {
+						w.lk.Lock()
+						w.p1StartTime += int64(timedelay)
+						w.lk.Unlock()
+						log.Info("%v PreCommit1  delay ", req.sector, w.p1StartTime-timeNow)
+						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
+					} else {
+						w.p1StartTime = timeNow
+					}
+				}
+			}
 			err = req.work(req.ctx, w.wt.worker(w.w))
 
 			select {
@@ -767,6 +797,16 @@ func (sh *scheduler) dropWorker(wid WorkerID) {
 	defer sh.workersLk.Unlock()
 
 	w := sh.workers[wid]
+	log.Infof("dropWorker %v", w.info.Hostname)
+
+	w.wndLk.Lock()
+	for _, win := range w.activeWindows {
+		for _, do := range win.todo {
+			log.Infof("dropWorker activeWindows %v %v %v", do.sector, do.taskType, do)
+			sh.schedQueue.Push(do)
+		}
+	}
+	w.wndLk.Unlock()
 
 	sh.workerCleanup(wid, w)
 
