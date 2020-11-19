@@ -12,6 +12,7 @@ import (
 	gopath "path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
