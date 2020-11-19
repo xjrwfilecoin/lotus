@@ -148,6 +148,8 @@ func (r *Remote) AcquireSector(ctx context.Context, s storage.SectorRef, existin
 					log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
 				}
 			}
+		} else {
+			log.Infof("exist dest %v %v", dest, existing)
 		}
 
 		storiface.SetPathByType(&paths, fileType, dest)
