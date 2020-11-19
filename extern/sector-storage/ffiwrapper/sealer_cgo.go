@@ -33,6 +33,7 @@ import (
 var _ Storage = &Sealer{}
 
 const ssd_parent = "FIL_PROOFS_ADDPIECE_CACHE"
+
 func New(sectors SectorProvider) (*Sealer, error) {
 	sb := &Sealer{
 		sectors: sectors,
@@ -133,7 +134,7 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 	}
 
 }
-func (sb *Sealer) addPiece(ctx context.Context, sector abi.SectorID, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data, cached_path string) (abi.PieceInfo, error) {
+func (sb *Sealer) addPiece(ctx context.Context, sector storage.SectorRef, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data, cached_path string) (abi.PieceInfo, error) {
 	var offset abi.UnpaddedPieceSize
 	for _, size := range existingPieceSizes {
 		offset += size

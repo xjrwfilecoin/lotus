@@ -75,7 +75,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	workerRpc Worker
+	workerRpc   Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -365,7 +365,7 @@ func (sh *scheduler) trySched() {
 	querylist := ""
 	for i := 0; i < sh.schedQueue.Len(); i++ {
 		task := (*sh.schedQueue)[i]
-		querylist = querylist + strconv.Itoa(int(task.sector.Number)) + "-" + string(task.taskType) + ","
+		querylist = querylist + strconv.Itoa(int(task.sector.ID.Number)) + "-" + string(task.taskType) + ","
 	}
 	log.Info("querylist: ", querylist)
 

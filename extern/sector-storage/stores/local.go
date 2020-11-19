@@ -583,11 +583,25 @@ func (st *Local) removeSector(ctx context.Context, sid abi.SectorID, typ storifa
 	spath := p.sectorPath(sid, typ)
 	log.Infof("remove %s", spath)
 
+	if _, err := os.Stat(spath); err != nil {
+		log.Errorf("stat sector (%v) from %s: %+v", sid, spath, err)
+	}
+
 	if err := os.RemoveAll(spath); err != nil {
 		log.Errorf("removing sector (%v) from %s: %+v", sid, spath, err)
 	}
 
 	st.reportStorage(ctx) // report freed space
+
+	if typ == storiface.FTCache {
+		file := spath + ".txt"
+		if _, err := os.Stat(file); err == nil {
+			log.Infof("remove %s", file)
+			if err := os.Remove(file); err != nil {
+				log.Errorf("removing sector file (%v) from %s: %+v", sid, file, err)
+			}
+		}
+	}
 
 	return nil
 }

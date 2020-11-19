@@ -134,7 +134,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 		mapReal:    make(map[abi.SectorID]struct{}),
 		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
 		mapChan:    make(map[abi.SectorID]chan struct{}),
-		sched: newScheduler(),
+		sched:      newScheduler(),
 
 		Prover: prover,
 
@@ -269,7 +269,7 @@ func (m *Manager) tryReadUnsealedPiece(ctx context.Context, sink io.Writer, sect
 			returnErr = xerrors.Errorf("reading piece from sealed sector: %w", err)
 		}
 	} else {
-		selector = newAllocSelector(m.index, sector, storiface.FTUnsealed, storiface.PathSealing)
+		selector = newAllocSelector(m.index, sector.ID, storiface.FTUnsealed, storiface.PathSealing)
 	}
 	return
 }
@@ -334,7 +334,7 @@ func (m *Manager) NewSector(ctx context.Context, sector storage.SectorRef) error
 	return nil
 }
 
-func (m *Manager) AddPiece(ctx context.Context, sector storage.SectorRef, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
+func (m *Manager) oldAddPiece(ctx context.Context, sector storage.SectorRef, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -345,7 +345,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
-		selector = newAllocSelector(m.index, sector, storiface.FTUnsealed, storiface.PathSealing)
+		selector = newAllocSelector(m.index, sector.ID, storiface.FTUnsealed, storiface.PathSealing)
 	} else { // use existing
 		selector = newExistingSelector(m.index, sector.ID, storiface.FTUnsealed, false)
 	}
@@ -365,7 +365,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 	return out, err
 }
 
-func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
+func (m *Manager) oldSealPreCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -398,7 +398,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 
 	// TODO: also consider where the unsealed data sits
 
-	selector := newAllocSelector(m.index, sector, storiface.FTCache|storiface.FTSealed, storiface.PathSealing)
+	selector := newAllocSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, storiface.PathSealing)
 
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, m.schedFetch(sector, storiface.FTUnsealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
 		err := m.startWork(ctx, w, wk)(w.SealPreCommit1(ctx, sector, ticket, pieces))
@@ -416,7 +416,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 	return out, waitErr
 }
 
-func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
+func (m *Manager) oldSealPreCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -465,7 +465,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 	return out, waitErr
 }
 
-func (m *Manager) SealCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (out storage.Commit1Out, err error) {
+func (m *Manager) oldSealCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (out storage.Commit1Out, err error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -517,7 +517,7 @@ func (m *Manager) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 	return out, waitErr
 }
 
-func (m *Manager) SealCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
+func (m *Manager) oldSealCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.Commit1Out) (out storage.Proof, err error) {
 	wk, wait, cancel, err := m.getWork(ctx, sealtasks.TTCommit2, sector, phase1Out)
 	if err != nil {
 		return storage.Proof{}, xerrors.Errorf("getWork: %w", err)
@@ -560,7 +560,7 @@ func (m *Manager) SealCommit2(ctx context.Context, sector storage.SectorRef, pha
 	return out, waitErr
 }
 
-func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, keepUnsealed []storage.Range) error {
+func (m *Manager) oldFinalizeSector(ctx context.Context, sector storage.SectorRef, keepUnsealed []storage.Range) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -592,7 +592,7 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 		return err
 	}
 
-	fetchSel := newAllocSelector(m.index, sector, storiface.FTCache|storiface.FTSealed, storiface.PathStorage)
+	fetchSel := newAllocSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, storiface.PathStorage)
 	moveUnsealed := unsealed
 	{
 		if len(keepUnsealed) == 0 {
