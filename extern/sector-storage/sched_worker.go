@@ -466,7 +466,7 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 						w.lk.Lock()
 						w.p1StartTime += int64(timedelay)
 						w.lk.Unlock()
-						log.Infof("%v PreCommit1  delay ", req.sector, w.p1StartTime-timeNow)
+						log.Infof("%v PreCommit1  delay %v", req.sector, w.p1StartTime-timeNow)
 						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
 					} else {
 						w.p1StartTime = timeNow
