@@ -14,12 +14,6 @@ import (
 	saproof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 
 	"github.com/docker/go-units"
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/minio/blake2b-simd"
-	"github.com/mitchellh/go-homedir"
-	"github.com/urfave/cli/v2"
-	"golang.org/x/xerrors"
-
 	"github.com/filecoin-project/go-address"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
 	"github.com/filecoin-project/go-state-types/abi"
@@ -28,6 +22,11 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper/basicfs"
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 	"github.com/filecoin-project/specs-storage/storage"
+	logging "github.com/ipfs/go-log/v2"
+	"github.com/minio/blake2b-simd"
+	"github.com/mitchellh/go-homedir"
+	"github.com/urfave/cli/v2"
+	"golang.org/x/xerrors"
 
 	lapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
@@ -35,6 +34,8 @@ import (
 	"github.com/filecoin-project/lotus/chain/actors/policy"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/genesis"
+
+	sealing "github.com/filecoin-project/lotus/extern/storage-sealing"
 )
 
 var log = logging.Logger("lotus-bench")
@@ -480,7 +481,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 		start := time.Now()
 		log.Infof("[%d] Writing piece into sector...", i)
 
-		r := rand.New(rand.NewSource(100 + int64(i)))
+		r := sealing.NewNullReader(abi.UnpaddedPieceSize(1016)) //rand.New(rand.NewSource(100 + int64(i)))
 
 		pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), r)
 		if err != nil {

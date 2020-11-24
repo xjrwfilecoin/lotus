@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"github.com/fxamacker/cbor/v2"
 	"io"
 	"io/ioutil"
 	"math/bits"
@@ -15,6 +14,8 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/fxamacker/cbor/v2"
 
 	"github.com/ipfs/go-cid"
 	"golang.org/x/xerrors"
