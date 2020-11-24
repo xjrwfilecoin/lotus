@@ -696,7 +696,7 @@ func (st *Local) MoveStorageEx(ctx context.Context, s storage.SectorRef, types s
 		}
 
 		ShellExecute("mv " + storiface.PathByType(src, fileType) + " " + path)
-		log.Info("dst = ", dst[0].ID)
+		log.Info("dst = ", dst)
 
 		if err := st.index.StorageDeclareSector(ctx, dst[0].ID, s.ID, fileType, true); err != nil {
 			return xerrors.Errorf("declare sector %v %v %v: %w", s, fileType, dst[0].ID, err)
