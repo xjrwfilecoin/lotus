@@ -481,7 +481,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 		start := time.Now()
 		log.Infof("[%d] Writing piece into sector...", i)
 
-		r := sealing.NewNullReader(abi.UnpaddedPieceSize(1016)) //rand.New(rand.NewSource(100 + int64(i)))
+		r := sealing.NewNullReader(abi.PaddedPieceSize(sectorSize).Unpadded()) //rand.New(rand.NewSource(100 + int64(i)))
 
 		pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), r)
 		if err != nil {
