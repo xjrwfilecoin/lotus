@@ -7,7 +7,6 @@ import (
 	"math/bits"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -664,41 +663,47 @@ func (st *Local) MoveStorage(ctx context.Context, s storage.SectorRef, types sto
 	return nil
 }
 
-func (st *Local) MoveStorageEx(ctx context.Context, s abi.SectorID, ssize abi.SectorSize, types SectorFileType) error {
-	src, srcIds, err := st.AcquireSector(ctx, s, ssize, types, FTNone, PathStorage, AcquireMove)
+func (st *Local) MoveStorageEx(ctx context.Context, s storage.SectorRef, types storiface.SectorFileType) error {
+	src, srcIds, err := st.AcquireSector(ctx, s, types, storiface.FTNone, storiface.PathStorage, storiface.AcquireMove)
 	if err != nil {
 		return xerrors.Errorf("acquire src storage: %w", err)
 	}
 
-	dst, err := st.index.StorageBestAlloc(ctx, types,ssize, PathStorage)
+	ssize, err := s.ProofType.SectorSize()
+	if err != nil {
+		return err
+	}
+	dst, err := st.index.StorageBestAlloc(ctx, types, ssize, storiface.PathStorage)
 	if err != nil {
 		return xerrors.Errorf("finding best storage for allocating : %w", err)
 	}
 
-	for _, fileType := range PathTypes {
+	for _, fileType := range storiface.PathTypes {
 		if fileType&types == 0 {
 			continue
 		}
 
-		sst, err := st.index.StorageInfo(ctx, ID(PathByType(srcIds, fileType)))
+		sst, err := st.index.StorageInfo(ctx, ID(storiface.PathByType(srcIds, fileType)))
 		if err != nil {
 			return xerrors.Errorf("failed to get source storage info: %w", err)
 		}
 
-		path := filepath.Join(os.Getenv("LOTUS_STORAGE_PATH"), fileType.String())
+		path := filepath.Join(os.Getenv("FIN_PATH"), fileType.String())
 
 		log.Infof("MoveStorageEx %v %v %v %v", s, sst, fileType, path)
-		if err := st.index.StorageDropSector(ctx, ID(PathByType(srcIds, fileType)), s, fileType); err != nil {
+		if err := st.index.StorageDropSector(ctx, ID(storiface.PathByType(srcIds, fileType)), s.ID, fileType); err != nil {
 			return xerrors.Errorf("dropping source sector from index: %w", err)
 		}
 
-		ShellExecute("mv " + PathByType(src, fileType) + " " + path)
+		ShellExecute("mv " + storiface.PathByType(src, fileType) + " " + path)
 		log.Info("dst = ", dst[0].ID)
 
-		if err := st.index.StorageDeclareSector(ctx, dst[0].ID, s, fileType, true); err != nil {
+		if err := st.index.StorageDeclareSector(ctx, dst[0].ID, s.ID, fileType, true); err != nil {
 			return xerrors.Errorf("declare sector %v %v %v: %w", s, fileType, dst[0].ID, err)
 		}
 	}
+
+	st.reportStorage(ctx) // report space use changes
 
 	return nil
 }

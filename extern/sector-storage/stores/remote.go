@@ -359,14 +359,14 @@ func (r *Remote) MoveStorage(ctx context.Context, s storage.SectorRef, types sto
 	return r.local.MoveStorage(ctx, s, types)
 }
 
-func (r *Remote) MoveStorageEx(ctx context.Context, s abi.SectorID, ssize abi.SectorSize, types SectorFileType) error {
+func (r *Remote) MoveStorageEx(ctx context.Context, s storage.SectorRef, types storiface.SectorFileType) error {
 	// Make sure we have the data local
-	_, _, err := r.AcquireSector(ctx, s, ssize, types, FTNone, PathStorage, AcquireMove)
+	_, _, err := r.AcquireSector(ctx, s, types, storiface.FTNone, storiface.PathStorage, storiface.AcquireMove)
 	if err != nil {
 		return xerrors.Errorf("acquire src storage (remote): %w", err)
 	}
 
-	return r.local.MoveStorageEx(ctx, s, ssize, types)
+	return r.local.MoveStorageEx(ctx, s, types)
 }
 
 func (r *Remote) Remove(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {
