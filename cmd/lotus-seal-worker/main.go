@@ -184,6 +184,10 @@ var runCmd = &cli.Command{
 			panic("FIL_PROOFS_SSD_PARENT not set")
 		}
 
+		if os.Getenv("FIN_PATH") == "" {
+			panic("FIN_PATH not set")
+		}
+
 		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
 		// Connect to storage-miner
 		ctx := lcli.ReqContext(cctx)
