@@ -409,7 +409,38 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 		log.Infof("xjrw cast mgr FinalizeSector %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 	}()
 
-	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	if err := m.index.StorageLock(ctx, sector.ID, storiface.FTNone, storiface.FTSealed|storiface.FTUnsealed|storiface.FTCache); err != nil {
+		return xerrors.Errorf("acquiring sector lock: %w", err)
+	}
+
+	unsealed := storiface.FTUnsealed
+	{
+		unsealedStores, err := m.index.StorageFindSector(ctx, sector.ID, storiface.FTUnsealed, 0, false)
+		if err != nil {
+			return xerrors.Errorf("finding unsealed sector: %w", err)
+		}
+
+		if len(unsealedStores) == 0 { // Is some edge-cases unsealed sector may not exist already, that's fine
+			unsealed = storiface.FTNone
+		}
+	}
+
+	selector := newExistingSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, false)
+
+	err := m.sched.Schedule(ctx, sector, sealtasks.TTFinalize, selector,
+		m.schedFetch(sector, storiface.FTCache|storiface.FTSealed|unsealed, storiface.PathSealing, storiface.AcquireMove),
+		func(ctx context.Context, w Worker) error {
+			_, err := m.waitSimpleCall(ctx)(w.FinalizeSector(ctx, sector, keepUnsealed))
+			return err
+		})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *Manager) addTask(host string, sector abi.SectorID) {

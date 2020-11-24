@@ -23,5 +23,7 @@ type Store interface {
 	// move sectors into storage
 	MoveStorage(ctx context.Context, s storage.SectorRef, types storiface.SectorFileType) error
 
+	MoveStorageEx(ctx context.Context, s abi.SectorID, ssize abi.SectorSize, types SectorFileType) error
+
 	FsStat(ctx context.Context, id ID) (fsutil.FsStat, error)
 }

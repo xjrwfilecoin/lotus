@@ -396,10 +396,27 @@ func (l *LocalWorker) FinalizeSector(ctx context.Context, sector storage.SectorR
 			return nil, xerrors.Errorf("finalizing sector: %w", err)
 		}
 
+		ssize, err := l.scfg.SealProofType.SectorSize()
+		if err != nil {
+			return nil, err
+		}
+
 		if len(keepUnsealed) == 0 {
-			if err := l.storage.Remove(ctx, sector.ID, storiface.FTUnsealed, true); err != nil {
+			if err := l.storage.Remove(ctx, sector.ID, stores.FTUnsealed, true); err != nil {
 				return nil, xerrors.Errorf("removing unsealed data: %w", err)
 			}
+		} else {
+			if err := l.storage.MoveStorageEx(ctx, sector.ID, ssize, stores.FTUnsealed); err != nil {
+				log.Errorf("MoveStorage UnSealed :%w", err)
+			}
+		}
+
+		if err := l.storage.MoveStorageEx(ctx, sector.ID, ssize, stores.FTSealed); err != nil {
+			log.Errorf("MoveStorage Sealed :%w", err)
+		}
+
+		if err := l.storage.MoveStorageEx(ctx, sector.ID, ssize, stores.FTCache); err != nil {
+			log.Errorf("MoveStorage Cache :%w", err)
 		}
 
 		return nil, err

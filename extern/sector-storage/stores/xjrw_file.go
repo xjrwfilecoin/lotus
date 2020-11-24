@@ -7,12 +7,23 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"strings"
 )
 
 const DEF_CACHE = 12
 
 var localIP = ""
+
+func ShellExecute(cmdStr string) error {
+	cmd := exec.Command("/bin/bash", "-c", cmdStr, "|sh")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	err := cmd.Run()
+	log.Infof("ShellExecute %s : %v", cmdStr, err)
+	return err
+}
 
 func init() {
 	fmt.Println("localIP: ", getLocalIP())

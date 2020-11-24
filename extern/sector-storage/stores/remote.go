@@ -359,6 +359,16 @@ func (r *Remote) MoveStorage(ctx context.Context, s storage.SectorRef, types sto
 	return r.local.MoveStorage(ctx, s, types)
 }
 
+func (r *Remote) MoveStorageEx(ctx context.Context, s abi.SectorID, ssize abi.SectorSize, types SectorFileType) error {
+	// Make sure we have the data local
+	_, _, err := r.AcquireSector(ctx, s, ssize, types, FTNone, PathStorage, AcquireMove)
+	if err != nil {
+		return xerrors.Errorf("acquire src storage (remote): %w", err)
+	}
+
+	return r.local.MoveStorageEx(ctx, s, ssize, types)
+}
+
 func (r *Remote) Remove(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {
 	if bits.OnesCount(uint(typ)) != 1 {
 		return xerrors.New("delete expects one file type")
