@@ -695,11 +695,23 @@ func (st *Local) MoveStorageEx(ctx context.Context, s storage.SectorRef, types s
 			return xerrors.Errorf("dropping source sector from index: %w", err)
 		}
 
-		ShellExecute("mv " + storiface.PathByType(src, fileType) + " " + path)
-		log.Info("dst = ", dst)
+		id := dst[0].ID
+		weight := dst[0].Weight
+		for _, d := range dst {
+			if d.Weight > weight {
+				weight = d.Weight
+				id = d.ID
+			}
+		}
+		log.Infof("dst = %v id = %v path = %v", dst, id, path)
 
-		if err := st.index.StorageDeclareSector(ctx, dst[0].ID, s.ID, fileType, true); err != nil {
+		if err := st.index.StorageDeclareSector(ctx, id, s.ID, fileType, true); err != nil {
 			return xerrors.Errorf("declare sector %v %v %v: %w", s, fileType, dst[0].ID, err)
+		}
+
+		err = ShellExecute("mv " + storiface.PathByType(src, fileType) + " " + path)
+		if err != nil {
+			return xerrors.Errorf("%v mv failed : %w", s, err)
 		}
 	}
 

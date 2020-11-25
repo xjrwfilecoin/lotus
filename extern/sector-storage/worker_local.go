@@ -403,15 +403,18 @@ func (l *LocalWorker) FinalizeSector(ctx context.Context, sector storage.SectorR
 		} else {
 			if err := l.storage.MoveStorageEx(ctx, sector, storiface.FTUnsealed); err != nil {
 				log.Errorf("MoveStorage UnSealed :%w", err)
+				return nil, xerrors.Errorf("MoveStorage unsealed data: %w", err)
 			}
 		}
 
 		if err := l.storage.MoveStorageEx(ctx, sector, storiface.FTSealed); err != nil {
 			log.Errorf("MoveStorage Sealed :%w", err)
+			return nil, xerrors.Errorf("MoveStorage sealed data: %w", err)
 		}
 
 		if err := l.storage.MoveStorageEx(ctx, sector, storiface.FTCache); err != nil {
 			log.Errorf("MoveStorage Cache :%w", err)
+			return nil, xerrors.Errorf("MoveStorage cache data: %w", err)
 		}
 
 		return nil, err
