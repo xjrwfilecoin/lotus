@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -74,7 +75,8 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	workerRpc Worker
+	workerRpc   Worker
+	p1StartTime int64
 
 	info storiface.WorkerInfo
 
@@ -86,8 +88,11 @@ type workerHandle struct {
 	wndLk         sync.Mutex
 	activeWindows []*schedWindow
 
-	enabled bool
+	taskTypes map[sealtasks.TaskType]struct{}
+	enabled   bool
+	p2Tasks   map[abi.SectorID]struct{}
 
+	storeIDs map[string]struct{}
 	// for sync manager goroutine closing
 	cleanupStarted bool
 	closedMgr      chan struct{}
@@ -357,6 +362,12 @@ func (sh *scheduler) trySched() {
 		// nothing to schedule on
 		return
 	}
+	querylist := ""
+	for i := 0; i < sh.schedQueue.Len(); i++ {
+		task := (*sh.schedQueue)[i]
+		querylist = querylist + strconv.Itoa(int(task.sector.ID.Number)) + "-" + string(task.taskType) + ","
+	}
+	log.Info("querylist: ", querylist)
 
 	// Step 1
 	concurrency := len(sh.openWindows)
@@ -392,7 +403,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				// TODO: allow bigger windows
-				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources) {
+				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources, task) {
 					continue
 				}
 
@@ -445,8 +456,8 @@ func (sh *scheduler) trySched() {
 
 	wg.Wait()
 
-	log.Debugf("SCHED windows: %+v", windows)
-	log.Debugf("SCHED Acceptable win: %+v", acceptableWindows)
+	//log.Debugf("SCHED windows: %+v", windows)
+	//log.Debugf("SCHED Acceptable win: %+v", acceptableWindows)
 
 	// Step 2
 	scheduled := 0
@@ -463,11 +474,11 @@ func (sh *scheduler) trySched() {
 			log.Debugf("SCHED try assign sqi:%d sector %d to window %d", sqi, task.sector.ID.Number, wnd)
 
 			// TODO: allow bigger windows
-			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr) {
+			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr, task) {
 				continue
 			}
 
-			log.Debugf("SCHED ASSIGNED sqi:%d sector %d task %s to window %d", sqi, task.sector.ID.Number, task.taskType, wnd)
+			log.Debugf("SCHED ASSIGNED sqi:%d sector %d task %s to window %d %v", sqi, task.sector.ID.Number, task.taskType, wnd, sh.workers[wid].info.Hostname)
 
 			windows[wnd].allocated.add(wr, needRes)
 			// TODO: We probably want to re-sort acceptableWindows here based on new
@@ -486,6 +497,7 @@ func (sh *scheduler) trySched() {
 
 		windows[selectedWindow].todo = append(windows[selectedWindow].todo, task)
 
+		log.Infof("schedQueue Remove %v %v", task.sector, task.taskType)
 		sh.schedQueue.Remove(sqi)
 		sqi--
 		scheduled++
