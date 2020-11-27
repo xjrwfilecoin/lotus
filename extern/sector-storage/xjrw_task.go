@@ -22,6 +22,7 @@ var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
 var p2SpaceLimit int64
+var P2NumberLimit int
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
@@ -52,6 +53,12 @@ func initTask() {
 	if p2Str := os.Getenv("P2_SPACE"); p2Str != "" {
 		if p2SpaceNum, err := strconv.ParseInt(p2Str, 10, 64); err == nil {
 			p2SpaceLimit = p2SpaceNum
+		}
+	}
+
+	if p2Str := os.Getenv("P2_NUMBER"); p2Str != "" {
+		if p2Num, err := strconv.Atoi(p2Str); err == nil {
+			P2NumberLimit = p2Num
 		}
 	}
 }
