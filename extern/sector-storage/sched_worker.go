@@ -40,6 +40,7 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 	if sessID == ClosedWorkerID {
 		return xerrors.Errorf("worker already closed")
 	}
+	log.Infof("%v addworker %v", info.Hostname, sessID)
 
 	taskTypes, err := w.TaskTypes(ctx)
 	if err != nil {
