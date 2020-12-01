@@ -448,7 +448,7 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 		}
 
 		// wait (if needed) for resources in the 'active' window
-		err = w.active.withResources(req, sw.wid, w.info.Resources, needRes, &sh.workersLk, func() error {
+		err = w.active.withResources(req, sw.wid, w.info.Resources, needRes, &sh.workersLk, w.lk, func() error {
 			w.lk.Lock()
 			w.preparing.free(w.info.Resources, needRes)
 			w.lk.Unlock()
