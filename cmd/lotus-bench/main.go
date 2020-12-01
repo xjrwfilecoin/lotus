@@ -13,6 +13,8 @@ import (
 
 	saproof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 
+	"github.com/docker/go-units"
+	"github.com/filecoin-project/go-address"
 	paramfetch "github.com/filecoin-project/go-paramfetch"
 	"github.com/filecoin-project/go-state-types/abi"
 	lcli "github.com/filecoin-project/lotus/cli"
@@ -21,6 +23,9 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 	"github.com/filecoin-project/specs-storage/storage"
 	logging "github.com/ipfs/go-log/v2"
+	"github.com/minio/blake2b-simd"
+	"github.com/mitchellh/go-homedir"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 
 	lapi "github.com/filecoin-project/lotus/api"
@@ -540,7 +545,6 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 					pc1o := storage.PreCommit1Out{}
 					var pieces []abi.PieceInfo
 					var ticket []byte
-					err := error(nil)
 					start := time.Now()
 					skip_p2_and := false
 					if withP1result != "" {
@@ -554,15 +558,21 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 						if err := json.Unmarshal(inb, &p1Result); err != nil {
 							return xerrors.Errorf("unmarshalling input file: %w", err)
 						}
-						sid = p1Result.Sid
+						sid = storage.SectorRef{
+							ID:        p1Result.Sid,
+							ProofType: spt(sectorSize),
+						}
 						pc1o = p1Result.P1co
 						ticket = p1Result.Ticket
 						pieces = p1Result.Pieces
 						sbfs.Root = p1Result.Root
 					} else {
-						sid = abi.SectorID{
-							Miner:  mid,
-							Number: i,
+						sid := storage.SectorRef{
+							ID: abi.SectorID{
+								Miner:  mid,
+								Number: i,
+							},
+							ProofType: spt(sectorSize),
 						}
 
 						trand := blake2b.Sum256(ticketPreimage)
@@ -577,7 +587,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 
 						if saveP1result != "" {
 							p1Result := P1Result{
-								Sid:    sid,
+								Sid:    sid.ID,
 								P1co:   pc1o,
 								Ticket: ticket,
 								Pieces: pieces,
