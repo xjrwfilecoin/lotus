@@ -9,8 +9,8 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(req *workerRequest, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
-	for !a.canHandleRequest(r, id, "withResources", wr, req) {
+func (a *activeResources) withResources(req *workerRequest, worker *workerHandle, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+	for !a.canHandleRequest(r, id, "withResources", wr, req, worker) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
 		}
@@ -47,8 +47,12 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 	a.memUsedMax -= r.MaxMemory
 }
 
-func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, req *workerRequest) bool {
-	//log.Infof("canHandleRequest %v %v %v", req.sector, req.taskType, caller)
+func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, req *workerRequest, worker *workerHandle) bool {
+	if worker.enabled == false {
+		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
+		return false
+	}
+	log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
 		if p1Num, err := strconv.Atoi(p1Str); err == nil && req.taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {
 			if a.memUsedMax/needRes.MaxMemory < uint64(p1Num) {
@@ -94,6 +98,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 			return false
 		}
 	}
+	log.Infof("canHandleRequest end %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, res, needRes, a)
 
 	return true
 }
