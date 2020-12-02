@@ -9,7 +9,7 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(req *workerRequest, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, lk sync.Mutex, cb func() error) error {
+func (a *activeResources) withResources(req *workerRequest, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
 	for !a.canHandleRequest(r, id, "withResources", wr, req) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
@@ -17,17 +17,11 @@ func (a *activeResources) withResources(req *workerRequest, id WorkerID, wr stor
 		a.cond.Wait()
 	}
 
-	lk.Lock()
-	log.Infof("withResources add1 %v %v %v %v %v", req.sector, id, req.taskType, a.gpuUsed, r.CanGPU)
 	a.add(wr, r)
-	log.Infof("withResources add2 %v %v %v %v %v", req.sector, id, req.taskType, a.gpuUsed, r.CanGPU)
-	lk.Unlock()
 
 	err := cb()
 
-	lk.Lock()
 	a.free(wr, r)
-	lk.Unlock()
 	if a.cond != nil {
 		a.cond.Broadcast()
 	}
