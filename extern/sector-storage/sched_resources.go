@@ -14,9 +14,7 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
 		}
-		log.Infof("**************1111 %v %v %v", req.sector, req.taskType, id)
 		a.cond.Wait()
-		log.Infof("**************2222 %v %v %v", req.sector, req.taskType, id)
 	}
 
 	a.add(wr, r)
@@ -26,7 +24,6 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 	a.free(wr, r)
 	if a.cond != nil {
 		a.cond.Broadcast()
-		log.Infof("**************33333 %v %v %v", req.sector, req.taskType, id)
 	}
 
 	return err
@@ -55,7 +52,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 		return false
 	}
-	log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
+	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
 		if p1Num, err := strconv.Atoi(p1Str); err == nil && req.taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {
 			if a.memUsedMax/needRes.MaxMemory < uint64(p1Num) {
@@ -101,7 +98,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 			return false
 		}
 	}
-	log.Infof("canHandleRequest end %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, res, needRes, a)
+	//log.Infof("canHandleRequest end %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, res, needRes, a)
 
 	return true
 }
