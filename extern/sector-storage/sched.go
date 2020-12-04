@@ -299,6 +299,7 @@ func (sh *scheduler) runSched() {
 
 				sh.workersLk.Lock()
 				sh.workers[req.wid].enabled = false
+				log.Infof("scheduler disable %v ", req.wid)
 				sh.workersLk.Unlock()
 
 				req.done()
