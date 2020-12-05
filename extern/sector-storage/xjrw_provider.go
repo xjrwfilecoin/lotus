@@ -515,6 +515,10 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			continue
 		}
 
+		if worker.enabled == false {
+			continue
+		}
+
 		if _, exit := worker.p2Tasks[sector]; exit {
 			log.Infof("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
 			delete(worker.p2Tasks, sector)
@@ -656,7 +660,7 @@ func (m *Manager) getP2Worker() bool {
 	defer m.sched.workersLk.Unlock()
 
 	for _, worker := range m.sched.workers {
-		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; supported {
+		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; supported && worker.enabled {
 			var avai int64
 			log.Infof("storeIDs %v", worker.storeIDs)
 			for id, _ := range worker.storeIDs {

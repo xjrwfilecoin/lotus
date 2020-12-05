@@ -299,6 +299,7 @@ func (sh *scheduler) runSched() {
 
 				sh.workersLk.Lock()
 				sh.workers[req.wid].enabled = false
+				log.Infof("scheduler disable %v ", req.wid)
 				sh.workersLk.Unlock()
 
 				req.done()
@@ -403,7 +404,7 @@ func (sh *scheduler) trySched() {
 				}
 
 				// TODO: allow bigger windows
-				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources, task) {
+				if !windows[wnd].allocated.canHandleRequest(needRes, windowRequest.worker, "schedAcceptable", worker.info.Resources, task, worker) {
 					continue
 				}
 
@@ -474,7 +475,7 @@ func (sh *scheduler) trySched() {
 			log.Debugf("SCHED try assign sqi:%d sector %d to window %d", sqi, task.sector.ID.Number, wnd)
 
 			// TODO: allow bigger windows
-			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr, task) {
+			if !windows[wnd].allocated.canHandleRequest(needRes, wid, "schedAssign", wr, task, sh.workers[wid]) {
 				continue
 			}
 

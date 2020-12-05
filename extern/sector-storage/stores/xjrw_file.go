@@ -112,6 +112,7 @@ func JudgeCacheComplete(cache string) bool {
 	if len(mapData) == DEF_CACHE {
 		return true
 	}
+	log.Errorf(" %v is wrong ", file)
 	return false
 }
 
