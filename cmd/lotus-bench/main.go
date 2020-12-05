@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -35,6 +35,7 @@ import (
 	"github.com/filecoin-project/lotus/chain/actors/policy"
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/genesis"
+	sealing "github.com/filecoin-project/lotus/extern/storage-sealing"
 )
 
 var log = logging.Logger("lotus-bench")
@@ -163,6 +164,18 @@ var sealBenchCmd = &cli.Command{
 			Name:  "save-commit2-input",
 			Usage: "save commit2 input to a file",
 		},
+		&cli.StringFlag{
+			Name:  "bench-dir",
+			Usage: "specify bench out dir",
+		},
+		&cli.StringFlag{
+			Name:  "save-p2-input",
+			Usage: "Save pre-commit2 input to a file",
+		},
+		&cli.StringFlag{
+			Name:  "with-p2-input",
+			Usage: "skip p1 and use pre-commit2 input to bench",
+		},
 		&cli.IntFlag{
 			Name:  "num-sectors",
 			Usage: "select number of sectors to seal",
@@ -186,6 +199,9 @@ var sealBenchCmd = &cli.Command{
 
 		robench := c.String("benchmark-existing-sectorbuilder")
 
+		exportP1 := c.String("save-p2-input")
+		withP1Result := c.String("with-p2-input")
+		benchoutdir := c.String("bench-dir")
 		var sbdir string
 
 		if robench == "" {
@@ -200,13 +216,16 @@ var sealBenchCmd = &cli.Command{
 			}
 
 			tsdir, err := ioutil.TempDir(sdir, "bench")
+			if benchoutdir != "" {
+				tsdir = sdir + "/" + benchoutdir
+			}
 			if err != nil {
 				return err
 			}
 			defer func() {
-				if err := os.RemoveAll(tsdir); err != nil {
-					log.Warn("remove all: ", err)
-				}
+				// if err := os.RemoveAll(tsdir); err != nil {
+				// 	log.Warn("remove all: ", err)
+				// }
 			}()
 
 			// TODO: pretty sure this isnt even needed?

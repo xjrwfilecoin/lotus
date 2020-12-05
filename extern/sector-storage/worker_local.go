@@ -349,6 +349,16 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 		return storiface.UndefCall, err
 	}
 
+	log.Infof("in SealPreCommit2 %v", sector.ID)
+
+	if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTSealed); err != nil {
+		log.Errorf("FetchRemoveRemote Sealed :%w", err)
+	}
+
+	if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTCache); err != nil {
+		log.Errorf("FetchRemoveRemote Cache :%w", err)
+	}
+
 	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
 		return sb.SealPreCommit2(ctx, sector, phase1Out)
 	})

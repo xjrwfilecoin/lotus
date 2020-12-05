@@ -4,7 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"golang.org/x/xerrors"
+	"os"
+	"strconv"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
 )
@@ -23,7 +27,7 @@ type schedWorker struct {
 }
 
 // context only used for startup
-func (sh *scheduler) runWorker(ctx context.Context, w Worker) error {
+func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.SectorID]struct{}) error {
 	info, err := w.Info(ctx)
 	if err != nil {
 		return xerrors.Errorf("getting worker info: %w", err)
@@ -36,10 +40,30 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker) error {
 	if sessID == ClosedWorkerID {
 		return xerrors.Errorf("worker already closed")
 	}
+	log.Infof("%v addworker %v", info.Hostname, sessID)
+
+	taskTypes, err := w.TaskTypes(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting supported worker task types: %w", err)
+	}
+
+	paths, err := w.Paths(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting worker paths: %w", err)
+	}
+
+	ids := make(map[string]struct{})
+	for _, path := range paths {
+		ids[string(path.ID)] = struct{}{}
+	}
 
 	worker := &workerHandle{
 		workerRpc: w,
 		info:      info,
+
+		taskTypes: taskTypes,
+		p2Tasks:   tasks,
+		storeIDs:  ids,
 
 		preparing: &activeResources{},
 		active:    &activeResources{},
@@ -295,7 +319,7 @@ func (sw *schedWorker) workerCompactWindows() {
 
 			for ti, todo := range window.todo {
 				needRes := ResourceTable[todo.taskType][todo.sector.ProofType]
-				if !lower.allocated.canHandleRequest(needRes, sw.wid, "compactWindows", worker.info.Resources) {
+				if !lower.allocated.canHandleRequest(needRes, sw.wid, "compactWindows", worker.info.Resources, todo, worker) {
 					continue
 				}
 
@@ -351,7 +375,7 @@ assignLoop:
 			worker.lk.Lock()
 			for t, todo := range firstWindow.todo {
 				needRes := ResourceTable[todo.taskType][todo.sector.ProofType]
-				if worker.preparing.canHandleRequest(needRes, sw.wid, "startPreparing", worker.info.Resources) {
+				if worker.preparing.canHandleRequest(needRes, sw.wid, "startPreparing", worker.info.Resources, todo, worker) {
 					tidx = t
 					break
 				}
@@ -388,6 +412,7 @@ assignLoop:
 
 func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRequest) error {
 	w, sh := sw.worker, sw.sched
+	log.Infof("xjrw assignWorker %s <%v> => %v %v", req.taskType, req.sector, w.info.Hostname, w.info.Resources)
 
 	needRes := ResourceTable[req.taskType][req.sector.ProofType]
 
@@ -423,7 +448,7 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 		}
 
 		// wait (if needed) for resources in the 'active' window
-		err = w.active.withResources(sw.wid, w.info.Resources, needRes, &sh.workersLk, func() error {
+		err = w.active.withResources(req, w, sw.wid, w.info.Resources, needRes, &sh.workersLk, func() error {
 			w.lk.Lock()
 			w.preparing.free(w.info.Resources, needRes)
 			w.lk.Unlock()
@@ -433,6 +458,21 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 			select {
 			case taskDone <- struct{}{}:
 			case <-sh.closing:
+			}
+
+			if timeStr := os.Getenv("P1_DELAY_TIME"); timeStr != "" && req.taskType == sealtasks.TTPreCommit1 {
+				timeNow := time.Now().Unix()
+				if timedelay, err := strconv.Atoi(timeStr); err == nil {
+					if w.p1StartTime != 0 && timeNow-w.p1StartTime < int64(timedelay) {
+						w.lk.Lock()
+						w.p1StartTime += int64(timedelay)
+						w.lk.Unlock()
+						log.Infof("%v PreCommit1  delay %v", req.sector, w.p1StartTime-timeNow)
+						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
+					} else {
+						w.p1StartTime = timeNow
+					}
+				}
 			}
 
 			// Do the work!

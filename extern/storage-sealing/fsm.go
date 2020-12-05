@@ -267,7 +267,7 @@ func (m *Sealing) plan(events []statemachine.Event, state *SectorInfo) (func(sta
 				v
 				FailedUnrecoverable
 
-				UndefinedSectorState <- ¯\_(ツ)_/¯
+				UndefinedSectorState <- ¯\_(�?_/¯
 					|                     ^
 					*---------------------/
 
@@ -456,6 +456,7 @@ func (m *Sealing) restartSectors(ctx context.Context) error {
 }
 
 func (m *Sealing) ForceSectorState(ctx context.Context, id abi.SectorNumber, state SectorState) error {
+	m.sealer.SetSectorState(ctx, id, string(state))
 	return m.sectors.Send(id, SectorForceState{state})
 }
 
