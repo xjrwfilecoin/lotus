@@ -5,12 +5,8 @@ import (
 	"time"
 
 	"github.com/filecoin-project/go-state-types/abi"
-	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
-	"golang.org/x/xerrors"
-	"os"
-	"strconv"
-
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
+	"golang.org/x/xerrors"
 )
 
 type schedWorker struct {
@@ -74,6 +70,8 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 	}
 
 	wid := WorkerID(sessID)
+
+	hostMap[info.Hostname] = wid
 
 	sh.workersLk.Lock()
 	_, exist := sh.workers[wid]
@@ -458,21 +456,6 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 			select {
 			case taskDone <- struct{}{}:
 			case <-sh.closing:
-			}
-
-			if timeStr := os.Getenv("P1_DELAY_TIME"); timeStr != "" && req.taskType == sealtasks.TTPreCommit1 {
-				timeNow := time.Now().Unix()
-				if timedelay, err := strconv.Atoi(timeStr); err == nil {
-					if w.p1StartTime != 0 && timeNow-w.p1StartTime < int64(timedelay) {
-						w.lk.Lock()
-						w.p1StartTime += int64(timedelay)
-						w.lk.Unlock()
-						log.Infof("%v PreCommit1  delay %v", req.sector, w.p1StartTime-timeNow)
-						time.Sleep(time.Second * time.Duration(w.p1StartTime-timeNow))
-					} else {
-						w.p1StartTime = timeNow
-					}
-				}
 			}
 
 			// Do the work!

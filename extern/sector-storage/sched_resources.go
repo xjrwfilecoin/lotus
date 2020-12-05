@@ -52,6 +52,17 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 		return false
 	}
+
+	id, exist := hostMap[worker.info.Hostname]
+	if !exist {
+		log.Infof("canHandleRequest hostMap %v %v %v", req.sector, wid, worker.info.Hostname)
+		return false
+	}
+
+	if id != wid {
+		log.Infof("canHandleRequest wid %v %v %v %v %v", req.sector, wid, worker.info.Hostname, id, wid)
+		return false
+	}
 	log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
 		if p1Num, err := strconv.Atoi(p1Str); err == nil && req.taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {

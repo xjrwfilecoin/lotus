@@ -178,6 +178,7 @@ func (m *Manager) startWork(ctx context.Context, w Worker, wk WorkID) func(callI
 		} else {
 			hostname = info.Hostname
 		}
+		log.Infof("startWork %v %v", hostname, ierr)
 
 		m.workLk.Lock()
 		defer m.workLk.Unlock()

@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -53,6 +54,9 @@ type LocalWorker struct {
 	session     uuid.UUID
 	testDisable int64
 	closing     chan struct{}
+
+	p1StartTime int64
+	lk          sync.Mutex
 }
 
 func newLocalWorker(executor ExecutorFunc, wcfg WorkerConfig, store stores.Store, local *stores.Local, sindex stores.SectorIndex, ret storiface.WorkerReturn, cst *statestore.StateStore) *LocalWorker {
@@ -321,7 +325,22 @@ func (l *LocalWorker) Fetch(ctx context.Context, sector storage.SectorRef, fileT
 
 func (l *LocalWorker) SealPreCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, pieces []abi.PieceInfo) (storiface.CallID, error) {
 	return l.asyncCall(ctx, sector, SealPreCommit1, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
-
+		log.Infof("start SealPreCommit1* %v", sector)
+		if timeStr := os.Getenv("P1_DELAY_TIME"); timeStr != "" {
+			timeNow := time.Now().Unix()
+			if timedelay, err := strconv.Atoi(timeStr); err == nil {
+				if l.p1StartTime != 0 && timeNow-l.p1StartTime < int64(timedelay) {
+					l.lk.Lock()
+					l.p1StartTime += int64(timedelay)
+					l.lk.Unlock()
+					log.Infof("%v PreCommit1  delay %v", sector, l.p1StartTime-timeNow)
+					time.Sleep(time.Second * time.Duration(l.p1StartTime-timeNow))
+				} else {
+					l.p1StartTime = timeNow
+				}
+			}
+		}
+		log.Infof("start SealPreCommit1# %v", sector)
 		{
 			// cleanup previous failed attempts if they exist
 			if err := l.storage.Remove(ctx, sector.ID, storiface.FTSealed, true); err != nil {

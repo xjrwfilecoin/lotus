@@ -241,7 +241,6 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 		}
 
 		startSector(storiface.SectorName(sector.ID), inf.Hostname, sealtasks.TTPreCommit2)
-		log.Infof("startworker %v %v", inf.Hostname, sector.ID)
 
 		t1 := time.Now()
 		log.Infof("start SealPreCommit2 : %v", sector.ID)

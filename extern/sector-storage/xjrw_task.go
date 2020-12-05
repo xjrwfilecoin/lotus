@@ -23,6 +23,7 @@ var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
 var p2SpaceLimit int64
 var P2NumberLimit int
+var hostMap = map[string]WorkerID{}
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
