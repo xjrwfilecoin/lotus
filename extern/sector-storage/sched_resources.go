@@ -66,10 +66,10 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	if c2Str := os.Getenv("C2_LIMIT"); c2Str != "" {
 		if c2Num, err := strconv.Atoi(c2Str); err == nil && req.taskType == sealtasks.TTCommit2 && needRes.MaxMemory != 0 {
 			if a.memUsedMax/needRes.MaxMemory < uint64(c2Num) && a.memUsedMax%needRes.MaxMemory == 0 {
-				log.Infof("C2_LIMIT %v %v %v %v %v %v", a.memUsedMax, needRes.MaxMemory, c2Num, a.memUsedMax/needRes.MaxMemory, req.sector, caller)
+				log.Infof("C2_LIMIT %v %v %v %v %v %v", a.memUsedMax, needRes.MaxMemory, c2Num, a.memUsedMax%needRes.MaxMemory, req.sector, caller)
 				return true
 			}
-			log.Infof("C2 canHandleRequest limit %v %v %v %v %v %v", a.memUsedMax, needRes.MaxMemory, c2Num, a.memUsedMax/needRes.MaxMemory, req.sector, caller)
+			log.Infof("C2 canHandleRequest limit %v %v %v %v %v %v", a.memUsedMax, needRes.MaxMemory, c2Num, a.memUsedMax%needRes.MaxMemory, req.sector, caller)
 			return false
 		}
 	}

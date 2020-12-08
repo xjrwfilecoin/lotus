@@ -140,16 +140,18 @@ func (e *Events) listenHeadChangesOnce(ctx context.Context) error {
 
 	for notif := range notifs {
 		var rev, app []*types.TipSet
-		for _, notif := range notif {
-			switch notif.Type {
+		for _, n := range notif {
+			log.Infof("########################  %v %v",n.Type, n.Val.Height())
+			switch n.Type {
 			case store.HCRevert:
-				rev = append(rev, notif.Val)
+				rev = append(rev, n.Val)
 			case store.HCApply:
-				app = append(app, notif.Val)
+				app = append(app, n.Val)
 			default:
-				log.Warnf("unexpected head change notification type: '%s'", notif.Type)
+				log.Warnf("unexpected head change notification type: '%s'", n.Type)
 			}
 		}
+		log.Infof("########################")
 
 		if err := e.headChange(rev, app); err != nil {
 			log.Warnf("headChange failed: %s", err)
