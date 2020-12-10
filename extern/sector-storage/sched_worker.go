@@ -64,6 +64,9 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 		taskTypes: taskTypes,
 		p2Tasks:   tasks,
 		storeIDs:  ids,
+		p1Running: make(map[abi.SectorID]struct{}),
+		p2Running: make(map[abi.SectorID]struct{}),
+		c2Running: make(map[abi.SectorID]struct{}),
 
 		preparing: &activeResources{},
 		active:    &activeResources{},
@@ -160,6 +163,7 @@ func (sw *schedWorker) handleWorker() {
 					break
 				}
 			}
+			log.Infof("scheduler enable %v %v %v", worker.info.Hostname, worker.enabled, sw.wid)
 
 			// wait for more tasks to be assigned by the main scheduler or for the worker
 			// to finish precessing a task

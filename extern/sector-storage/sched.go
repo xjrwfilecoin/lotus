@@ -92,6 +92,9 @@ type workerHandle struct {
 	enabled   bool
 	p2Tasks   map[abi.SectorID]struct{}
 
+	p1Running map[abi.SectorID]struct{}
+	p2Running map[abi.SectorID]struct{}
+	c2Running map[abi.SectorID]struct{}
 	storeIDs map[string]struct{}
 	// for sync manager goroutine closing
 	cleanupStarted bool
@@ -299,6 +302,7 @@ func (sh *scheduler) runSched() {
 
 				sh.workersLk.Lock()
 				sh.workers[req.wid].enabled = false
+				log.Infof("scheduler disable %v ", req.wid)
 				sh.workersLk.Unlock()
 
 				req.done()
