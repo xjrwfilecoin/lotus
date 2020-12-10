@@ -141,7 +141,6 @@ func (e *Events) listenHeadChangesOnce(ctx context.Context) error {
 	for notif := range notifs {
 		var rev, app []*types.TipSet
 		for _, n := range notif {
-			log.Infof("########################  %v %v", n.Type, n.Val.Height())
 			switch n.Type {
 			case store.HCRevert:
 				rev = append(rev, n.Val)
