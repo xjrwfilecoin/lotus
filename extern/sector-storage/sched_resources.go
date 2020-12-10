@@ -1,6 +1,7 @@
 package sectorstorage
 
 import (
+	"os"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
