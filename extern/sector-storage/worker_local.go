@@ -470,6 +470,14 @@ func (l *LocalWorker) TaskTypes(context.Context) (map[sealtasks.TaskType]struct{
 	return l.acceptTasks, nil
 }
 
+func (l *LocalWorker) GetPara(ctx context.Context) (storiface.WorkerPara, error) {
+	var para storiface.WorkerPara
+	para.P1Limit = p1Limit
+	para.P2Limit = p2Limit
+	para.C2Limit = c2Limit
+	return para, nil
+}
+
 func (l *LocalWorker) Paths(ctx context.Context) ([]stores.StoragePath, error) {
 	return l.localStore.Local(ctx)
 }

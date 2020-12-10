@@ -36,6 +36,8 @@ type Worker interface {
 
 	TaskTypes(context.Context) (map[sealtasks.TaskType]struct{}, error)
 
+	GetPara(ctx context.Context) (storiface.WorkerPara, error)
+
 	// Returns paths accessible to the worker
 	Paths(context.Context) ([]stores.StoragePath, error)
 
@@ -148,7 +150,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 	m.setupWorkTracker()
 	go initDispatchServer(m)
 	initState()
-	initTask()
+	InitTask()
 
 	go m.sched.runSched()
 

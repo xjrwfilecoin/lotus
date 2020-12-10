@@ -52,6 +52,11 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 		return xerrors.Errorf("getting worker paths: %w", err)
 	}
 
+	para, err := w.GetPara(ctx)
+	if err != nil {
+		return xerrors.Errorf("getting worker para: %w", err)
+	}
+
 	ids := make(map[string]struct{})
 	for _, path := range paths {
 		ids[string(path.ID)] = struct{}{}
@@ -64,6 +69,12 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 		taskTypes: taskTypes,
 		p2Tasks:   tasks,
 		storeIDs:  ids,
+
+		p1Running: make(map[abi.SectorID]struct{}),
+		p2Running: make(map[abi.SectorID]struct{}),
+		c2Running: make(map[abi.SectorID]struct{}),
+
+		para: para,
 
 		preparing: &activeResources{},
 		active:    &activeResources{},

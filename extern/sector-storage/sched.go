@@ -92,6 +92,12 @@ type workerHandle struct {
 	enabled   bool
 	p2Tasks   map[abi.SectorID]struct{}
 
+	p1Running map[abi.SectorID]struct{}
+	p2Running map[abi.SectorID]struct{}
+	c2Running map[abi.SectorID]struct{}
+
+	para storiface.WorkerPara
+
 	storeIDs map[string]struct{}
 	// for sync manager goroutine closing
 	cleanupStarted bool

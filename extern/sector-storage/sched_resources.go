@@ -1,8 +1,6 @@
 package sectorstorage
 
 import (
-	"os"
-	"strconv"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
@@ -17,9 +15,33 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 		a.cond.Wait()
 	}
 
+	log.Infof("start %v %v", req.sector, req.taskType, id)
+	if req.taskType == sealtasks.TTPreCommit2 {
+		worker.p2Running[req.sector.ID] = struct{}{}
+		log.Infof("p2Running add", worker.p2Running)
+	} else if req.taskType == sealtasks.TTCommit2 {
+		worker.c2Running[req.sector.ID] = struct{}{}
+		log.Infof("c2Running add", worker.c2Running)
+	} else if req.taskType == sealtasks.TTPreCommit1 {
+		worker.p1Running[req.sector.ID] = struct{}{}
+		log.Infof("p1Running add", worker.p1Running)
+	}
+
 	a.add(wr, r)
 
 	err := cb()
+
+	log.Infof("finish %v %v %v", req.sector, req.taskType, id)
+	if req.taskType == sealtasks.TTPreCommit2 {
+		delete(worker.p2Running, req.sector.ID)
+		log.Infof("p2Running del", worker.p2Running)
+	} else if req.taskType == sealtasks.TTCommit2 {
+		delete(worker.c2Running, req.sector.ID)
+		log.Infof("c2Running del", worker.c2Running)
+	} else if req.taskType == sealtasks.TTPreCommit1 {
+		delete(worker.p1Running, req.sector.ID)
+		log.Infof("p1Running del", worker.p1Running)
+	}
 
 	a.free(wr, r)
 	if a.cond != nil {
@@ -53,26 +75,36 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 		return false
 	}
 	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
-	if p1Str := os.Getenv("P1_LIMIT"); p1Str != "" {
-		if p1Num, err := strconv.Atoi(p1Str); err == nil && req.taskType == sealtasks.TTPreCommit1 && needRes.MaxMemory != 0 {
-			if a.memUsedMax/needRes.MaxMemory < uint64(p1Num) {
-				return true
-			}
-			log.Infof("P1 canHandleRequest limit %v %v %v %v", a.memUsedMax, needRes.MaxMemory, a.memUsedMax/needRes.MaxMemory, p1Num)
+
+	if req.taskType == sealtasks.TTPreCommit1 && p1Limit > 0 {
+		if len(worker.p1Running) < p1Limit {
+			log.Infof("P1_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p1Limit, worker.p1Running)
+			return true
+		} else {
+			log.Infof("P1_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p1Limit, worker.p1Running)
 			return false
 		}
 	}
 
-	if c2Str := os.Getenv("C2_LIMIT"); c2Str != "" {
-		if c2Num, err := strconv.Atoi(c2Str); err == nil && req.taskType == sealtasks.TTCommit2 && needRes.MaxMemory != 0 {
-			if a.memUsedMax/needRes.MaxMemory < uint64(c2Num) && a.memUsedMax%needRes.MaxMemory == 0 {
-				log.Infof("C2_LIMIT %v %v %v %v %v %v", a.memUsedMax, needRes.MaxMemory, c2Num, a.memUsedMax/needRes.MaxMemory, req.sector, caller)
-				return true
-			}
-			log.Infof("C2 canHandleRequest limit %v %v %v %v %v %v", a.memUsedMax, needRes.MaxMemory, c2Num, a.memUsedMax/needRes.MaxMemory, req.sector, caller)
+	if req.taskType == sealtasks.TTCommit2 && c2Limit > 0 {
+		if len(worker.c2Running) < c2Limit {
+			log.Infof("C2_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, c2Limit, worker.c2Running)
+			return true
+		} else {
+			log.Infof("C2_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, c2Limit, worker.c2Running)
 			return false
 		}
 	}
+
+	if req.taskType == sealtasks.TTPreCommit2 && p2Limit > 0 {
+		if len(worker.p2Running) < p2Limit {
+			log.Infof("P2_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p2Limit, worker.p2Running)
+			return true
+		}
+		log.Infof("P2_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p2Limit, worker.p2Running)
+		return false
+	}
+
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
 	minNeedMem := res.MemReserved + a.memUsedMin + needRes.MinMemory + needRes.BaseMinMemory
 	if minNeedMem > res.MemPhysical {

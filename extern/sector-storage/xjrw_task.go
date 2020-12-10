@@ -22,6 +22,9 @@ var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
 var p2SpaceLimit int64
+var p1Limit int
+var p2Limit int
+var c2Limit int
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
@@ -48,12 +51,34 @@ func loadTask() {
 	}
 }
 
-func initTask() {
-	if p2Str := os.Getenv("P2_SPACE"); p2Str != "" {
-		if p2SpaceNum, err := strconv.ParseInt(p2Str, 10, 64); err == nil {
+func InitTask() {
+	if str := os.Getenv("P2_SPACE"); str != "" {
+		if p2SpaceNum, err := strconv.ParseInt(str, 10, 64); err == nil {
 			p2SpaceLimit = p2SpaceNum
 		}
 	}
+
+	if str := os.Getenv("P1_LIMIT"); str != "" {
+		if p1Num, err := strconv.Atoi(str); err == nil {
+			p1Limit = p1Num
+			fmt.Println("P1_LIMIT", p1Limit)
+		}
+	}
+
+	if str := os.Getenv("P2_LIMIT"); str != "" {
+		if p2Num, err := strconv.Atoi(str); err == nil {
+			p2Limit = p2Num
+			fmt.Println("P2_LIMIT", p2Limit)
+		}
+	}
+
+	if str := os.Getenv("C2_LIMIT"); str != "" {
+		if c2Num, err := strconv.Atoi(str); err == nil {
+			c2Limit = c2Num
+			fmt.Println("C2_LIMIT", c2Limit)
+		}
+	}
+
 }
 
 func getGroupCount(groupName string) int {
