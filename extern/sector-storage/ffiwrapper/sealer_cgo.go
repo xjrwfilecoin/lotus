@@ -616,6 +616,21 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 
 		return nil, xerrors.Errorf("StandaloneSealCommit: %w", err)
 	}
+
+	ssize, err := sector.ProofType.SectorSize()
+	if err != nil {
+		return nil, xerrors.Errorf("get size error: %w", err)
+	}
+
+	pathsCache, doneCache, err := sb.sectors.AcquireSector(ctx, sector, storiface.FTCache, 0, storiface.PathStorage)
+	if err != nil {
+		return nil, xerrors.Errorf("acquiring sector cache path: %w", err)
+	}
+	defer doneCache()
+
+	log.Info("ClearCache %v", pathsCache.Cache)
+	ffi.ClearCache(uint64(ssize), pathsCache.Cache)
+
 	return output, nil
 }
 
@@ -688,13 +703,7 @@ func (sb *Sealer) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 
 	}
 
-	paths, done, err := sb.sectors.AcquireSector(ctx, sector, storiface.FTCache, 0, storiface.PathStorage)
-	if err != nil {
-		return xerrors.Errorf("acquiring sector cache path: %w", err)
-	}
-	defer done()
-
-	return ffi.ClearCache(uint64(ssize), paths.Cache)
+	return nil
 }
 
 func (sb *Sealer) ReleaseUnsealed(ctx context.Context, sector storage.SectorRef, safeToFree []storage.Range) error {

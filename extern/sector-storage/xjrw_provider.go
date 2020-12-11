@@ -157,7 +157,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 }
 
 func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.PreCommit1Out) (out storage.SectorCids, err error) {
-	log.Info("xjrw SealPreCommit2 begin ", sector)
+	log.Info("xjrw SealPreCommit2 begin ", sector, p1p2State)
 
 	//m.lkChan.Lock()
 	//ch, ok := m.mapChan[sector]
@@ -178,13 +178,21 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 	//}
 
 	host := findSector(storiface.SectorName(sector.ID), sealtasks.TTPreCommit2)
-	if host == "" {
+	if host == "" && p1p2State == 0 {
 		log.Errorf("not find p2host: %v", sector)
 		host = m.SelectWorkerPreComit2(sector.ID)
 		if host == "" {
 			log.Errorf("p2 not online: %v", sector)
 			return storage.SectorCids{}, xerrors.Errorf("p2 not online: %v", sector)
 		}
+	}
+	if p1p2State != 0 {
+		pwk := findSector(storiface.SectorName(sector.ID), sealtasks.TTPreCommit1)
+		if pwk == "" {
+			log.Errorf("p1 not find: %v", sector)
+			return storage.SectorCids{}, xerrors.Errorf("p1 not find: %v", sector)
+		}
+		saveP2Worker(storiface.SectorName(sector.ID), pwk, sealtasks.TTPreCommit2)
 	}
 	m.addTask(host, sector.ID)
 	defer m.removeTask(host, sector.ID)
@@ -413,6 +421,9 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 }
 
 func (m *Manager) addTask(host string, sector abi.SectorID) {
+	if p1p2State != 0 {
+		return
+	}
 	m.lkTask.Lock()
 	defer m.lkTask.Unlock()
 
@@ -426,6 +437,9 @@ func (m *Manager) addTask(host string, sector abi.SectorID) {
 }
 
 func (m *Manager) removeTask(host string, sector abi.SectorID) {
+	if p1p2State != 0 {
+		return
+	}
 	m.lkTask.Lock()
 	defer m.lkTask.Unlock()
 
@@ -440,6 +454,9 @@ func (m *Manager) removeTask(host string, sector abi.SectorID) {
 }
 
 func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
+	if p1p2State != 0 {
+		return map[abi.SectorID]struct{}{}
+	}
 	m.lkTask.Lock()
 	defer m.lkTask.Unlock()
 
@@ -454,6 +471,9 @@ func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
 }
 
 func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
+	if p1p2State != 0 {
+		return
+	}
 	m.sched.workersLk.Lock()
 	defer m.sched.workersLk.Unlock()
 
@@ -604,6 +624,9 @@ func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Manager) setWorker(host string, sector abi.SectorID) {
+	if p1p2State != 0 {
+		return
+	}
 	m.sched.workersLk.Lock()
 	defer m.sched.workersLk.Unlock()
 
@@ -625,6 +648,9 @@ func (m *Manager) setWorker(host string, sector abi.SectorID) {
 }
 
 func (m *Manager) getP2Worker() bool {
+	if p1p2State != 0 {
+		return true
+	}
 	m.sched.workersLk.Lock()
 	defer m.sched.workersLk.Unlock()
 
@@ -654,6 +680,9 @@ func (m *Manager) getP2Worker() bool {
 }
 
 func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
+	if p1p2State != 0 {
+		return
+	}
 	if state != "Removed" && state != "FailedUnrecoverable" && state != "Removing" {
 		return
 	}

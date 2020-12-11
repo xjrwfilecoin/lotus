@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	//"path/filepath"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"sync"
@@ -351,14 +351,17 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 
 	log.Infof("in SealPreCommit2 %v", sector.ID)
 
-	//dest := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID))
+	dest := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID))
 
-	//if !stores.JudgeCacheComplete(dest) {
-	//	log.Infof("%v cache not complete: %v", sector, dest)
-	//	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
-	//		return nil, xerrors.Errorf("cache not complete: %v", sector)
-	//	})
-	//}
+	if !stores.JudgeCacheComplete(dest) {
+		log.Infof("%v cache not complete: %v", sector, dest)
+		if err := os.RemoveAll(dest); err != nil {
+			log.Errorf("delete sector (%v) from %s", sector, dest)
+		}
+		return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+			return nil, xerrors.Errorf("cache not complete: %v", sector)
+		})
+	}
 
 	if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTSealed); err != nil {
 		log.Errorf("FetchRemoveRemote Sealed :%w", err)

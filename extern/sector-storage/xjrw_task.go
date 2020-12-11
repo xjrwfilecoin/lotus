@@ -25,6 +25,7 @@ var p2SpaceLimit int64
 var p1Limit int
 var p2Limit int
 var c2Limit int
+var p1p2State int
 
 func loadGroup() {
 	data, err := ioutil.ReadFile(sfilgroup)
@@ -55,6 +56,13 @@ func InitTask() {
 	if str := os.Getenv("P2_SPACE"); str != "" {
 		if p2SpaceNum, err := strconv.ParseInt(str, 10, 64); err == nil {
 			p2SpaceLimit = p2SpaceNum
+		}
+	}
+
+	if str := os.Getenv("P1P2_STATE"); str != "" {
+		if p1p2, err := strconv.Atoi(str); err == nil {
+			p1p2State = p1p2
+			fmt.Println("P1P2_STATE", p1p2State)
 		}
 	}
 
