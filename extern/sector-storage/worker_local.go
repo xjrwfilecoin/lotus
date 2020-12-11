@@ -353,7 +353,7 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 
 	dest := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID))
 
-	if !stores.JudgeCacheComplete(dest) {
+	if !stores.JudgeCacheComplete(dest) && sector.ProofType == abi.RegisteredSealProof_StackedDrg32GiBV1_1 {
 		log.Infof("%v cache not complete: %v", sector, dest)
 		if err := os.RemoveAll(dest); err != nil {
 			log.Errorf("delete sector (%v) from %s", sector, dest)
