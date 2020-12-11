@@ -76,6 +76,11 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	}
 	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 
+	if req.taskType == sealtasks.TTCommit1 {
+		log.Info("%v TTCommit1 %v", req.sector, caller)
+		return true
+	}
+
 	if req.taskType == sealtasks.TTPreCommit1 && p1Limit > 0 {
 		if len(worker.p1Running) < p1Limit {
 			log.Infof("P1_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p1Limit, worker.p1Running)
