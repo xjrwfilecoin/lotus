@@ -180,12 +180,12 @@ var runCmd = &cli.Command{
 			}
 		}
 
-		if os.Getenv("FIL_PROOFS_SSD_PARENT") == "" {
-			panic("FIL_PROOFS_SSD_PARENT not set")
-		}
+		//if os.Getenv("FIL_PROOFS_SSD_PARENT") == "" {
+		//	panic("FIL_PROOFS_SSD_PARENT not set")
+		//}
 
 		sectorstorage.InitTask()
-		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
+		//sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
 		// Connect to storage-miner
 		ctx := lcli.ReqContext(cctx)
 

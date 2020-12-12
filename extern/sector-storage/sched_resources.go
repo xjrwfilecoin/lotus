@@ -146,15 +146,15 @@ func (a *activeResources) utilization(wr storiface.WorkerResources) float64 {
 	cpu := float64(a.cpuUse) / float64(wr.CPUs)
 	max = cpu
 
-	memMin := float64(a.memUsedMin+wr.MemReserved) / float64(wr.MemPhysical)
-	if memMin > max {
-		max = memMin
-	}
-
-	memMax := float64(a.memUsedMax+wr.MemReserved) / float64(wr.MemPhysical+wr.MemSwap)
-	if memMax > max {
-		max = memMax
-	}
+	//memMin := float64(a.memUsedMin+wr.MemReserved) / float64(wr.MemPhysical)
+	//if memMin > max {
+	//	max = memMin
+	//}
+	//
+	//memMax := float64(a.memUsedMax+wr.MemReserved) / float64(wr.MemPhysical+wr.MemSwap)
+	//if memMax > max {
+	//	max = memMax
+	//}
 
 	return max
 }
