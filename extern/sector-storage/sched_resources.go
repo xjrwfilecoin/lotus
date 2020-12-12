@@ -76,8 +76,8 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	}
 	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 
-	if req.taskType == sealtasks.TTCommit1 {
-		log.Info("%v TTCommit1 %v", req.sector, caller)
+	if req.taskType == sealtasks.TTCommit1 || req.taskType == sealtasks.TTAddPiece {
+		log.Info("%v TTCommit1&TTAddPiece %v %v", req.sector, req.taskType, caller)
 		return true
 	}
 
