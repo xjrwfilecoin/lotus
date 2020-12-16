@@ -75,7 +75,7 @@ type scheduler struct {
 }
 
 type workerHandle struct {
-	workerRpc Worker
+	workerRpc   Worker
 	p1StartTime int64
 
 	info storiface.WorkerInfo
@@ -506,13 +506,13 @@ func (sh *scheduler) trySched() {
 
 		windows[selectedWindow].todo = append(windows[selectedWindow].todo, task)
 
+		log.Infof("schedQueue Remove %v %v", task.sector, task.taskType)
 		rmQueue = append(rmQueue, sqi)
 		scheduled++
 	}
 
 	if len(rmQueue) > 0 {
 		for i := len(rmQueue) - 1; i >= 0; i-- {
-			log.Infof("schedQueue Remove %v %v", task.sector, task.taskType)
 			sh.schedQueue.Remove(rmQueue[i])
 		}
 	}
