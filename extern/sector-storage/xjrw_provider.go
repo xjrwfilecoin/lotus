@@ -554,6 +554,7 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		saveP2Worker(storiface.SectorName(sector), host, sealtasks.TTPreCommit2)
 		log.Infof("saveP2Worker %v %v", sector, host)
 	} else {
+		saveP2Worker(storiface.SectorName(sector), "", sealtasks.TTPreCommit2)
 		log.Infof("saveP2Worker not find %v", sector)
 	}
 
