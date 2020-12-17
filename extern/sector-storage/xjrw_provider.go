@@ -495,6 +495,10 @@ func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
 }
 
 func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
+	if p1p2State != 0 {
+		return ""
+	}
+
 	m.sched.workersLk.Lock()
 	defer m.sched.workersLk.Unlock()
 
