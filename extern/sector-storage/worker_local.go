@@ -352,24 +352,26 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 
 	log.Infof("in SealPreCommit2 %v", sector.ID)
 
-	dest := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID))
+	if p1p2State == 0 {
+		dest := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID))
 
-	if !stores.JudgeCacheComplete(dest) && sector.ProofType == abi.RegisteredSealProof_StackedDrg32GiBV1_1 {
-		log.Infof("%v cache not complete: %v", sector, dest)
-		if err := os.RemoveAll(dest); err != nil {
-			log.Errorf("delete sector (%v) from %s", sector, dest)
+		if !stores.JudgeCacheComplete(dest) && sector.ProofType == abi.RegisteredSealProof_StackedDrg32GiBV1_1 {
+			log.Infof("%v cache not complete: %v", sector, dest)
+			if err := os.RemoveAll(dest); err != nil {
+				log.Errorf("delete sector (%v) from %s", sector, dest)
+			}
+			return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+				return nil, xerrors.Errorf("cache not complete: %v", sector)
+			})
 		}
-		return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
-			return nil, xerrors.Errorf("cache not complete: %v", sector)
-		})
-	}
 
-	if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTSealed); err != nil {
-		log.Errorf("FetchRemoveRemote Sealed :%w", err)
-	}
+		if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTSealed); err != nil {
+			log.Errorf("FetchRemoveRemote Sealed :%w", err)
+		}
 
-	if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTCache); err != nil {
-		log.Errorf("FetchRemoveRemote Cache :%w", err)
+		if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTCache); err != nil {
+			log.Errorf("FetchRemoveRemote Cache :%w", err)
+		}
 	}
 	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
 		return sb.SealPreCommit2(ctx, sector, phase1Out)
