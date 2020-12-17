@@ -3,6 +3,7 @@ package sectorstorage
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
 	"io/ioutil"
 	"net/http"
@@ -64,6 +65,16 @@ func InitTask() {
 		if p1p2, err := strconv.Atoi(str); err == nil {
 			p1p2State = p1p2
 			fmt.Println("P1P2_STATE", p1p2State)
+		}
+
+		if p1p2State != 0 {
+			res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
 		}
 	}
 
