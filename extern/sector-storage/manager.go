@@ -151,9 +151,9 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 	}
 
 	m.setupWorkTracker()
-	go initDispatchServer(m)
 	initState()
 	InitTask()
+	go initDispatchServer(m)
 
 	go m.sched.runSched()
 
