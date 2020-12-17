@@ -16,6 +16,8 @@ type Store interface {
 	Remove(ctx context.Context, s abi.SectorID, types storiface.SectorFileType, force bool) error
 	FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ storiface.SectorFileType) error
 
+	RemoveRemote(ctx context.Context, s abi.SectorID, types storiface.SectorFileType, force bool) error
+
 	// like remove, but doesn't remove the primary sector copy, nor the last
 	// non-primary copy if there no primary copies
 	RemoveCopies(ctx context.Context, s abi.SectorID, types storiface.SectorFileType) error
