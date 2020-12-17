@@ -65,6 +65,16 @@ func InitTask() {
 			p1p2State = p1p2
 			fmt.Println("P1P2_STATE", p1p2State)
 		}
+
+		if p1p2State != 0 {
+			res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
+		}
 	}
 
 	if str := os.Getenv("P1_LIMIT"); str != "" {
