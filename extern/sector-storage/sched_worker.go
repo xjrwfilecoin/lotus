@@ -171,7 +171,7 @@ func (sw *schedWorker) handleWorker() {
 					break
 				}
 			}
-			log.Infof("scheduler enable %v %v %v", worker.info.Hostname, worker.enabled, sw.wid)
+			//log.Infof("scheduler enable %v %v %v", worker.info.Hostname, worker.enabled, sw.wid)
 
 			// wait for more tasks to be assigned by the main scheduler or for the worker
 			// to finish precessing a task
