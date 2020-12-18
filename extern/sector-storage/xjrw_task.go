@@ -64,7 +64,6 @@ func InitTask() {
 	if str := os.Getenv("P1P2_STATE"); str != "" {
 		if p1p2, err := strconv.Atoi(str); err == nil {
 			p1p2State = p1p2
-			fmt.Println("P1P2_STATE", p1p2State)
 		}
 
 		if p1p2State != 0 {
@@ -81,21 +80,18 @@ func InitTask() {
 	if str := os.Getenv("P1_LIMIT"); str != "" {
 		if p1Num, err := strconv.Atoi(str); err == nil {
 			p1Limit = p1Num
-			fmt.Println("P1_LIMIT", p1Limit)
 		}
 	}
 
 	if str := os.Getenv("P2_LIMIT"); str != "" {
 		if p2Num, err := strconv.Atoi(str); err == nil {
 			p2Limit = p2Num
-			fmt.Println("P2_LIMIT", p2Limit)
 		}
 	}
 
 	if str := os.Getenv("C2_LIMIT"); str != "" {
 		if c2Num, err := strconv.Atoi(str); err == nil {
 			c2Limit = c2Num
-			fmt.Println("C2_LIMIT", c2Limit)
 		}
 	}
 	if p2Str := os.Getenv("P2_NUMBER"); p2Str != "" {
@@ -104,6 +100,7 @@ func InitTask() {
 		}
 	}
 
+	fmt.Printf("P2_SPACE = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p2SpaceLimit, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 }
 
 func getGroupCount(groupName string) int {
