@@ -100,7 +100,7 @@ func InitTask() {
 		}
 	}
 
-	fmt.Printf("P2_SPACE = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p2SpaceLimit, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
+	fmt.Printf("P2_SPACE = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p2SpaceLimit, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 }
 
 func getGroupCount(groupName string) int {
