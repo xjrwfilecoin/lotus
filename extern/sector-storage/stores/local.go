@@ -504,6 +504,9 @@ func (st *Local) Local(ctx context.Context) ([]StoragePath, error) {
 	return out, nil
 }
 
+func (r *Local) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ storiface.SectorFileType) error {
+	return nil
+}
 func (st *Local) Remove(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {
 	if bits.OnesCount(uint(typ)) != 1 {
 		return xerrors.New("delete expects one file type")
@@ -585,6 +588,15 @@ func (st *Local) removeSector(ctx context.Context, sid abi.SectorID, typ storifa
 	}
 
 	st.reportStorage(ctx) // report freed space
+	if typ == storiface.FTCache {
+		file := spath + ".txt"
+		if _, err := os.Stat(file); err == nil {
+			log.Infof("remove %s", file)
+			if err := os.Remove(file); err != nil {
+				log.Errorf("removing sector file (%v) from %s: %+v", sid, file, err)
+			}
+		}
+	}
 
 	return nil
 }
