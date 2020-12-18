@@ -77,37 +77,38 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 
 	if req.taskType == sealtasks.TTCommit1 || req.taskType == sealtasks.TTAddPiece {
-		log.Infof("%v TTCommit1&TTAddPiece %v %v", req.sector, req.taskType, caller)
+		//log.Infof("%v TTCommit1&TTAddPiece %v %v", req.sector, req.taskType, caller)
 		return true
 	}
 
 	if req.taskType == sealtasks.TTPreCommit1 && p1Limit > 0 {
 		if len(worker.p1Running) < p1Limit {
-			log.Infof("P1_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p1Limit, worker.p1Running)
+			//log.Infof("P1_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p1Limit, worker.p1Running)
 			return true
 		} else {
-			log.Infof("P1_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p1Limit, worker.p1Running)
+			//log.Infof("P1_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p1Limit, worker.p1Running)
 			return false
 		}
 	}
 
 	if req.taskType == sealtasks.TTCommit2 && c2Limit > 0 {
 		if len(worker.c2Running) < c2Limit {
-			log.Infof("C2_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, c2Limit, worker.c2Running)
+			//log.Infof("C2_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, c2Limit, worker.c2Running)
 			return true
 		} else {
-			log.Infof("C2_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, c2Limit, worker.c2Running)
+			//log.Infof("C2_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, c2Limit, worker.c2Running)
 			return false
 		}
 	}
 
 	if req.taskType == sealtasks.TTPreCommit2 && p2Limit > 0 {
 		if len(worker.p2Running) < p2Limit {
-			log.Infof("P2_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p2Limit, worker.p2Running)
+			//log.Infof("P2_LIMIT %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p2Limit, worker.p2Running)
 			return true
+		} else {
+			//log.Infof("P2_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p2Limit, worker.p2Running)
+			return false
 		}
-		log.Infof("P2_LIMIT exceed %v %v %v %v %v", wid, a.cpuUse, a.gpuUsed, p2Limit, worker.p2Running)
-		return false
 	}
 
 	// TODO: dedupe needRes.BaseMinMemory per task type (don't add if that task is already running)
