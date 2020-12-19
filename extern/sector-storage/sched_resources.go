@@ -15,16 +15,16 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 		a.cond.Wait()
 	}
 
-	log.Infof("start %v %v", req.sector, req.taskType, id)
+	log.Infof("start %v %v %s", req.sector, req.taskType, id)
 	if req.taskType == sealtasks.TTPreCommit2 {
 		worker.p2Running[req.sector.ID] = struct{}{}
-		log.Infof("p2Running add", worker.p2Running)
+		log.Info("p2Running add", worker.p2Running)
 	} else if req.taskType == sealtasks.TTCommit2 {
 		worker.c2Running[req.sector.ID] = struct{}{}
-		log.Infof("c2Running add", worker.c2Running)
+		log.Info("c2Running add", worker.c2Running)
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		worker.p1Running[req.sector.ID] = struct{}{}
-		log.Infof("p1Running add", worker.p1Running)
+		log.Info("p1Running add", worker.p1Running)
 	}
 
 	a.add(wr, r)
@@ -34,13 +34,13 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 	log.Infof("finish %v %v %v", req.sector, req.taskType, id)
 	if req.taskType == sealtasks.TTPreCommit2 {
 		delete(worker.p2Running, req.sector.ID)
-		log.Infof("p2Running del", worker.p2Running)
+		log.Info("p2Running del", worker.p2Running)
 	} else if req.taskType == sealtasks.TTCommit2 {
 		delete(worker.c2Running, req.sector.ID)
-		log.Infof("c2Running del", worker.c2Running)
+		log.Info("c2Running del", worker.c2Running)
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		delete(worker.p1Running, req.sector.ID)
-		log.Infof("p1Running del", worker.p1Running)
+		log.Info("p1Running del", worker.p1Running)
 	}
 
 	a.free(wr, r)
