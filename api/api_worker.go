@@ -18,6 +18,7 @@ type WorkerAPI interface {
 	// TODO: Info() (name, ...) ?
 
 	TaskTypes(context.Context) (map[sealtasks.TaskType]struct{}, error) // TaskType -> Weight
+	GetPara(ctx context.Context) (storiface.WorkerPara, error)
 	Paths(context.Context) ([]stores.StoragePath, error)
 	Info(context.Context) (storiface.WorkerInfo, error)
 

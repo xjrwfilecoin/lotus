@@ -341,6 +341,7 @@ type StorageMinerStruct struct {
 		StorageDropSector    func(context.Context, stores.ID, abi.SectorID, storiface.SectorFileType) error                                                               `perm:"admin"`
 		StorageFindSector    func(context.Context, abi.SectorID, storiface.SectorFileType, abi.SectorSize, bool) ([]stores.SectorStorageInfo, error)                      `perm:"admin"`
 		StorageInfo          func(context.Context, stores.ID) (stores.StorageInfo, error)                                                                                 `perm:"admin"`
+		StorageFsi           func(stores.ID) (fsutil.FsStat, error)                                                                                                       `perm:"admin"`
 		StorageBestAlloc     func(ctx context.Context, allocate storiface.SectorFileType, ssize abi.SectorSize, sealing storiface.PathType) ([]stores.StorageInfo, error) `perm:"admin"`
 		StorageReportHealth  func(ctx context.Context, id stores.ID, report stores.HealthReport) error                                                                    `perm:"admin"`
 		StorageLock          func(ctx context.Context, sector abi.SectorID, read storiface.SectorFileType, write storiface.SectorFileType) error                          `perm:"admin"`
@@ -383,6 +384,7 @@ type WorkerStruct struct {
 		Version func(context.Context) (build.Version, error) `perm:"admin"`
 
 		TaskTypes func(context.Context) (map[sealtasks.TaskType]struct{}, error) `perm:"admin"`
+		GetPara   func(ctx context.Context) (storiface.WorkerPara, error)        `perm:"admin"`
 		Paths     func(context.Context) ([]stores.StoragePath, error)            `perm:"admin"`
 		Info      func(context.Context) (storiface.WorkerInfo, error)            `perm:"admin"`
 
@@ -397,7 +399,7 @@ type WorkerStruct struct {
 		UnsealPiece     func(context.Context, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) (storiface.CallID, error)                                           `perm:"admin"`
 		ReadPiece       func(context.Context, io.Writer, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize) (storiface.CallID, error)                                                             `perm:"admin"`
 		Fetch           func(context.Context, storage.SectorRef, storiface.SectorFileType, storiface.PathType, storiface.AcquireMode) (storiface.CallID, error)                                                       `perm:"admin"`
-
+		SetSectorState  func(ctx context.Context, sector abi.SectorNumber, state string)                                                                                                                              `perm:"admin"`
 		TaskDisable func(ctx context.Context, tt sealtasks.TaskType) error `perm:"admin"`
 		TaskEnable  func(ctx context.Context, tt sealtasks.TaskType) error `perm:"admin"`
 
@@ -1400,6 +1402,9 @@ func (c *StorageMinerStruct) StorageInfo(ctx context.Context, id stores.ID) (sto
 	return c.Internal.StorageInfo(ctx, id)
 }
 
+func (c *StorageMinerStruct) StorageFsi(id stores.ID) (fsutil.FsStat, error) {
+	return c.Internal.StorageFsi(id)
+}
 func (c *StorageMinerStruct) StorageBestAlloc(ctx context.Context, allocate storiface.SectorFileType, ssize abi.SectorSize, pt storiface.PathType) ([]stores.StorageInfo, error) {
 	return c.Internal.StorageBestAlloc(ctx, allocate, ssize, pt)
 }
@@ -1570,6 +1575,10 @@ func (w *WorkerStruct) TaskTypes(ctx context.Context) (map[sealtasks.TaskType]st
 	return w.Internal.TaskTypes(ctx)
 }
 
+func (w *WorkerStruct) GetPara(ctx context.Context) (storiface.WorkerPara, error) {
+	return w.Internal.GetPara(ctx)
+}
+
 func (w *WorkerStruct) Paths(ctx context.Context) ([]stores.StoragePath, error) {
 	return w.Internal.Paths(ctx)
 }
@@ -1634,6 +1643,9 @@ func (w *WorkerStruct) Remove(ctx context.Context, sector abi.SectorID) error {
 	return w.Internal.Remove(ctx, sector)
 }
 
+func (w *WorkerStruct) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
+	w.Internal.SetSectorState(ctx, sector, state)
+}
 func (w *WorkerStruct) StorageAddLocal(ctx context.Context, path string) error {
 	return w.Internal.StorageAddLocal(ctx, path)
 }

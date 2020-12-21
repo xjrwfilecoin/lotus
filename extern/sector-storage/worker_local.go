@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"sync"
@@ -349,6 +350,30 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 		return storiface.UndefCall, err
 	}
 
+	log.Infof("in SealPreCommit2 %v", sector.ID)
+
+	if p1p2State == 0 {
+		dest := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID))
+
+		if !stores.JudgeCacheComplete(dest) && sector.ProofType == abi.RegisteredSealProof_StackedDrg32GiBV1_1 {
+			log.Infof("%v cache not complete: %v", sector, dest)
+			if err := os.RemoveAll(dest); err != nil {
+				log.Errorf("delete sector (%v) from %s", sector, dest)
+			}
+			return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+				return nil, xerrors.Errorf("cache not complete: %v", sector)
+			})
+		}
+
+		if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTSealed); err != nil {
+			log.Errorf("FetchRemoveRemote Sealed :%w", err)
+		}
+
+		if err := l.storage.FetchRemoveRemote(ctx, sector.ID, storiface.FTCache); err != nil {
+			log.Errorf("FetchRemoveRemote Cache :%w", err)
+		}
+	}
+
 	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
 		return sb.SealPreCommit2(ctx, sector, phase1Out)
 	})
@@ -479,6 +504,15 @@ func (l *LocalWorker) TaskEnable(ctx context.Context, tt sealtasks.TaskType) err
 	l.acceptTasks[tt] = struct{}{}
 	return nil
 }
+
+func (l *LocalWorker) GetPara(ctx context.Context) (storiface.WorkerPara, error) {
+	var para storiface.WorkerPara
+	para.P1Limit = p1Limit
+	para.P2Limit = p2Limit
+	para.C2Limit = c2Limit
+	return para, nil
+}
+
 
 func (l *LocalWorker) Paths(ctx context.Context) ([]stores.StoragePath, error) {
 	return l.localStore.Local(ctx)
