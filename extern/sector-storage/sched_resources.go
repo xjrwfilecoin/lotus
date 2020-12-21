@@ -74,7 +74,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 		return false
 	}
-	log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
+	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 
 	if req.taskType == sealtasks.TTCommit1 || req.taskType == sealtasks.TTAddPiece {
 		//log.Infof("%v TTCommit1&TTAddPiece %v %v", req.sector, req.taskType, caller)
@@ -135,7 +135,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 			return false
 		}
 	}
-	log.Infof("canHandleRequest end %v %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, res, needRes, a, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
+	//log.Infof("canHandleRequest end %v %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, res, needRes, a, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 
 	return true
 }
