@@ -370,6 +370,32 @@ func (r *Remote) MoveStorage(ctx context.Context, s storage.SectorRef, types sto
 	return r.local.MoveStorage(ctx, s, types)
 }
 
+func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {
+	if bits.OnesCount(uint(typ)) != 1 {
+		return xerrors.New("delete expects one file type")
+	}
+
+	si, err := r.index.StorageFindSector(ctx, sid, typ, 0, false)
+	if err != nil {
+		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", sid, typ, err)
+	}
+
+	for _, info := range si {
+		for _, url := range info.URLs {
+			log.Info("RemoveRemote ********", url)
+			if !strings.Contains(url, getLocalIP()){
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("remove %s: %+v", url, err)
+					continue
+				}
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 func (r *Remote) Remove(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {
 	if bits.OnesCount(uint(typ)) != 1 {
 		return xerrors.New("delete expects one file type")
