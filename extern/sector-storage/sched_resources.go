@@ -170,5 +170,7 @@ func (wh *workerHandle) utilization() float64 {
 	//}
 	//wh.wndLk.Unlock()
 
+	log.Infof("utilization %v %v", wh.info.Hostname, u)
+
 	return u
 }
