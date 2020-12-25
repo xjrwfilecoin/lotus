@@ -196,7 +196,11 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 	}
 	m.addTask(host, sector.ID)
 	defer m.removeTask(host, sector.ID)
-	m.setWorker(host, sector.ID)
+
+	if m.setWorker(host, sector.ID) == false {
+		log.Errorf("p2 exceed: %v", sector)
+		return storage.SectorCids{}, xerrors.Errorf("p2 exceed: %v", sector)
+	}
 	defer m.UnselectWorkerPreComit2(host, sector.ID)
 
 	_, exist := m.mapReal[sector.ID]
@@ -633,9 +637,9 @@ func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(host))
 }
 
-func (m *Manager) setWorker(host string, sector abi.SectorID) {
+func (m *Manager) setWorker(host string, sector abi.SectorID) bool {
 	if p1p2State != 0 {
-		return
+		return true
 	}
 	m.sched.workersLk.Lock()
 	defer m.sched.workersLk.Unlock()
@@ -644,6 +648,12 @@ func (m *Manager) setWorker(host string, sector abi.SectorID) {
 	find := false
 	for wid, handle := range m.sched.workers {
 		if handle.info.Hostname == host {
+			_, exist := m.sched.workers[wid].p2Tasks[sector]
+			if P2NumberLimit > 0 && len(m.sched.workers[wid].p2Tasks) >= P2NumberLimit && !exist {
+				log.Infof("%v P2 exceed %v %v", m.sched.workers[wid].info.Hostname, len(m.sched.workers[wid].p2Tasks), P2NumberLimit)
+				return false
+			}
+
 			m.sched.workers[wid].p2Tasks[sector] = struct{}{}
 			id = wid
 			find = true
@@ -655,6 +665,7 @@ func (m *Manager) setWorker(host string, sector abi.SectorID) {
 	} else {
 		log.Infof("p2 not online %v %v", sector, host)
 	}
+	return true
 }
 
 func (m *Manager) getP2Worker() bool {

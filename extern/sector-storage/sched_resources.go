@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(req *workerRequest, worker *workerHandle, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+func (a *activeResources) withResources(taskDone chan struct{}, req *workerRequest, worker *workerHandle, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
 	for !a.canHandleRequest(r, id, "withResources", wr, req, worker) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
@@ -43,6 +43,12 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 		log.Info("p1Running del", worker.p1Running)
 	}
 
+	go func() {
+		select {
+		case taskDone <- struct{}{}:
+		}
+	}()
+
 	a.free(wr, r)
 	if a.cond != nil {
 		a.cond.Broadcast()
@@ -74,7 +80,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
 		return false
 	}
-	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
+	log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 
 	if req.taskType == sealtasks.TTCommit1 || req.taskType == sealtasks.TTAddPiece {
 		//log.Infof("%v TTCommit1&TTAddPiece %v %v", req.sector, req.taskType, caller)
@@ -135,7 +141,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 			return false
 		}
 	}
-	//log.Infof("canHandleRequest end %v %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, res, needRes, a, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
+	log.Infof("canHandleRequest end %v %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, res, needRes, a, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 
 	return true
 }
