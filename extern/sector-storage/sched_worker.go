@@ -73,6 +73,8 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 		p2Running: make(map[abi.SectorID]struct{}),
 		c2Running: make(map[abi.SectorID]struct{}),
 
+		addPieceRuning: make(map[abi.SectorID]struct{}),
+
 		//para: para,
 		preparing: &activeResources{},
 		active:    &activeResources{},

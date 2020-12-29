@@ -94,8 +94,8 @@ func InitTask() {
 			c2Limit = c2Num
 		}
 	}
-	if p2Str := os.Getenv("P2_NUMBER"); p2Str != "" {
-		if p2Num, err := strconv.Atoi(p2Str); err == nil {
+	if str := os.Getenv("P2_NUMBER"); str != "" {
+		if p2Num, err := strconv.Atoi(str); err == nil {
 			P2NumberLimit = p2Num
 		}
 	}

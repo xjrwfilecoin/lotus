@@ -139,7 +139,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 		mapReal:    make(map[abi.SectorID]struct{}),
 		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
 		mapChan:    make(map[abi.SectorID]chan struct{}),
-		sched: newScheduler(),
+		sched:      newScheduler(),
 
 		Prover: prover,
 
@@ -154,6 +154,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 	initState()
 	InitTask()
 	go initDispatchServer(m)
+	go m.autoAddTask(ctx)
 
 	go m.sched.runSched()
 
