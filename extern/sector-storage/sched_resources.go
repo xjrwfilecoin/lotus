@@ -25,6 +25,9 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		worker.p1Running[req.sector.ID] = struct{}{}
 		log.Info("p1Running add", worker.p1Running)
+	} else if req.taskType == sealtasks.TTAddPiece {
+		worker.addPieceRuning[req.sector.ID] = struct{}{}
+		log.Info("addPieceRuning add", worker.addPieceRuning)
 	}
 
 	a.add(wr, r)
@@ -41,6 +44,9 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		delete(worker.p1Running, req.sector.ID)
 		log.Info("p1Running del", worker.p1Running)
+	} else if req.taskType == sealtasks.TTAddPiece {
+		delete(worker.addPieceRuning, req.sector.ID)
+		log.Info("addPieceRuning del", worker.addPieceRuning)
 	}
 
 	a.free(wr, r)

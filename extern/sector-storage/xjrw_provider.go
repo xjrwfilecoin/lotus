@@ -725,3 +725,55 @@ func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, s
 	}
 	m.lkTask.Unlock()
 }
+
+func (m *Manager) autoAddTask(ctx context.Context) {
+	delayTime := 180
+	if str := os.Getenv("AUTO_PLEDGE_TIME"); str != "" {
+		if delay, err := strconv.Atoi(str); err == nil {
+			delayTime = delay
+		}
+	}
+	intervalTime := 5
+	if str := os.Getenv("AUTO_INTERVAL_TIME"); str != "" {
+		if interval, err := strconv.Atoi(str); err == nil {
+			intervalTime = interval
+		}
+	}
+	if delayTime < 0 || intervalTime < 0 {
+		log.Infof("cancel autoAddTask %v %v", delayTime, intervalTime)
+		return
+	}
+	time.Sleep(time.Duration(delayTime) * time.Minute)
+	ticker := time.NewTicker(time.Duration(intervalTime) * time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			m.pledgeTask()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (m *Manager) pledgeTask() {
+	p1Server := 0
+	tasks := 0
+
+	m.sched.workersLk.Lock()
+	for _, worker := range m.sched.workers {
+		if _, supported := worker.taskTypes[sealtasks.TTPreCommit1]; supported && worker.enabled {
+			p1Server++
+			tasks += len(worker.addPieceRuning) + len(worker.p1Running)
+		}
+	}
+	m.sched.workersLk.Unlock()
+
+	totalTasks := p1Server * p1Limit
+	if m.getP2Worker() && tasks < totalTasks {
+		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
+		log.Infof("autoAddTask success %v %v", tasks, totalTasks)
+	} else {
+		log.Infof("autoAddTask failed %v %v", tasks, totalTasks)
+	}
+}

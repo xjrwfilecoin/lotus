@@ -96,6 +96,8 @@ type workerHandle struct {
 	p2Running map[abi.SectorID]struct{}
 	c2Running map[abi.SectorID]struct{}
 
+	addPieceRuning map[abi.SectorID]struct{}
+
 	para storiface.WorkerPara
 
 	storeIDs map[string]struct{}
