@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(req *workerRequest, worker *workerHandle, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+func (a *activeResources) withResources(req *workerRequest, taskDone chan struct{}, worker *workerHandle, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
 	for !a.canHandleRequest(r, id, "withResources", wr, req, worker) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
@@ -42,6 +42,12 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 		delete(worker.p1Running, req.sector.ID)
 		log.Infof("p1Running del", worker.p1Running)
 	}
+
+	go func() {
+		select {
+		case taskDone <- struct{}{}:
+		}
+	}()
 
 	a.free(wr, r)
 	if a.cond != nil {
