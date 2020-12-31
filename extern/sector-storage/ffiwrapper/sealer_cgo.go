@@ -33,6 +33,7 @@ import (
 )
 
 var _ Storage = &Sealer{}
+
 const ssd_parent = "FIL_PROOFS_ADDPIECE_CACHE"
 
 func New(sectors SectorProvider) (*Sealer, error) {
@@ -530,15 +531,15 @@ func (sb *Sealer) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 
 	if err := os.Mkdir(paths.Cache, 0755); err != nil { // nolint
 		if os.IsExist(err) {
-			log.Warnf("existing cache in %s; removing", paths.Cache)
-
-			if err := os.RemoveAll(paths.Cache); err != nil {
-				return nil, xerrors.Errorf("remove existing sector cache from %s (sector %d): %w", paths.Cache, sector, err)
-			}
-
-			if err := os.Mkdir(paths.Cache, 0755); err != nil { // nolint:gosec
-				return nil, xerrors.Errorf("mkdir cache path after cleanup: %w", err)
-			}
+			//log.Warnf("existing cache in %s; removing", paths.Cache)
+			//
+			//if err := os.RemoveAll(paths.Cache); err != nil {
+			//	return nil, xerrors.Errorf("remove existing sector cache from %s (sector %d): %w", paths.Cache, sector, err)
+			//}
+			//
+			//if err := os.Mkdir(paths.Cache, 0755); err != nil { // nolint:gosec
+			//	return nil, xerrors.Errorf("mkdir cache path after cleanup: %w", err)
+			//}
 		} else {
 			return nil, err
 		}
