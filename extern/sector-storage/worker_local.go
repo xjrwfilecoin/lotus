@@ -326,11 +326,11 @@ func (l *LocalWorker) SealPreCommit1(ctx context.Context, sector storage.SectorR
 
 		{
 			// cleanup previous failed attempts if they exist
-			if err := l.storage.Remove(ctx, sector.ID, storiface.FTSealed, true); err != nil {
+			if err := l.storage.RemoveRemote(ctx, sector.ID, storiface.FTSealed, true); err != nil {
 				return nil, xerrors.Errorf("cleaning up sealed data: %w", err)
 			}
 
-			if err := l.storage.Remove(ctx, sector.ID, storiface.FTCache, true); err != nil {
+			if err := l.storage.RemoveRemote(ctx, sector.ID, storiface.FTCache, true); err != nil {
 				return nil, xerrors.Errorf("cleaning up cache data: %w", err)
 			}
 		}
@@ -512,7 +512,6 @@ func (l *LocalWorker) GetPara(ctx context.Context) (storiface.WorkerPara, error)
 	para.C2Limit = c2Limit
 	return para, nil
 }
-
 
 func (l *LocalWorker) Paths(ctx context.Context) ([]stores.StoragePath, error) {
 	return l.localStore.Local(ctx)
