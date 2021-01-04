@@ -87,11 +87,31 @@ func InitTask() {
 		if p2Num, err := strconv.Atoi(str); err == nil {
 			p2Limit = p2Num
 		}
+
+		if p2Limit > 0 {
+			res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
+		}
 	}
 
 	if str := os.Getenv("C2_LIMIT"); str != "" {
 		if c2Num, err := strconv.Atoi(str); err == nil {
 			c2Limit = c2Num
+		}
+
+		if c2Limit > 0 {
+			res := ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+			res = ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
 		}
 	}
 	if str := os.Getenv("P2_NUMBER"); str != "" {
@@ -120,10 +140,14 @@ func getGroupCount(groupName string) int {
 }
 
 func initDispatchServer(m *Manager) {
+	if p1p2State != 0 {
+		return
+	}
 	http.HandleFunc("/getHost", m.handlerP2)
 	http.HandleFunc("/setFinish", m.handlerP1)
-	if os.Getenv("DISPATCH_SERVER") == "" && p1p2State == 0 {
+	dispatch := os.Getenv("DISPATCH_SERVER")
+	if dispatch == "" {
 		panic("DISPATCH_SERVER not set")
 	}
-	http.ListenAndServe(os.Getenv("DISPATCH_SERVER"), nil)
+	http.ListenAndServe(dispatch, nil)
 }
