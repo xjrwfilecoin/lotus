@@ -40,7 +40,6 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 	if sessID == ClosedWorkerID {
 		return xerrors.Errorf("worker already closed")
 	}
-	log.Infof("%v addworker %v", info.Hostname, sessID)
 
 	taskTypes, err := w.TaskTypes(ctx)
 	if err != nil {
@@ -56,6 +55,8 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 	if err != nil {
 		return xerrors.Errorf("getting worker para: %w", err)
 	}
+
+	log.Infof("%v addworker %v  para %v", info.Hostname, sessID, para)
 
 	ids := make(map[string]struct{})
 	for _, path := range paths {
