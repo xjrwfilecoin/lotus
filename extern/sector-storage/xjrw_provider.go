@@ -201,9 +201,9 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 
 	_, exist := m.mapReal[sector.ID]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
-		if findP2Start(storiface.SectorName(sector.ID), sealtasks.TTPreCommit2) == "" && m.getP2Worker() {
+		if findP2Start(storiface.SectorName(sector.ID), sealtasks.TTPreCommit2) == "" {
 			log.Infof("ShellExecute %v", sector)
-			go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
+			m.pledgeTask()
 		} else {
 			log.Infof("repeated SealPreCommit2 %v", sector)
 		}
