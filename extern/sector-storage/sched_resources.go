@@ -78,7 +78,7 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, req *workerRequest, worker *workerHandle) bool {
 	if worker.enabled == false {
 		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
-		return false
+		//return false
 	}
 	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 

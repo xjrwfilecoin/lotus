@@ -180,7 +180,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 	host := findSector(storiface.SectorName(sector.ID), sealtasks.TTPreCommit2)
 	if host == "" && p1p2State == 0 {
 		log.Errorf("not find p2host: %v", sector)
-		host = m.SelectWorkerPreComit2(sector.ID)
+		//host = m.SelectWorkerPreComit2(sector.ID)
 		if host == "" {
 			log.Errorf("p2 not online: %v", sector)
 			return storage.SectorCids{}, xerrors.Errorf("p2 not online: %v", sector)
