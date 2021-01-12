@@ -202,10 +202,10 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 	_, exist := m.mapReal[sector.ID]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
 		if findP2Start(storiface.SectorName(sector.ID), sealtasks.TTPreCommit2) == "" {
-			log.Infof("SealPreCommit2 ShellExecute %v", sector)
-			m.pledgeTask()
+			//log.Infof("SealPreCommit2 ShellExecute %v", sector)
+			//m.pledgeTask()
 		} else {
-			log.Infof("repeated SealPreCommit2 %v", sector)
+			log.Infof("repeated PreCommit2 %v", sector)
 		}
 	}
 
@@ -433,7 +433,7 @@ func (m *Manager) addTask(host string, sector abi.SectorID) {
 	}
 
 	m.mapP2Tasks[host][sector] = struct{}{}
-	log.Infof("addTask %v %v %v", sector, host, m.mapP2Tasks[host])
+	//log.Infof("addTask %v %v %v", sector, host, m.mapP2Tasks[host])
 }
 
 func (m *Manager) removeTask(host string, sector abi.SectorID) {
@@ -450,7 +450,7 @@ func (m *Manager) removeTask(host string, sector abi.SectorID) {
 	}
 
 	delete(mapSector, sector)
-	log.Infof("removeTask %v %v %v", sector, host, mapSector)
+	//log.Infof("removeTask %v %v %v", sector, host, mapSector)
 }
 
 func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
@@ -465,7 +465,7 @@ func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
 		log.Infof("%v getTask %v %v", host, mapSector, ok)
 		return map[abi.SectorID]struct{}{}
 	}
-	log.Infof("%v getTask %v", host, mapSector)
+	//log.Infof("%v getTask %v", host, mapSector)
 
 	return mapSector
 }
