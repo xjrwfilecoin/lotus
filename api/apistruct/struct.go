@@ -314,6 +314,13 @@ type StorageMinerStruct struct {
 		SectorRemove                  func(context.Context, abi.SectorNumber) error                                                 `perm:"admin"`
 		SectorMarkForUpgrade          func(ctx context.Context, id abi.SectorNumber) error                                          `perm:"admin"`
 
+		SetMaxPreCommitGasFee func(context.Context, string) error   `perm:"admin"`
+		GetMaxPreCommitGasFee func(context.Context) (string, error) `perm:"admin"`
+		SetMaxCommitGasFee    func(context.Context, string) error   `perm:"admin"`
+		GetMaxCommitGasFee    func(context.Context) (string, error) `perm:"admin"`
+		SetGasFee             func(context.Context, string) error   `perm:"admin"`
+		GetGasFee             func(context.Context) (string, error) `perm:"admin"`
+
 		WorkerConnect func(context.Context, string) error                                `perm:"admin" retry:"true"` // TODO: worker perm
 		WorkerStats   func(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) `perm:"admin"`
 		WorkerJobs    func(context.Context) (map[uuid.UUID][]storiface.WorkerJob, error) `perm:"admin"`
@@ -400,8 +407,8 @@ type WorkerStruct struct {
 		ReadPiece       func(context.Context, io.Writer, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize) (storiface.CallID, error)                                                             `perm:"admin"`
 		Fetch           func(context.Context, storage.SectorRef, storiface.SectorFileType, storiface.PathType, storiface.AcquireMode) (storiface.CallID, error)                                                       `perm:"admin"`
 		SetSectorState  func(ctx context.Context, sector abi.SectorNumber, state string)                                                                                                                              `perm:"admin"`
-		TaskDisable func(ctx context.Context, tt sealtasks.TaskType) error `perm:"admin"`
-		TaskEnable  func(ctx context.Context, tt sealtasks.TaskType) error `perm:"admin"`
+		TaskDisable     func(ctx context.Context, tt sealtasks.TaskType) error                                                                                                                                        `perm:"admin"`
+		TaskEnable      func(ctx context.Context, tt sealtasks.TaskType) error                                                                                                                                        `perm:"admin"`
 
 		Remove          func(ctx context.Context, sector abi.SectorID) error `perm:"admin"`
 		StorageAddLocal func(ctx context.Context, path string) error         `perm:"admin"`
@@ -1296,6 +1303,30 @@ func (c *StorageMinerStruct) SectorGetExpectedSealDuration(ctx context.Context) 
 
 func (c *StorageMinerStruct) SectorsUpdate(ctx context.Context, id abi.SectorNumber, state api.SectorState) error {
 	return c.Internal.SectorsUpdate(ctx, id, state)
+}
+
+func (c *StorageMinerStruct) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return c.Internal.SetMaxPreCommitGasFee(ctx, maxPreCommit)
+}
+
+func (c *StorageMinerStruct) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return c.Internal.GetMaxPreCommitGasFee(ctx)
+}
+
+func (c *StorageMinerStruct) SetMaxCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return c.Internal.SetMaxCommitGasFee(ctx, maxPreCommit)
+}
+
+func (c *StorageMinerStruct) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return c.Internal.GetMaxCommitGasFee(ctx)
+}
+
+func (c *StorageMinerStruct) SetGasFee(ctx context.Context, gas string) error {
+	return c.Internal.SetGasFee(ctx, gas)
+}
+
+func (c *StorageMinerStruct) GetGasFee(ctx context.Context) (string, error) {
+	return c.Internal.GetGasFee(ctx)
 }
 
 func (c *StorageMinerStruct) SectorRemove(ctx context.Context, number abi.SectorNumber) error {
