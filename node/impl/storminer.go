@@ -91,6 +91,10 @@ func (sm *StorageMinerAPI) ServeRemote(w http.ResponseWriter, r *http.Request) {
 	sm.StorageMgr.ServeHTTP(w, r)
 }
 
+func (sm *StorageMinerAPI) SetFull(ctx context.Context) {
+	sm.Miner.SetFull(ctx, sm.Full)
+}
+
 func (sm *StorageMinerAPI) WorkerStats(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) {
 	return sm.StorageMgr.WorkerStats(), nil
 }
@@ -322,6 +326,30 @@ func (sm *StorageMinerAPI) SectorGetExpectedSealDuration(ctx context.Context) (t
 
 func (sm *StorageMinerAPI) SectorsUpdate(ctx context.Context, id abi.SectorNumber, state api.SectorState) error {
 	return sm.Miner.ForceSectorState(ctx, id, sealing.SectorState(state))
+}
+
+func (sm *StorageMinerAPI) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return sm.Miner.SetMaxPreCommitGasFee(ctx, types.MustParseFIL(maxPreCommit))
+}
+
+func (sm *StorageMinerAPI) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetMaxPreCommitGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) SetMaxCommitGasFee(ctx context.Context, maxCommit string) error {
+	return sm.Miner.SetMaxCommitGasFee(ctx, types.MustParseFIL(maxCommit))
+}
+
+func (sm *StorageMinerAPI) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetMaxCommitGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) SetGasFee(ctx context.Context, gas string) error {
+	return sm.Miner.SetGasFee(ctx, types.MustParseFIL(gas))
+}
+
+func (sm *StorageMinerAPI) GetGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetGasFee(ctx)
 }
 
 func (sm *StorageMinerAPI) SectorRemove(ctx context.Context, id abi.SectorNumber) error {

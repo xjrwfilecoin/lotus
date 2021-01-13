@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"github.com/filecoin-project/lotus/chain/types"
 	"io"
 
 	"github.com/filecoin-project/go-address"
@@ -38,6 +39,30 @@ func (m *Miner) PledgeSector() error {
 
 func (m *Miner) ForceSectorState(ctx context.Context, id abi.SectorNumber, state sealing.SectorState) error {
 	return m.sealing.ForceSectorState(ctx, id, state)
+}
+
+func (m *Miner) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit types.FIL) error {
+	return m.sealing.SetMaxPreCommitGasFee(ctx, maxPreCommit)
+}
+
+func (m *Miner) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return m.sealing.GetMaxPreCommitGasFee(ctx)
+}
+
+func (m *Miner) SetMaxCommitGasFee(ctx context.Context, maxCommit types.FIL) error {
+	return m.sealing.SetMaxCommitGasFee(ctx, maxCommit)
+}
+
+func (m *Miner) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return m.sealing.GetMaxCommitGasFee(ctx)
+}
+
+func (m *Miner) SetGasFee(ctx context.Context, gas types.FIL) error {
+	return m.sealing.SetGasFee(ctx, gas)
+}
+
+func (m *Miner) GetGasFee(ctx context.Context) (string, error) {
+	return m.sealing.GetGasFee(ctx)
 }
 
 func (m *Miner) RemoveSector(ctx context.Context, id abi.SectorNumber) error {
