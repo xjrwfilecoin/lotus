@@ -61,22 +61,6 @@ func InitTask() {
 		}
 	}
 
-	if str := os.Getenv("P1P2_STATE"); str != "" {
-		if p1p2, err := strconv.Atoi(str); err == nil {
-			p1p2State = p1p2
-		}
-
-		if p1p2State != 0 {
-			res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
-			res.MaxParallelism = 1
-			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
-
-			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
-			res.MaxParallelism = 1
-			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
-		}
-	}
-
 	if str := os.Getenv("P1_LIMIT"); str != "" {
 		if p1Num, err := strconv.Atoi(str); err == nil {
 			p1Limit = p1Num
@@ -114,6 +98,23 @@ func InitTask() {
 			ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
 		}
 	}
+
+	if str := os.Getenv("P1P2_STATE"); str != "" {
+		if p1p2, err := strconv.Atoi(str); err == nil {
+			p1p2State = p1p2
+		}
+
+		if p1p2State != 0 {
+			res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
+			res.MaxParallelism = 0
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
+			res.MaxParallelism = 0
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
+		}
+	}
+
 	if str := os.Getenv("P2_NUMBER"); str != "" {
 		if p2Num, err := strconv.Atoi(str); err == nil {
 			P2NumberLimit = p2Num
