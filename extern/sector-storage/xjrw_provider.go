@@ -202,8 +202,16 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 	_, exist := m.mapReal[sector.ID]
 	if os.Getenv("LOTUS_PLDEGE") != "" && !exist {
 		if findP2Start(storiface.SectorName(sector.ID), sealtasks.TTPreCommit2) == "" {
-			//log.Infof("SealPreCommit2 ShellExecute %v", sector)
-			//m.pledgeTask()
+			pledgeTime := 0
+			if str := os.Getenv("AUTO_PLEDGE_TIME"); str != "" {
+				if interval, err := strconv.Atoi(str); err == nil {
+					pledgeTime = interval
+				}
+			}
+			if pledgeTime < 0 {
+				log.Infof("SealPreCommit2 ShellExecute %v", sector)
+				m.pledgeTask()
+			}
 		} else {
 			log.Infof("repeated PreCommit2 %v", sector)
 		}
