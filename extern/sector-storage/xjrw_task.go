@@ -30,6 +30,10 @@ var p1p2State int
 var P2NumberLimit int
 var hostMap = map[string]WorkerID{}
 var autoInterval int
+var apDelay int
+var p1Delay int
+var p2Delay int
+var c2Delay int
 
 func InitTask() {
 	autoInterval = 5
@@ -50,6 +54,31 @@ func InitTask() {
 		}
 	}
 
+	if str := os.Getenv("AP_DELAY"); str != "" {
+		if data, err := strconv.Atoi(str); err == nil {
+			apDelay = data
+		}
+	}
+
+	if str := os.Getenv("P1_DELAY"); str != "" {
+		if data, err := strconv.Atoi(str); err == nil {
+			p1Delay = data
+		}
+	}
+
+	if str := os.Getenv("P2_DELAY"); str != "" {
+		if data, err := strconv.Atoi(str); err == nil {
+			p2Delay = data
+		}
+	}
+
+	if str := os.Getenv("C2_DELAY"); str != "" {
+		if data, err := strconv.Atoi(str); err == nil {
+			c2Delay = data
+		}
+	}
+
+	fmt.Printf("AP_DELAY = %v, P1_DELAY = %v, P2_DELAY = %v, C2_DELAY = %v", apDelay, p1Delay, p2Delay, c2Delay)
 
 	fmt.Printf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p2SpaceLimit, autoInterval, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 }

@@ -306,6 +306,7 @@ func (l *LocalWorker) AddPiece(ctx context.Context, sector storage.SectorRef, ep
 	}
 
 	return l.asyncCall(ctx, sector, AddPiece, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+		time.Sleep(time.Duration(apDelay) * time.Second)
 		return sb.AddPiece(ctx, sector, epcs, sz, r)
 	})
 }
@@ -340,6 +341,7 @@ func (l *LocalWorker) SealPreCommit1(ctx context.Context, sector storage.SectorR
 			return nil, err
 		}
 
+		time.Sleep(time.Duration(p1Delay) * time.Second)
 		return sb.SealPreCommit1(ctx, sector, ticket, pieces)
 	})
 }
@@ -375,6 +377,7 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 	}
 
 	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+		time.Sleep(time.Duration(p2Delay) * time.Second)
 		return sb.SealPreCommit2(ctx, sector, phase1Out)
 	})
 }
@@ -397,6 +400,7 @@ func (l *LocalWorker) SealCommit2(ctx context.Context, sector storage.SectorRef,
 	}
 
 	return l.asyncCall(ctx, sector, SealCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+		time.Sleep(time.Duration(c2Delay) * time.Second)
 		return sb.SealCommit2(ctx, sector, phase1Out)
 	})
 }
