@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -435,13 +436,21 @@ func (m *Manager) addTask(host string, sector abi.SectorID) {
 	m.lkTask.Lock()
 	defer m.lkTask.Unlock()
 
-	_, ok := m.mapP2Tasks[host]
-	if !ok {
-		m.mapP2Tasks[host] = map[abi.SectorID]struct{}{}
+	if v, ok := m.mapP2Tasks.Load(host); !ok {
+		var sMap sync.Map
+		sMap.Store(sector, struct {}{})
+		m.mapP2Tasks.Store(host,&sMap)
+	} else {
+		v.(*sync.Map).LoadOrStore(sector, struct {}{})
 	}
 
-	m.mapP2Tasks[host][sector] = struct{}{}
-	//log.Infof("addTask %v %v %v", sector, host, m.mapP2Tasks[host])
+	//_, ok := m.mapP2Tasks[host]
+	//if !ok {
+	//	m.mapP2Tasks[host] = map[abi.SectorID]struct{}{}
+	//}
+	//
+	//m.mapP2Tasks[host][sector] = struct{}{}
+	log.Infof("addTask %v %v", sector, host)
 }
 
 func (m *Manager) removeTask(host string, sector abi.SectorID) {
@@ -451,31 +460,38 @@ func (m *Manager) removeTask(host string, sector abi.SectorID) {
 	m.lkTask.Lock()
 	defer m.lkTask.Unlock()
 
-	mapSector, ok := m.mapP2Tasks[host]
-	if !ok {
-		log.Infof("removeTask no exit %v %v", sector, host)
-		return
-	}
-
-	delete(mapSector, sector)
-	//log.Infof("removeTask %v %v %v", sector, host, mapSector)
+	m.mapP2Tasks.Delete(host)
+	//mapSector, ok := m.mapP2Tasks[host]
+	//if !ok {
+	//	log.Infof("removeTask no exit %v %v", sector, host)
+	//	return
+	//}
+	//
+	//delete(mapSector, sector)
+	log.Infof("removeTask %v %v", sector, host)
 }
 
-func (m *Manager) getTask(host string) map[abi.SectorID]struct{} {
+func (m *Manager) getTask(host string) *sync.Map {
 	if p1p2State != 0 {
-		return map[abi.SectorID]struct{}{}
+		return &sync.Map{}
 	}
 	m.lkTask.Lock()
 	defer m.lkTask.Unlock()
 
-	mapSector, ok := m.mapP2Tasks[host]
+	v, ok := m.mapP2Tasks.Load(host)
 	if !ok {
-		log.Infof("%v getTask %v %v", host, mapSector, ok)
-		return map[abi.SectorID]struct{}{}
+		log.Infof("%v getTask %v", host, ok)
+		return &sync.Map{}
 	}
+
+	//mapSector, ok := m.mapP2Tasks[host]
+	//if !ok {
+	//	log.Infof("%v getTask %v %v", host, mapSector, ok)
+	//	return map[abi.SectorID]struct{}{}
+	//}
 	//log.Infof("%v getTask %v", host, mapSector)
 
-	return mapSector
+	return v.(*sync.Map)
 }
 
 func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
@@ -495,8 +511,9 @@ func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
 		}
 	}
 	if find {
-		delete(m.sched.workers[id].p2Tasks, sector)
-		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Size = %v", id, host, sector, len(m.sched.workers[WorkerID(id)].p2Tasks))
+		//delete(m.sched.workers[id].p2Tasks, sector)
+		m.sched.workers[id].p2Tasks.Delete(sector)
+		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v", id, host, sector)
 	} else {
 		log.Errorf("UnselectWorkerPreComit2 not find %v %v", host, sector)
 	}
@@ -520,13 +537,19 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			continue
 		}
 
-		if _, exit := worker.p2Tasks[sector]; exit {
-			log.Infof("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
-			delete(worker.p2Tasks, sector)
-		}
+		worker.p2Tasks.Delete(sector)
+		//if _, exit := worker.p2Tasks[sector]; exit {
+		//	log.Infof("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
+		//	delete(worker.p2Tasks, sector)
+		//}
+		length := 0
+		worker.p2Tasks.Range(func(k, v interface{}) bool {
+			length ++
+			return true
+		})
 
-		if P2NumberLimit > 0 && len(worker.p2Tasks) >= P2NumberLimit {
-			log.Infof("%v P2 exceed %v %v", worker.info.Hostname, len(worker.p2Tasks), P2NumberLimit)
+		if P2NumberLimit > 0 && length >= P2NumberLimit {
+			log.Infof("%v P2 exceed %v %v", worker.info.Hostname, length, P2NumberLimit)
 			continue
 		}
 
@@ -546,8 +569,8 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 			continue
 		}
 
-		tasks[wid] = len(worker.p2Tasks)
-		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v", wid, worker.info.Hostname, len(worker.p2Tasks))
+		tasks[wid] = length
+		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v", wid, worker.info.Hostname, length)
 	}
 
 	host := ""
@@ -562,7 +585,8 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	}
 
 	if host != "" {
-		m.sched.workers[WorkerID(w)].p2Tasks[sector] = struct{}{}
+		m.sched.workers[WorkerID(w)].p2Tasks.LoadOrStore(sector, struct {}{})
+		//m.sched.workers[WorkerID(w)].p2Tasks[sector] = struct{}{}
 		saveP2Worker(storiface.SectorName(sector), host, sealtasks.TTPreCommit2)
 		log.Infof("saveP2Worker %v %v", sector, host)
 	} else {
@@ -652,7 +676,8 @@ func (m *Manager) setWorker(host string, sector abi.SectorID) {
 	find := false
 	for wid, handle := range m.sched.workers {
 		if handle.info.Hostname == host {
-			m.sched.workers[wid].p2Tasks[sector] = struct{}{}
+			//m.sched.workers[wid].p2Tasks[sector] = struct{}{}
+			m.sched.workers[wid].p2Tasks.LoadOrStore(sector, struct{}{})
 			id = wid
 			find = true
 		}
@@ -674,8 +699,13 @@ func (m *Manager) getP2Worker() bool {
 
 	for _, worker := range m.sched.workers {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; supported && worker.enabled {
-			if P2NumberLimit > 0 && len(worker.p2Tasks) >= P2NumberLimit {
-				log.Infof("%v P2 exceed %v %v", worker.info.Hostname, len(worker.p2Tasks), P2NumberLimit)
+			length := 0
+			worker.p2Tasks.Range(func(k, v interface{}) bool {
+				length ++
+				return true
+			})
+			if P2NumberLimit > 0 && length >= P2NumberLimit {
+				log.Infof("%v P2 exceed %v %v", worker.info.Hostname, length, P2NumberLimit)
 				continue
 			} else {
 				var avai int64
@@ -712,25 +742,40 @@ func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, s
 
 	log.Infof("SetSectorState %v %v", sector, state)
 	m.sched.workersLk.Lock()
-	for id, handle := range m.sched.workers {
-		for s, _ := range handle.p2Tasks {
-			if s.Number == sector {
-				log.Infof("SetSectorState delete %v %v", sector, state)
-				delete(m.sched.workers[id].p2Tasks, s)
+	for _, handle := range m.sched.workers {
+		handle.p2Tasks.Range(func(k, v interface{}) bool {
+			if k.(abi.SectorID).Number == sector {
+				handle.p2Tasks.Delete(k)
 			}
-		}
+			return true
+		})
+		//for s, _ := range handle.p2Tasks {
+		//	if s.Number == sector {
+		//		log.Infof("SetSectorState delete %v %v", sector, state)
+		//		delete(m.sched.workers[id].p2Tasks, s)
+		//	}
+		//}
 	}
 	m.sched.workersLk.Unlock()
 
 	m.lkTask.Lock()
-	for host, mp := range m.mapP2Tasks {
-		for s, _ := range mp {
-			if s.Number == sector {
-				log.Infof("SetSectorState remove %v %v", sector, state)
-				delete(m.mapP2Tasks[host], s)
+	m.mapP2Tasks.Range(func(k, v interface{}) bool {
+		v.(*sync.Map).Range(func(sk, sv interface{}) bool {
+			if (sk.(abi.SectorID)).Number == sector {
+				v.(*sync.Map).Delete(sk)
 			}
-		}
-	}
+			return true
+		})
+		return true
+	})
+	//for host, mp := range m.mapP2Tasks {
+	//	for s, _ := range mp {
+	//		if s.Number == sector {
+	//			log.Infof("SetSectorState remove %v %v", sector, state)
+	//			delete(m.mapP2Tasks[host], s)
+	//		}
+	//	}
+	//}
 	m.lkTask.Unlock()
 }
 

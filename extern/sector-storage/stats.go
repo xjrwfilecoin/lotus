@@ -1,6 +1,7 @@
 package sectorstorage
 
 import (
+	"github.com/filecoin-project/go-state-types/abi"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,9 +17,13 @@ func (m *Manager) WorkerStats() map[uuid.UUID]storiface.WorkerStats {
 
 	for id, handle := range m.sched.workers {
 		p2Tasks := make(map[int]struct{})
-		for sector, _ := range handle.p2Tasks {
-			p2Tasks[int(sector.Number)] = struct{}{}
-		}
+		handle.p2Tasks.Range(func(k, v interface{}) bool {
+			p2Tasks[int(k.(abi.SectorID).Number)] = struct{}{}
+			return true
+		})
+		//for sector, _ := range handle.p2Tasks {
+		//	p2Tasks[int(sector.Number)] = struct{}{}
+		//}
 		out[uuid.UUID(id)] = storiface.WorkerStats{
 			Info:      handle.info,
 			Enabled:   handle.enabled,

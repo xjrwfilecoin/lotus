@@ -90,7 +90,7 @@ type workerHandle struct {
 
 	taskTypes map[sealtasks.TaskType]struct{}
 	enabled   bool
-	p2Tasks   map[abi.SectorID]struct{}
+	p2Tasks   sync.Map
 
 	p1Running map[abi.SectorID]struct{}
 	p2Running map[abi.SectorID]struct{}

@@ -2,6 +2,7 @@ package sectorstorage
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/filecoin-project/go-state-types/abi"
@@ -27,7 +28,7 @@ type schedWorker struct {
 }
 
 // context only used for startup
-func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.SectorID]struct{}) error {
+func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks sync.Map) error {
 	info, err := w.Info(ctx)
 	if err != nil {
 		return xerrors.Errorf("getting worker info: %w", err)

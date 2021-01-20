@@ -66,7 +66,7 @@ func (w WorkerID) String() string {
 
 type Manager struct {
 	mapReal    map[abi.SectorID]struct{}
-	mapP2Tasks map[string]map[abi.SectorID]struct{}
+	mapP2Tasks sync.Map
 	lkTask     sync.Mutex
 
 	mapChan    map[abi.SectorID]chan struct{}
@@ -137,7 +137,6 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 		index:      si,
 
 		mapReal:    make(map[abi.SectorID]struct{}),
-		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
 		mapChan:    make(map[abi.SectorID]chan struct{}),
 		sched:      newScheduler(),
 
@@ -214,7 +213,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		return xerrors.Errorf("getting worker info: %w", err)
 	}
 
-	return m.sched.runWorker(ctx, w, m.getTask(info.Hostname))
+	return m.sched.runWorker(ctx, w, *m.getTask(info.Hostname))
 }
 
 func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
