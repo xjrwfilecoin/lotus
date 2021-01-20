@@ -28,6 +28,7 @@ var p2Limit int
 var c2Limit int
 var p1p2State int
 var P2NumberLimit int
+var hostMap = map[string]WorkerID{}
 var autoInterval int
 
 func InitTask() {

@@ -77,6 +77,7 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks sync.Map) er
 
 		addPieceRuning: make(map[abi.SectorID]struct{}),
 
+		disSectors: make(map[abi.SectorID]struct{}),
 		para:      para,
 		preparing: &activeResources{},
 		active:    &activeResources{},
@@ -87,6 +88,7 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks sync.Map) er
 	}
 
 	wid := WorkerID(sessID)
+	hostMap[info.Hostname] = wid
 
 	sh.workersLk.Lock()
 	_, exist := sh.workers[wid]
