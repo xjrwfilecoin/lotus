@@ -188,6 +188,10 @@ func (m *Sealing) GetGasFee(ctx context.Context) (string, error) {
 	return types.FIL(m.feeCfg.GasFee).Short(), nil
 }
 
+func (m *Sealing) RefreshConf(ctx context.Context) (string, error) {
+	return m.sealer.RefreshConf(ctx)
+}
+
 func (m *Sealing) Stop(ctx context.Context) error {
 	return m.sectors.Stop(ctx)
 }

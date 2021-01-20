@@ -42,6 +42,7 @@ type Worker interface {
 
 	Info(context.Context) (storiface.WorkerInfo, error)
 
+	GetSpace(ctx context.Context, running string) (int, error)
 	Session(context.Context) (uuid.UUID, error)
 
 	Close() error // TODO: do we need this?
@@ -49,6 +50,7 @@ type Worker interface {
 
 type SectorManager interface {
 	SetSectorState(ctx context.Context, sector abi.SectorNumber, state string)
+	RefreshConf(ctx context.Context) (string, error)
 	ReadPiece(context.Context, io.Writer, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize, abi.SealRandomness, cid.Cid) error
 
 	ffiwrapper.StorageSealer
@@ -92,6 +94,7 @@ type Manager struct {
 
 	results map[WorkID]result
 	waitRes map[WorkID]chan struct{}
+	autoDone chan struct{}
 }
 
 type result struct {
@@ -147,6 +150,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 		callRes:    map[storiface.CallID]chan result{},
 		results:    map[WorkID]result{},
 		waitRes:    map[WorkID]chan struct{}{},
+		autoDone:   make(chan struct{}),
 	}
 
 	m.setupWorkTracker()

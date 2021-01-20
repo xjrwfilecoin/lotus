@@ -7,7 +7,7 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
 
-func (a *activeResources) withResources(req *workerRequest, worker *workerHandle, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
+func (a *activeResources) withResources(taskDone chan struct{}, req *workerRequest, worker *workerHandle, id WorkerID, wr storiface.WorkerResources, r Resources, locker sync.Locker, cb func() error) error {
 	for !a.canHandleRequest(r, id, "withResources", wr, req, worker) {
 		if a.cond == nil {
 			a.cond = sync.NewCond(locker)
@@ -50,6 +50,13 @@ func (a *activeResources) withResources(req *workerRequest, worker *workerHandle
 	}
 
 	a.free(wr, r)
+
+	go func() {
+		log.Infof("taskDone %v %v", req.sector, req.taskType)
+		select {
+		case taskDone <- struct{}{}:
+		}
+	}()
 	if a.cond != nil {
 		a.cond.Broadcast()
 	}
@@ -168,15 +175,17 @@ func (a *activeResources) utilization(wr storiface.WorkerResources) float64 {
 func (wh *workerHandle) utilization() float64 {
 	wh.lk.Lock()
 	u := wh.active.utilization(wh.info.Resources)
-	//u += wh.preparing.utilization(wh.info.Resources)
+	log.Infof("utilization1 %v %v", wh.info.Hostname, u)
+	u += wh.preparing.utilization(wh.info.Resources)
+	log.Infof("utilization2 %v %v %v", wh.info.Hostname, u, wh.preparing.utilization(wh.info.Resources))
 	wh.lk.Unlock()
-	//wh.wndLk.Lock()
-	//for _, window := range wh.activeWindows {
-	//	u += window.allocated.utilization(wh.info.Resources)
-	//}
-	//wh.wndLk.Unlock()
+	wh.wndLk.Lock()
+	for _, window := range wh.activeWindows {
+		u += window.allocated.utilization(wh.info.Resources)
+	}
+	wh.wndLk.Unlock()
+	log.Infof("utilization3 %v %v", wh.info.Hostname, u)
 
-	log.Infof("utilization %v %v", wh.info.Hostname, u)
 
 	return u
 }

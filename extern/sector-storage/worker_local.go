@@ -513,6 +513,10 @@ func (l *LocalWorker) GetPara(ctx context.Context) (storiface.WorkerPara, error)
 	return para, nil
 }
 
+func (l *LocalWorker) GetSpace(ctx context.Context, running string) (int, error) {
+	return 0, nil
+}
+
 func (l *LocalWorker) Paths(ctx context.Context) ([]stores.StoragePath, error) {
 	return l.localStore.Local(ctx)
 }

@@ -786,27 +786,28 @@ func (m *Manager) autoAddTask(ctx context.Context) {
 			delayTime = delay
 		}
 	}
-	intervalTime := 5
-	if str := os.Getenv("AUTO_INTERVAL_TIME"); str != "" {
-		if interval, err := strconv.Atoi(str); err == nil {
-			intervalTime = interval
-		}
-	}
-	if delayTime < 0 || intervalTime < 0 {
-		log.Infof("cancel autoAddTask %v %v", delayTime, intervalTime)
+	if delayTime < 0 || autoInterval <= 0 {
+		log.Infof("cancel autoAddTask %v %v", delayTime, autoInterval)
 		return
 	}
 	time.Sleep(time.Duration(delayTime) * time.Minute)
-	ticker := time.NewTicker(time.Duration(intervalTime) * time.Minute)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			m.pledgeTask()
-		case <-ctx.Done():
-			return
+	m.startTimer(ctx, autoInterval)
+}
+
+func (m *Manager) startTimer(ctx context.Context, interval int) {
+	go func() {
+		ticker := time.NewTicker(time.Duration(interval) * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				m.pledgeTask()
+			case <-m.autoDone:
+				log.Info("autoDone")
+				return
+			}
 		}
-	}
+	}()
 }
 
 func (m *Manager) pledgeTask() {
@@ -829,4 +830,12 @@ func (m *Manager) pledgeTask() {
 	} else {
 		log.Infof("autoAddTask failed %v %v", tasks, totalTasks)
 	}
+}
+func (m *Manager) RefreshConf(ctx context.Context) (string, error) {
+	m.autoDone <- struct{}{}
+	initConf(false)
+	m.startTimer(ctx, autoInterval)
+	conf := fmt.Sprintf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p2SpaceLimit, autoInterval, p1Limit, p2Limit, c2Limit, P2NumberLimit)
+	log.Info(conf)
+	return conf, nil
 }
