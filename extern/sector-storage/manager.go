@@ -92,8 +92,8 @@ type Manager struct {
 	// used when we get an early return and there's no callToWork mapping
 	callRes map[storiface.CallID]chan result
 
-	results map[WorkID]result
-	waitRes map[WorkID]chan struct{}
+	results  map[WorkID]result
+	waitRes  map[WorkID]chan struct{}
 	autoDone chan struct{}
 }
 
@@ -139,9 +139,9 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 		remoteHnd:  &stores.FetchHandler{Local: lstor},
 		index:      si,
 
-		mapReal:    make(map[abi.SectorID]struct{}),
-		mapChan:    make(map[abi.SectorID]chan struct{}),
-		sched:      newScheduler(),
+		mapReal: make(map[abi.SectorID]struct{}),
+		mapChan: make(map[abi.SectorID]chan struct{}),
+		sched:   newScheduler(),
 
 		Prover: prover,
 
@@ -155,7 +155,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 
 	m.setupWorkTracker()
 	initState()
-	InitTask()
+	InitTask(true)
 	go initDispatchServer(m)
 	go m.autoAddTask(ctx)
 

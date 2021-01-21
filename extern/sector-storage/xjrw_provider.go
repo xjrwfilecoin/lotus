@@ -439,10 +439,10 @@ func (m *Manager) addTask(host string, sector abi.SectorID) {
 
 	if v, ok := m.mapP2Tasks.Load(host); !ok {
 		var sMap sync.Map
-		sMap.Store(sector, struct {}{})
-		m.mapP2Tasks.Store(host,&sMap)
+		sMap.Store(sector, struct{}{})
+		m.mapP2Tasks.Store(host, &sMap)
 	} else {
-		v.(*sync.Map).LoadOrStore(sector, struct {}{})
+		v.(*sync.Map).LoadOrStore(sector, struct{}{})
 	}
 
 	//_, ok := m.mapP2Tasks[host]
@@ -545,7 +545,7 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		//}
 		length := 0
 		worker.p2Tasks.Range(func(k, v interface{}) bool {
-			length ++
+			length++
 			return true
 		})
 
@@ -586,7 +586,7 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	}
 
 	if host != "" {
-		m.sched.workers[WorkerID(w)].p2Tasks.LoadOrStore(sector, struct {}{})
+		m.sched.workers[WorkerID(w)].p2Tasks.LoadOrStore(sector, struct{}{})
 		//m.sched.workers[WorkerID(w)].p2Tasks[sector] = struct{}{}
 		saveP2Worker(storiface.SectorName(sector), host, sealtasks.TTPreCommit2)
 		log.Infof("saveP2Worker %v %v", sector, host)
@@ -702,7 +702,7 @@ func (m *Manager) getP2Worker() bool {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit2]; supported && worker.enabled {
 			length := 0
 			worker.p2Tasks.Range(func(k, v interface{}) bool {
-				length ++
+				length++
 				return true
 			})
 			if P2NumberLimit > 0 && length >= P2NumberLimit {
@@ -833,9 +833,10 @@ func (m *Manager) pledgeTask() {
 	}
 }
 func (m *Manager) RefreshConf(ctx context.Context) (string, error) {
-	m.autoDone <- struct{}{}
-	initConf(false)
-	m.startTimer(ctx, autoInterval)
+	if initConf(false) && autoInterval > 0 {
+		m.autoDone <- struct{}{}
+		m.startTimer(ctx, autoInterval)
+	}
 	conf := fmt.Sprintf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p2SpaceLimit, autoInterval, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 	log.Info(conf)
 	return conf, nil

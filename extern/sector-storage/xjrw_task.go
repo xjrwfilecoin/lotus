@@ -35,9 +35,9 @@ var p1Delay int
 var p2Delay int
 var c2Delay int
 
-func InitTask() {
+func InitTask(b bool) {
 	autoInterval = 5
-	initConf(true)
+	initConf(b)
 	if str := os.Getenv("P1P2_STATE"); str != "" {
 		if p1p2, err := strconv.Atoi(str); err == nil {
 			p1p2State = p1p2
@@ -47,6 +47,10 @@ func InitTask() {
 			res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
 			res.MaxParallelism = 0
 			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1]
+			res.MaxParallelism = 0
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1] = res
 
 			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
 			res.MaxParallelism = 0
@@ -83,37 +87,114 @@ func InitTask() {
 	fmt.Printf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p2SpaceLimit, autoInterval, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 }
 
-func initConf(b bool) {
+func initConf(b bool) bool {
 	data, err := ioutil.ReadFile("./config.json")
 	if err != nil {
-		fmt.Println("err: ", err)
+		e := fmt.Sprintf("err: %v ", err)
+		fmt.Println(e)
 		if b {
-			panic(fmt.Sprintf("err: %v ", err))
+			panic(e)
 		}
-		return
+		return false
 	}
 
 	var conf = map[string]int{}
 	err = json.Unmarshal(data, &conf)
 	if err != nil {
-		fmt.Println("config.json: ", err)
+		e := fmt.Sprintf("config.json: %v ", err)
+		fmt.Println(e)
 		if b {
-			panic(fmt.Sprintf("config.json: %v ", err))
+			panic(e)
 		}
-		return
+		return false
 	}
 
-	autoInterval = conf["AUTO_INTERVAL_TIME"]
+	if conf["AUTO_INTERVAL_TIME"] < 0 {
+		e := "AUTO_INTERVAL_TIME must be greater than 0"
+		fmt.Println(e)
+		if b {
+			panic(e)
+		}
+		return false
+	}
 
-	p2SpaceLimit = int64(conf["P2_SPACE"])
-	p1Limit = conf["P1_LIMIT"]
-	p2Limit = conf["P2_LIMIT"]
-	c2Limit = conf["C2_LIMIT"]
-	P2NumberLimit = conf["P2_NUMBER"]
+	if conf["P2_SPACE"] < 0 {
+		e := "P2_SPACE must be greater than 0"
+		fmt.Println(e)
+		if b {
+			panic(e)
+		}
+		return false
+	}
+
+	if conf["P1_LIMIT"] < 0 {
+		e := "P1_LIMIT must be greater than 0"
+		fmt.Println(e)
+		if b {
+			panic(e)
+		}
+		return false
+	}
+
+	if conf["P2_LIMIT"] < 0 {
+		e := "P2_LIMIT must be greater than 0"
+		fmt.Println(e)
+		if b {
+			panic(e)
+		}
+		return false
+	}
+
+	if conf["C2_LIMIT"] < 0 {
+		e := "C2_LIMIT must be greater than 0"
+		fmt.Println(e)
+		if b {
+			panic(e)
+		}
+		return false
+	}
+
+	if conf["P2_NUMBER"] < 0 {
+		e := "P2_NUMBER must be greater than 0"
+		fmt.Println(e)
+		if b {
+			panic(e)
+		}
+		return false
+	}
+
+	if conf["AUTO_INTERVAL_TIME"] > 0 {
+		autoInterval = conf["AUTO_INTERVAL_TIME"]
+	}
+
+	if conf["P2_SPACE"] > 0 {
+		p2SpaceLimit = int64(conf["P2_SPACE"])
+	}
+
+	if conf["P1_LIMIT"] > 0 {
+		p1Limit = conf["P1_LIMIT"]
+	}
+
+	if conf["P2_LIMIT"] > 0 {
+		p2Limit = conf["P2_LIMIT"]
+	}
+
+	if conf["C2_LIMIT"] > 0 {
+		c2Limit = conf["C2_LIMIT"]
+	}
+
+	if conf["P2_NUMBER"] > 0 {
+		P2NumberLimit = conf["P2_NUMBER"]
+	}
+
 	if p2Limit > 0 {
 		res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
 		res.MaxParallelism = 1
 		ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+		res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1]
+		res.MaxParallelism = 1
+		ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1] = res
 
 		res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
 		res.MaxParallelism = 1
@@ -125,10 +206,16 @@ func initConf(b bool) {
 		res.MaxParallelism = 1
 		ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
 
+		res = ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1]
+		res.MaxParallelism = 1
+		ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1] = res
+
 		res = ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
 		res.MaxParallelism = 1
 		ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
 	}
+
+	return true
 }
 
 func initDispatchServer(m *Manager) {
