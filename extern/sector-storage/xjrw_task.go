@@ -77,6 +77,10 @@ func InitTask() {
 			res.MaxParallelism = 1
 			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
 
+			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1] = res
+
 			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
 			res.MaxParallelism = 1
 			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
@@ -93,6 +97,10 @@ func InitTask() {
 			res.MaxParallelism = 1
 			ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
 
+			res = ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1]
+			res.MaxParallelism = 1
+			ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1] = res
+
 			res = ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
 			res.MaxParallelism = 1
 			ResourceTable[sealtasks.TTCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1] = res
@@ -108,6 +116,10 @@ func InitTask() {
 			res := ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1]
 			res.MaxParallelism = 0
 			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg32GiBV1_1] = res
+
+			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1]
+			res.MaxParallelism = 0
+			ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg64GiBV1_1] = res
 
 			res = ResourceTable[sealtasks.TTPreCommit2][abi.RegisteredSealProof_StackedDrg2KiBV1_1]
 			res.MaxParallelism = 0
