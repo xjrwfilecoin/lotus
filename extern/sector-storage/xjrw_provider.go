@@ -779,7 +779,7 @@ func (m *Manager) pledgeTask() {
 
 	totalTasks := p1Server * p1Limit
 	if m.getP2Worker() && tasks < totalTasks {
-		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
+		ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 		log.Infof("autoAddTask success %v %v", tasks, totalTasks)
 	} else {
 		log.Infof("autoAddTask failed %v %v", tasks, totalTasks)
