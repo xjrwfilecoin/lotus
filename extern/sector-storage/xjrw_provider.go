@@ -210,7 +210,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 					pledgeTime = interval
 				}
 			}
-			if pledgeTime < 0 {
+			if pledgeTime < 0 || autoInterval == 0 {
 				log.Infof("SealPreCommit2 ShellExecute %v", sector)
 				m.pledgeTask()
 			}
@@ -787,7 +787,7 @@ func (m *Manager) autoAddTask(ctx context.Context) {
 			delayTime = delay
 		}
 	}
-	if delayTime < 0 || autoInterval <= 0 {
+	if autoInterval <= 0 {
 		log.Infof("cancel autoAddTask %v %v", delayTime, autoInterval)
 		return
 	}
@@ -797,7 +797,7 @@ func (m *Manager) autoAddTask(ctx context.Context) {
 
 func (m *Manager) startTimer(ctx context.Context, interval int) {
 	go func() {
-		ticker := time.NewTicker(time.Duration(interval) * time.Minute)
+		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
@@ -826,16 +826,22 @@ func (m *Manager) pledgeTask() {
 
 	totalTasks := p1Server * p1Limit
 	if m.getP2Worker() && tasks < totalTasks {
-		go ShellExecute(os.Getenv("LOTUS_PLDEGE"))
+		ShellExecute(os.Getenv("LOTUS_PLDEGE"))
 		log.Infof("autoAddTask success %v %v", tasks, totalTasks)
 	} else {
 		log.Infof("autoAddTask failed %v %v", tasks, totalTasks)
 	}
 }
 func (m *Manager) RefreshConf(ctx context.Context) (string, error) {
-	if initConf(false) && autoInterval > 0 {
-		m.autoDone <- struct{}{}
-		m.startTimer(ctx, autoInterval)
+	interval := autoInterval
+	if initConf(false) {
+		log.Infof("auto %v %v", interval, autoInterval)
+		if interval > 0 {
+			m.autoDone <- struct{}{}
+		}
+		if autoInterval > 0 {
+			m.startTimer(ctx, autoInterval)
+		}
 	}
 	conf := fmt.Sprintf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p2SpaceLimit, autoInterval, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 	log.Info(conf)
