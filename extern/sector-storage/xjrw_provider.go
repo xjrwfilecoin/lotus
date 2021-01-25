@@ -15,6 +15,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"fmt"
 )
 
 func (m *Manager) AddPiece(ctx context.Context, sector storage.SectorRef, existingPieces []abi.UnpaddedPieceSize, sz abi.UnpaddedPieceSize, r io.Reader) (abi.PieceInfo, error) {
