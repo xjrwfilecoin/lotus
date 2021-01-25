@@ -12,8 +12,8 @@ import (
 )
 
 var gasCmd = &cli.Command{
-	Name:  "gas",
-	Usage: "set or get gas fee",
+	Name:  "xjrw",
+	Usage: "set or get parameter",
 	Subcommands: []*cli.Command{
 		setMaxPreCommitGasFee,
 		getMaxPreCommitGasFee,
@@ -21,6 +21,7 @@ var gasCmd = &cli.Command{
 		getMaxCommitGasFee,
 		setGasFee,
 		getGasFee,
+		reloadConf,
 	},
 }
 
@@ -156,6 +157,26 @@ var getGasFee = &cli.Command{
 		}
 		fmt.Println("GetGasFee ", GasFee)
 
+		return nil
+	},
+}
+
+var reloadConf = &cli.Command{
+	Name:      "reload",
+	Usage:     "Reload config",
+	ArgsUsage: "<ReLoad>",
+	Action: func(cctx *cli.Context) error {
+		nodeApi, closer, err := lcli.GetStorageMinerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+		ctx := lcli.ReqContext(cctx)
+		conf, err := nodeApi.RefreshConf(ctx)
+		if err != nil {
+			return err
+		}
+		fmt.Println(conf)
 		return nil
 	},
 }

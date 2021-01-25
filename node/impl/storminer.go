@@ -352,6 +352,9 @@ func (sm *StorageMinerAPI) GetGasFee(ctx context.Context) (string, error) {
 	return sm.Miner.GetGasFee(ctx)
 }
 
+func (sm *StorageMinerAPI) RefreshConf(ctx context.Context) (string, error) {
+	return sm.Miner.RefreshConf(ctx)
+}
 func (sm *StorageMinerAPI) SectorRemove(ctx context.Context, id abi.SectorNumber) error {
 	return sm.Miner.RemoveSector(ctx, id)
 }
