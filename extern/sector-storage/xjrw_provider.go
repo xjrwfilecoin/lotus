@@ -818,8 +818,23 @@ func (m *Manager) pledgeTask() {
 	m.sched.workersLk.Lock()
 	for _, worker := range m.sched.workers {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit1]; supported && worker.enabled {
-			p1Server++
-			tasks += len(worker.addPieceRuning) + len(worker.p1Running)
+			var avai int64
+			log.Infof("storeIDs %v", worker.storeIDs)
+			for id, _ := range worker.storeIDs {
+				si, err := m.index.StorageFsi(stores.ID(id))
+				if err == nil {
+					avai = avai + si.Available
+				}
+			}
+
+			avai = avai / 1024 / 1024 / 1024
+			if int(avai) > p1SpaceLimit {
+				log.Infof("%v P1 space %vG %vG", worker.info.Hostname, avai, p1SpaceLimit)
+				p1Server++
+				tasks += len(worker.addPieceRuning) + len(worker.p1Running)
+			} else {
+				log.Infof("%v P1 no space %vG %vG", worker.info.Hostname, avai, p1SpaceLimit)
+			}
 		}
 	}
 	m.sched.workersLk.Unlock()

@@ -23,6 +23,7 @@ type GroupConfig struct {
 var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
+var p1SpaceLimit int
 var p2SpaceLimit int64
 var p1Limit int
 var p2Limit int
@@ -83,9 +84,15 @@ func InitTask(b bool) {
 		}
 	}
 
+	if str := os.Getenv("P1_SPACE"); str != "" {
+		if data, err := strconv.Atoi(str); err == nil {
+			p1SpaceLimit = data
+		}
+	}
+
 	fmt.Printf("AP_DELAY = %v, P1_DELAY = %v, P2_DELAY = %v, C2_DELAY = %v", apDelay, p1Delay, p2Delay, c2Delay)
 
-	fmt.Printf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p2SpaceLimit, autoInterval, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
+	fmt.Printf("P1_SPACE = %v, P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p1SpaceLimit, p2SpaceLimit, autoInterval, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 }
 
 func initConf(b bool) bool {
@@ -164,9 +171,7 @@ func initConf(b bool) bool {
 		return false
 	}
 
-	if conf["AUTO_INTERVAL_TIME"] > 0 {
-		autoInterval = conf["AUTO_INTERVAL_TIME"]
-	}
+	autoInterval = conf["AUTO_INTERVAL_TIME"]
 
 	if conf["P2_SPACE"] > 0 {
 		p2SpaceLimit = int64(conf["P2_SPACE"])

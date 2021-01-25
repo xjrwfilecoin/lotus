@@ -100,9 +100,9 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	}
 
 	if id != wid {
-		//go req.respond(xerrors.Errorf("canHandleRequest wid: %v %v %v", req.sector, wid, req.taskType))
+		go req.respond(xerrors.Errorf("canHandleRequest wid: %v %v %v", req.sector, wid, req.taskType))
 		log.Infof("canHandleRequest wid %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, id, wid)
-		//return false
+		return false
 	}
 	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 
