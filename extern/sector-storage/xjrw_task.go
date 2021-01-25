@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"sync"
 )
 
 const sfiltask = "./taskconfig.json"
@@ -60,8 +59,6 @@ func InitTask(b bool) {
 			p1SpaceLimit = data
 		}
 	}
-
-	fmt.Printf("AP_DELAY = %v, P1_DELAY = %v, P2_DELAY = %v, C2_DELAY = %v", apDelay, p1Delay, p2Delay, c2Delay)
 
 	fmt.Printf("P1_SPACE = %v, P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p1SpaceLimit, p2SpaceLimit, autoInterval, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 }
