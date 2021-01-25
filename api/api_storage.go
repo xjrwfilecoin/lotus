@@ -75,6 +75,7 @@ type StorageMiner interface {
 	SetGasFee(context.Context, string) error
 	GetGasFee(context.Context) (string, error)
 
+	RefreshConf(context.Context) (string, error)
 	StorageList(ctx context.Context) (map[stores.ID][]stores.Decl, error)
 	StorageLocal(ctx context.Context) (map[stores.ID]string, error)
 	StorageStat(ctx context.Context, id stores.ID) (fsutil.FsStat, error)

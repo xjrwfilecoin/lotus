@@ -65,6 +65,10 @@ func (m *Miner) GetGasFee(ctx context.Context) (string, error) {
 	return m.sealing.GetGasFee(ctx)
 }
 
+func (m *Miner) RefreshConf(ctx context.Context) (string, error) {
+	return m.sealing.RefreshConf(ctx)
+}
+
 func (m *Miner) RemoveSector(ctx context.Context, id abi.SectorNumber) error {
 	return m.sealing.Remove(ctx, id)
 }

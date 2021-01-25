@@ -321,6 +321,7 @@ type StorageMinerStruct struct {
 		SetGasFee             func(context.Context, string) error   `perm:"admin"`
 		GetGasFee             func(context.Context) (string, error) `perm:"admin"`
 
+		RefreshConf           func(context.Context) (string, error) `perm:"admin"`
 		WorkerConnect func(context.Context, string) error                                `perm:"admin" retry:"true"` // TODO: worker perm
 		WorkerStats   func(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) `perm:"admin"`
 		WorkerJobs    func(context.Context) (map[uuid.UUID][]storiface.WorkerJob, error) `perm:"admin"`
@@ -1329,6 +1330,9 @@ func (c *StorageMinerStruct) GetGasFee(ctx context.Context) (string, error) {
 	return c.Internal.GetGasFee(ctx)
 }
 
+func (c *StorageMinerStruct) RefreshConf(ctx context.Context) (string, error) {
+	return c.Internal.RefreshConf(ctx)
+}
 func (c *StorageMinerStruct) SectorRemove(ctx context.Context, number abi.SectorNumber) error {
 	return c.Internal.SectorRemove(ctx, number)
 }

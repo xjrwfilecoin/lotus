@@ -208,7 +208,7 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 					pledgeTime = interval
 				}
 			}
-			if pledgeTime < 0 {
+			if pledgeTime < 0 || autoInterval == 0 {
 				log.Infof("SealPreCommit2 ShellExecute %v", sector)
 				m.pledgeTask()
 			}
@@ -741,27 +741,28 @@ func (m *Manager) autoAddTask(ctx context.Context) {
 			delayTime = delay
 		}
 	}
-	intervalTime := 5
-	if str := os.Getenv("AUTO_INTERVAL_TIME"); str != "" {
-		if interval, err := strconv.Atoi(str); err == nil {
-			intervalTime = interval
-		}
-	}
-	if delayTime < 0 || intervalTime < 0 {
-		log.Infof("cancel autoAddTask %v %v", delayTime, intervalTime)
+	if autoInterval <= 0 {
+		log.Infof("cancel autoAddTask %v %v", delayTime, autoInterval)
 		return
 	}
 	time.Sleep(time.Duration(delayTime) * time.Minute)
-	ticker := time.NewTicker(time.Duration(intervalTime) * time.Minute)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			m.pledgeTask()
-		case <-ctx.Done():
-			return
+	m.startTimer(ctx, autoInterval)
+}
+
+func (m *Manager) startTimer(ctx context.Context, interval int) {
+	go func() {
+		ticker := time.NewTicker(time.Duration(interval) * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				m.pledgeTask()
+			case <-m.autoDone:
+				log.Info("autoDone")
+				return
+			}
 		}
-	}
+	}()
 }
 
 func (m *Manager) pledgeTask() {
@@ -771,8 +772,23 @@ func (m *Manager) pledgeTask() {
 	m.sched.workersLk.Lock()
 	for _, worker := range m.sched.workers {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit1]; supported && worker.enabled {
-			p1Server++
-			tasks += len(worker.addPieceRuning) + len(worker.p1Running)
+			var avai int64
+			log.Infof("storeIDs %v", worker.storeIDs)
+			for id, _ := range worker.storeIDs {
+				si, err := m.index.StorageFsi(stores.ID(id))
+				if err == nil {
+					avai = avai + si.Available
+				}
+			}
+
+			avai = avai / 1024 / 1024 / 1024
+			if int(avai) > p1SpaceLimit {
+				log.Infof("%v P1 space %vG %vG", worker.info.Hostname, avai, p1SpaceLimit)
+				p1Server++
+				tasks += len(worker.addPieceRuning) + len(worker.p1Running)
+			} else {
+				log.Infof("%v P1 no space %vG %vG", worker.info.Hostname, avai, p1SpaceLimit)
+			}
 		}
 	}
 	m.sched.workersLk.Unlock()
@@ -784,4 +800,19 @@ func (m *Manager) pledgeTask() {
 	} else {
 		log.Infof("autoAddTask failed %v %v", tasks, totalTasks)
 	}
+}
+func (m *Manager) RefreshConf(ctx context.Context) (string, error) {
+	interval := autoInterval
+	if initConf(false) {
+		log.Infof("auto %v %v", interval, autoInterval)
+		if interval > 0 {
+			m.autoDone <- struct{}{}
+		}
+		if autoInterval > 0 {
+			m.startTimer(ctx, autoInterval)
+		}
+	}
+	conf := fmt.Sprintf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p2SpaceLimit, autoInterval, p1Limit, p2Limit, c2Limit, P2NumberLimit)
+	log.Info(conf)
+	return conf, nil
 }
