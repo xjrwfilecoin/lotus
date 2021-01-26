@@ -858,7 +858,7 @@ func (m *Manager) RefreshConf(ctx context.Context) (string, error) {
 			m.startTimer(ctx, autoInterval)
 		}
 	}
-	conf := fmt.Sprintf("P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p2SpaceLimit, autoInterval, p1Limit, p2Limit, c2Limit, P2NumberLimit)
+	conf := fmt.Sprintf("P1_SPACE = %v, P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p1SpaceLimit, p2SpaceLimit, autoInterval, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 	log.Info(conf)
 	return conf, nil
 }
