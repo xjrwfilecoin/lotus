@@ -24,7 +24,7 @@ var taskState = map[string]map[sealtasks.TaskType]int{}
 var groupState = map[string]GroupConfig{}
 var groupCount = map[string]int{}
 var p1SpaceLimit int
-var p2SpaceLimit int64
+var p2SpaceLimit int
 var p1Limit int
 var p2Limit int
 var c2Limit int
@@ -84,12 +84,6 @@ func InitTask(b bool) {
 		}
 	}
 
-	if str := os.Getenv("P1_SPACE"); str != "" {
-		if data, err := strconv.Atoi(str); err == nil {
-			p1SpaceLimit = data
-		}
-	}
-
 	fmt.Printf("AP_DELAY = %v, P1_DELAY = %v, P2_DELAY = %v, C2_DELAY = %v", apDelay, p1Delay, p2Delay, c2Delay)
 
 	fmt.Printf("P1_SPACE = %v, P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p1SpaceLimit, p2SpaceLimit, autoInterval, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)
@@ -119,6 +113,15 @@ func initConf(b bool) bool {
 
 	if conf["AUTO_INTERVAL_TIME"] < 0 {
 		e := "AUTO_INTERVAL_TIME must be greater than 0"
+		fmt.Println(e)
+		if b {
+			panic(e)
+		}
+		return false
+	}
+
+	if conf["P1_SPACE"] < 0 {
+		e := "P1_SPACE must be greater than 0"
 		fmt.Println(e)
 		if b {
 			panic(e)
@@ -173,8 +176,12 @@ func initConf(b bool) bool {
 
 	autoInterval = conf["AUTO_INTERVAL_TIME"]
 
+	if conf["P1_SPACE"] > 0 {
+		p1SpaceLimit = conf["P1_SPACE"]
+	}
+
 	if conf["P2_SPACE"] > 0 {
-		p2SpaceLimit = int64(conf["P2_SPACE"])
+		p2SpaceLimit = conf["P2_SPACE"]
 	}
 
 	if conf["P1_LIMIT"] > 0 {

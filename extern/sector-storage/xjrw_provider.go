@@ -565,7 +565,7 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 
 		avai = avai / 1024 / 1024 / 1024
 		log.Infof("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
-		if avai < p2SpaceLimit {
+		if int(avai) < p2SpaceLimit {
 			log.Infof("%v P2 no space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
 			continue
 		}
@@ -720,7 +720,7 @@ func (m *Manager) getP2Worker() bool {
 
 				avai = avai / 1024 / 1024 / 1024
 				log.Infof("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
-				if avai < p2SpaceLimit {
+				if int(avai) < p2SpaceLimit {
 					log.Infof("%v P2 no space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
 				} else {
 					return true
