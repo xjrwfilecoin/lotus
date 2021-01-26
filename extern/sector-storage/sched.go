@@ -97,7 +97,7 @@ type workerHandle struct {
 	c2Running map[abi.SectorID]struct{}
 
 	addPieceRuning map[abi.SectorID]struct{}
-	disSectors map[abi.SectorID]struct{}
+	disSectors     map[abi.SectorID]struct{}
 
 	para storiface.WorkerPara
 
@@ -437,7 +437,7 @@ func (sh *scheduler) trySched() {
 				return
 			}
 
-			log.Info("start sort %v %v", task.sector, task.taskType)
+			log.Infof("start sort %v %v", task.sector, task.taskType)
 			// Pick best worker (shuffle in case some workers are equally as good)
 			rand.Shuffle(len(acceptableWindows[sqi]), func(i, j int) {
 				acceptableWindows[sqi][i], acceptableWindows[sqi][j] = acceptableWindows[sqi][j], acceptableWindows[sqi][i] // nolint:scopelint
@@ -463,7 +463,7 @@ func (sh *scheduler) trySched() {
 				}
 				return r
 			})
-			log.Info("start end %v %v", task.sector, task.taskType)
+			log.Infof("start end %v %v", task.sector, task.taskType)
 		}(i)
 	}
 

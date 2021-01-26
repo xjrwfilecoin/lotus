@@ -217,7 +217,7 @@ func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
 		return xerrors.Errorf("getting worker info: %w", err)
 	}
 
-	return m.sched.runWorker(ctx, w, *m.getTask(info.Hostname))
+	return m.sched.runWorker(ctx, w, *m.getP2Task(info.Hostname))
 }
 
 func (m *Manager) ServeHTTP(w http.ResponseWriter, r *http.Request) {

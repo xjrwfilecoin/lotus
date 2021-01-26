@@ -36,6 +36,7 @@ var apDelay int
 var p1Delay int
 var p2Delay int
 var c2Delay int
+var mapP1Tasks sync.Map
 
 func InitTask(b bool) {
 	autoInterval = 5
@@ -242,4 +243,38 @@ func initDispatchServer(m *Manager) {
 		panic("DISPATCH_SERVER not set")
 	}
 	http.ListenAndServe(dispatch, nil)
+}
+
+func addP1Task(host string, sector abi.SectorID) {
+	if v, ok := mapP1Tasks.Load(host); !ok {
+		var sMap sync.Map
+		sMap.Store(sector, struct{}{})
+		mapP1Tasks.Store(host, &sMap)
+	} else {
+		v.(*sync.Map).LoadOrStore(sector, struct{}{})
+	}
+
+	log.Infof("addP1Task %v %v", sector, host)
+}
+
+func removeP1Task(host string, sector abi.SectorID) {
+	mapP1Tasks.Delete(host)
+	log.Infof("removeP1Task %v %v", sector, host)
+}
+
+func getP1Task(host string) int {
+	v, ok := mapP1Tasks.Load(host)
+	if !ok {
+		log.Infof("%v getP1Task %v", host, ok)
+		return 0
+	}
+
+	length := 0
+	v.(*sync.Map).Range(func(sk, sv interface{}) bool {
+		length++
+		return true
+	})
+	log.Infof("getP1Task  %v %v %v", host, length, v.(*sync.Map))
+
+	return length
 }

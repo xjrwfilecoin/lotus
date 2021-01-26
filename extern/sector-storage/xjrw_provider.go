@@ -116,6 +116,13 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 		waitRes()
 		return out, waitErr
 	}
+	host := findSector(storiface.SectorName(sector.ID), sealtasks.TTAddPiece)
+	if host == "" {
+		log.Errorf("not find p1host: %v", sector)
+		return nil, xerrors.Errorf("not find p1host: %v", sector)
+	}
+	addP1Task(host, sector.ID)
+	defer removeP1Task(host, sector.ID)
 
 	if err := m.index.StorageLock(ctx, sector.ID, storiface.FTUnsealed, storiface.FTSealed|storiface.FTCache); err != nil {
 		return nil, xerrors.Errorf("acquiring sector lock: %w", err)
@@ -196,8 +203,8 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 		}
 		saveP2Worker(storiface.SectorName(sector.ID), pwk, sealtasks.TTPreCommit2)
 	}
-	m.addTask(host, sector.ID)
-	defer m.removeTask(host, sector.ID)
+	m.addP2Task(host, sector.ID)
+	defer m.removeP2Task(host, sector.ID)
 	m.setWorker(host, sector.ID)
 	defer m.UnselectWorkerPreComit2(host, sector.ID)
 
@@ -430,7 +437,7 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
 }
 
-func (m *Manager) addTask(host string, sector abi.SectorID) {
+func (m *Manager) addP2Task(host string, sector abi.SectorID) {
 	if p1p2State != 0 {
 		return
 	}
@@ -451,10 +458,10 @@ func (m *Manager) addTask(host string, sector abi.SectorID) {
 	//}
 	//
 	//m.mapP2Tasks[host][sector] = struct{}{}
-	log.Infof("addTask %v %v", sector, host)
+	log.Infof("addP2Task %v %v", sector, host)
 }
 
-func (m *Manager) removeTask(host string, sector abi.SectorID) {
+func (m *Manager) removeP2Task(host string, sector abi.SectorID) {
 	if p1p2State != 0 {
 		return
 	}
@@ -469,10 +476,10 @@ func (m *Manager) removeTask(host string, sector abi.SectorID) {
 	//}
 	//
 	//delete(mapSector, sector)
-	log.Infof("removeTask %v %v", sector, host)
+	log.Infof("removeP2Task %v %v", sector, host)
 }
 
-func (m *Manager) getTask(host string) *sync.Map {
+func (m *Manager) getP2Task(host string) *sync.Map {
 	if p1p2State != 0 {
 		return &sync.Map{}
 	}
@@ -481,9 +488,11 @@ func (m *Manager) getTask(host string) *sync.Map {
 
 	v, ok := m.mapP2Tasks.Load(host)
 	if !ok {
-		log.Infof("%v getTask %v", host, ok)
+		log.Infof("%v getP2Task %v", host, ok)
 		return &sync.Map{}
 	}
+
+	log.Infof("getP2Task  %v", v.(*sync.Map))
 
 	//mapSector, ok := m.mapP2Tasks[host]
 	//if !ok {

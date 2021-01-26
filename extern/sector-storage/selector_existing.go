@@ -86,6 +86,9 @@ func (s *existingSelector) Ok(ctx context.Context, task sealtasks.TaskType, spt 
 }
 
 func (s *existingSelector) Cmp(ctx context.Context, task sealtasks.TaskType, a, b *workerHandle) (bool, error) {
+	if a.utilization() == b.utilization() && task == sealtasks.TTAddPiece {
+		return getP1Task(a.info.Hostname) < getP1Task(b.info.Hostname), nil
+	}
 	return a.utilization() < b.utilization(), nil
 }
 
