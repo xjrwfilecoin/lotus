@@ -398,6 +398,7 @@ func (m *Manager) SealCommit2(ctx context.Context, sector storage.SectorRef, pha
 			return e
 		}
 
+		defer m.DelC2(ctx, inf.Hostname, sector.ID)
 		startSector(storiface.SectorName(sector.ID), inf.Hostname, sealtasks.TTCommit2)
 
 		t1 := time.Now()
@@ -870,4 +871,18 @@ func (m *Manager) RefreshConf(ctx context.Context) (string, error) {
 	conf := fmt.Sprintf("P1_SPACE = %v, P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v", p1SpaceLimit, p2SpaceLimit, autoInterval, p1Limit, p2Limit, c2Limit, P2NumberLimit)
 	log.Info(conf)
 	return conf, nil
+}
+
+func (m *Manager) DelC2(ctx context.Context, host string, sector abi.SectorID) {
+	m.sched.workersLk.Lock()
+	defer m.sched.workersLk.Unlock()
+
+	log.Infof("DelC2 %v", sector)
+	for _, worker := range m.sched.workers {
+		if worker.info.Hostname == host {
+			log.Infof("DelC2* %v %v", sector, host)
+			worker.c2Assign.Delete(sector)
+			break
+		}
+	}
 }

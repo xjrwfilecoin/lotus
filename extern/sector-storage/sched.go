@@ -99,6 +99,8 @@ type workerHandle struct {
 	addPieceRuning map[abi.SectorID]struct{}
 	disSectors     map[abi.SectorID]struct{}
 
+	c2Assign sync.Map
+
 	para storiface.WorkerPara
 
 	storeIDs map[string]struct{}
@@ -492,9 +494,23 @@ func (sh *scheduler) trySched() {
 				continue
 			}
 
+			if task.taskType == sealtasks.TTCommit2 {
+				length := 0
+				sh.workers[wid].c2Assign.Range(func(k, v interface{}) bool {
+					length++
+					return true
+				})
+
+				if length >= c2Limit {
+					log.Infof("c2Limit %v %v %v %v", task.sector, task.taskType, sh.workers[wid].info.Hostname, length)
+					continue
+				}
+			}
+
 			log.Debugf("SCHED ASSIGNED sqi:%d sector %d task %s to window %d %v", sqi, task.sector.ID.Number, task.taskType, wnd, sh.workers[wid].info.Hostname)
 
 			windows[wnd].allocated.add(wr, needRes)
+			sh.workers[wid].c2Assign.Store(task.sector.ID, struct{}{})
 			// TODO: We probably want to re-sort acceptableWindows here based on new
 			//  workerHandle.utilization + windows[wnd].allocated.utilization (workerHandle.utilization is used in all
 			//  task selectors, but not in the same way, so need to figure out how to do that in a non-O(n^2 way), and
