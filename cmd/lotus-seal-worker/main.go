@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -480,6 +482,30 @@ var runCmd = &cli.Command{
 			}()
 			return out
 		}
+
+		go func() {
+			ticker := time.NewTicker(1 * time.Minute)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					memStatus := runtime.MemStats{}
+					runtime.ReadMemStats(&memStatus)
+					var gb uint64
+					gb = 1024 * 1024 * 1024
+					log.Infof("get gorouting %v %vGb %vGb %vGb", runtime.NumGoroutine(), memStatus.Alloc/gb, memStatus.TotalAlloc/gb, memStatus.Sys/gb)
+				}
+			}
+		}()
+
+		defer func() {
+			logFile, err := os.OpenFile("./fatal.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+			if err != nil {
+				fmt.Println("worker server", "open file fail", err)
+				return
+			}
+			syscall.Dup2(int(logFile.Fd()), int(os.Stderr.Fd()))
+		}()
 
 		go func() {
 			heartbeats := time.NewTicker(stores.HeartbeatInterval)
