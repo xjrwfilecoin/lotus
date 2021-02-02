@@ -654,14 +654,14 @@ func (m *Manager) handlerStatus(w http.ResponseWriter, r *http.Request) {
 	err := json.Unmarshal(body, &data)
 	if err != nil {
 		log.Error("Unmarshal error %+v", err)
-		w.Write([]byte(""))
+		w.Write([]byte("Unmarshal error"))
 		return
 	}
 
 	sector, err := storiface.ParseSectorID(data["sector"])
 	if err != nil {
 		log.Error("data error %+v", err)
-		w.Write([]byte(""))
+		w.Write([]byte("data error"))
 		return
 	}
 
