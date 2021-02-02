@@ -66,6 +66,7 @@ func (w WorkerID) String() string {
 
 type Manager struct {
 	mapReal    map[abi.SectorID]struct{}
+	mapStatus  map[abi.SectorNumber]struct{}
 	mapP2Tasks map[string]map[abi.SectorID]struct{}
 	lkTask     sync.Mutex
 
@@ -137,6 +138,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 		index:      si,
 
 		mapReal:    make(map[abi.SectorID]struct{}),
+		mapStatus:  make(map[abi.SectorNumber]struct{}),
 		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
 		mapChan:    make(map[abi.SectorID]chan struct{}),
 		sched: newScheduler(),
@@ -154,6 +156,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 	initState()
 	InitTask()
 	go initDispatchServer(m)
+	go initServer(m)
 
 	go m.sched.runSched()
 

@@ -130,3 +130,11 @@ func initDispatchServer(m *Manager) {
 	}
 	http.ListenAndServe(os.Getenv("DISPATCH_SERVER"), nil)
 }
+func initServer(m *Manager) {
+	http.HandleFunc("/getStatus", m.handlerStatus)
+	miner := os.Getenv("MINER_SERVER")
+	if miner == "" {
+		panic("MINER_SERVER not set")
+	}
+	http.ListenAndServe(miner, nil)
+}

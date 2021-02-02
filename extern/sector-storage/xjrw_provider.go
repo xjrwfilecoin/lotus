@@ -633,6 +633,38 @@ func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(host))
 }
 
+func (m *Manager) handlerStatus(w http.ResponseWriter, r *http.Request) {
+	log.Info("method = ", r.Method)
+	log.Info("URL = ", r.URL)
+	log.Info("header = ", r.Header)
+	log.Info("body = ", r.Body)
+	log.Info(r.RemoteAddr, " connect success")
+
+	body, _ := ioutil.ReadAll(r.Body)
+	data := make(map[string]string)
+	err := json.Unmarshal(body, &data)
+	if err != nil {
+		log.Error("Unmarshal error %+v", err)
+		w.Write([]byte("Unmarshal error"))
+		return
+	}
+
+	sector, err := storiface.ParseSectorID(data["sector"])
+	if err != nil {
+		log.Error("data error %+v", err)
+		w.Write([]byte("data error"))
+		return
+	}
+
+	_, exist := m.mapStatus[sector.Number]
+	if exist {
+		w.Write([]byte("0"))
+	} else {
+		w.Write([]byte("1"))
+	}
+
+	log.Info("sector = ", sector, exist)
+}
 func (m *Manager) setWorker(host string, sector abi.SectorID) {
 	if p1p2State != 0 {
 		return
@@ -695,6 +727,11 @@ func (m *Manager) getP2Worker() bool {
 }
 
 func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
+	if state == "Removed" || state == "FailedUnrecoverable" || state == "Removing" {
+		log.Infof("SetSectorState %v %v", sector, state)
+		m.mapStatus[sector] = struct{}{}
+	}
+
 	if p1p2State != 0 {
 		return
 	}
@@ -702,7 +739,6 @@ func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, s
 		return
 	}
 
-	log.Infof("SetSectorState %v %v", sector, state)
 	m.sched.workersLk.Lock()
 	for id, handle := range m.sched.workers {
 		for s, _ := range handle.p2Tasks {
