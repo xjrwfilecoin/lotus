@@ -1,6 +1,7 @@
 package sectorstorage
 
 import (
+	"golang.org/x/xerrors"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
@@ -85,8 +86,12 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 
 func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, req *workerRequest, worker *workerHandle) bool {
 	if worker.enabled == false {
-		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed)
-		//return false
+		if _, exist := worker.disSectors[req.sector.ID]; !exist {
+			go req.respond(xerrors.Errorf("canHandleRequest enable: %v %v %v", req.sector, wid, req.taskType))
+		}
+		worker.disSectors[req.sector.ID] = struct{}{}
+		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, worker.info.Hostname)
+		return false
 	}
 	//log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 
