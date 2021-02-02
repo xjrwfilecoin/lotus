@@ -100,9 +100,9 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	}
 
 	if id != wid {
-		go req.respond(xerrors.Errorf("canHandleRequest wid: %v %v %v", req.sector, wid, req.taskType))
+		//go req.respond(xerrors.Errorf("canHandleRequest wid: %v %v %v", req.sector, wid, req.taskType))
 		log.Infof("canHandleRequest wid %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, id, wid)
-		return false
+		//return false
 	}
 	log.Infof("canHandleRequest start %v %v %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, len(worker.p1Running), len(worker.c2Running), len(worker.p2Running))
 
@@ -192,16 +192,16 @@ func (a *activeResources) utilization(wr storiface.WorkerResources) float64 {
 func (wh *workerHandle) utilization() float64 {
 	wh.lk.Lock()
 	u := wh.active.utilization(wh.info.Resources)
-	log.Infof("utilization1 %v %v", wh.info.Hostname, u)
-	u += wh.preparing.utilization(wh.info.Resources)
-	log.Infof("utilization2 %v %v %v", wh.info.Hostname, u, wh.preparing.utilization(wh.info.Resources))
+	log.Infof("utilization %v %v", wh.info.Hostname, u)
+	//u += wh.preparing.utilization(wh.info.Resources)
+	//log.Infof("utilization2 %v %v %v", wh.info.Hostname, u, wh.preparing.utilization(wh.info.Resources))
 	wh.lk.Unlock()
-	wh.wndLk.Lock()
-	for _, window := range wh.activeWindows {
-		u += window.allocated.utilization(wh.info.Resources)
-	}
-	wh.wndLk.Unlock()
-	log.Infof("utilization3 %v %v", wh.info.Hostname, u)
+	//wh.wndLk.Lock()
+	//for _, window := range wh.activeWindows {
+	//	u += window.allocated.utilization(wh.info.Resources)
+	//}
+	//wh.wndLk.Unlock()
+	//log.Infof("utilization3 %v %v", wh.info.Hostname, u)
 
 	return u
 }
