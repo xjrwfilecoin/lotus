@@ -97,6 +97,7 @@ type workerHandle struct {
 	c2Running map[abi.SectorID]struct{}
 
 	addPieceRuning map[abi.SectorID]struct{}
+	disSectors     map[abi.SectorID]struct{}
 
 	para storiface.WorkerPara
 
