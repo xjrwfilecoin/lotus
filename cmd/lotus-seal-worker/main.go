@@ -505,6 +505,13 @@ var runCmd = &cli.Command{
 				return
 			}
 			syscall.Dup2(int(logFile.Fd()), int(os.Stderr.Fd()))
+
+			if err := recover(); err != nil {
+				fmt.Println("recover msg: ", err)
+				logFile.WriteString(fmt.Sprintf("recover msg: %v \n", err))
+			}
+			logFile.Close()
+
 		}()
 
 		go func() {
