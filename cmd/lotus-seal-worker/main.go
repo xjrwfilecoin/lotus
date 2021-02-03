@@ -177,6 +177,24 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting lotus worker")
 
+		defer func() {
+			logFile, err := os.OpenFile("./fatal.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+			if err != nil {
+				fmt.Println("worker server", "open file fail", err)
+				return
+			}
+			syscall.Dup2(int(logFile.Fd()), int(os.Stderr.Fd()))
+
+			if err := recover(); err != nil {
+				fmt.Println("recover msg: ", err)
+				logFile.WriteString(fmt.Sprintf("recover msg: %v \n", err))
+			} else {
+				logFile.WriteString("recover msg: nil \n")
+			}
+			logFile.Close()
+
+		}()
+
 		if !cctx.Bool("enable-gpu-proving") {
 			if err := os.Setenv("BELLMAN_NO_GPU", "true"); err != nil {
 				return xerrors.Errorf("could not set no-gpu env: %+v", err)
@@ -496,22 +514,6 @@ var runCmd = &cli.Command{
 					log.Infof("get gorouting %v %vGb %vGb %vGb", runtime.NumGoroutine(), memStatus.Alloc/gb, memStatus.TotalAlloc/gb, memStatus.Sys/gb)
 				}
 			}
-		}()
-
-		defer func() {
-			logFile, err := os.OpenFile("./fatal.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
-			if err != nil {
-				fmt.Println("worker server", "open file fail", err)
-				return
-			}
-			syscall.Dup2(int(logFile.Fd()), int(os.Stderr.Fd()))
-
-			if err := recover(); err != nil {
-				fmt.Println("recover msg: ", err)
-				logFile.WriteString(fmt.Sprintf("recover msg: %v \n", err))
-			}
-			logFile.Close()
-
 		}()
 
 		go func() {
