@@ -279,9 +279,11 @@ func (m *Sealing) handlePreCommitting(ctx statemachine.Context, sector SectorInf
 		case *ErrBadCommD: // TODO: Should this just back to packing? (not really needed since handlePreCommit1 will do that too)
 			return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("bad CommD error: %w", err)})
 		case *ErrExpiredTicket:
-			return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("ticket expired: %w", err)})
+			log.Infof("handlePreCommitting ErrExpiredTicket %v", sector.SectorNumber)
+			return ctx.Send(SectorTicketExpired{xerrors.Errorf("ticket expired error, removing sector: %w", err)})
 		case *ErrBadTicket:
-			return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("bad ticket: %w", err)})
+			log.Infof("handlePreCommitting ErrBadTicket %v", sector.SectorNumber)
+			return ctx.Send(SectorTicketExpired{xerrors.Errorf("bad ticket, removing sector: %w", err)})
 		case *ErrInvalidDeals:
 			log.Warnf("invalid deals in sector %d: %v", sector.SectorNumber, err)
 			return ctx.Send(SectorInvalidDealIDs{Return: RetPreCommitting})
