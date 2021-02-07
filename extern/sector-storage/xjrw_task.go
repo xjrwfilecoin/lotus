@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 )
 
 const sfiltask = "./taskconfig.json"
@@ -30,6 +31,8 @@ var c2Limit int
 var p1p2State int
 var P2NumberLimit int
 var autoInterval int
+var WindowsPostLk bool
+var finalizeLk sync.Mutex
 
 func InitTask(b bool) {
 	autoInterval = 5
