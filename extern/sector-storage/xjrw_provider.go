@@ -418,6 +418,25 @@ func (m *Manager) SealCommit2(ctx context.Context, sector storage.SectorRef, pha
 	return out, waitErr
 }
 
+func (m *Manager) waitWindowsPost(sector storage.SectorRef) {
+	if WindowsPostLk == false {
+		log.Infof("waitWindowsPost finish %v %v", sector, WindowsPostLk)
+		return
+	}
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if WindowsPostLk == false {
+				log.Infof("waitWindowsPost end %v %v", sector, WindowsPostLk)
+				return
+			}
+			log.Infof("waitWindowsPost %v %v", sector, WindowsPostLk)
+		}
+	}
+}
+
 func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, keepUnsealed []storage.Range) error {
 	log.Info("xjrw FinalizeSector begin ", sector)
 	t1 := time.Now()
@@ -425,6 +444,12 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 		t2 := time.Now()
 		log.Infof("xjrw cast mgr FinalizeSector %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 	}()
+
+	finalizeLk.Lock()
+	log.Infof("start FinalizeSector %v", sector)
+	defer finalizeLk.Unlock()
+
+	m.waitWindowsPost(sector)
 
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
 }
