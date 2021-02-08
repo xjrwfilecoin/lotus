@@ -19,7 +19,6 @@ import (
 	"go.opencensus.io/trace"
 	"golang.org/x/xerrors"
 
-	sectorstorage "github.com/filecoin-project/lotus/extern/sector-storage"
 	proof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 
 	"github.com/filecoin-project/lotus/api"
@@ -575,9 +574,6 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 				break
 			}
 
-			sectorstorage.WindowsPostLk = true
-			log.Info("start lock ", sectorstorage.WindowsPostLk)
-
 			// Generate proof
 			log.Infow("running window post",
 				"chain-random", rand,
@@ -596,9 +592,6 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 			elapsed := time.Since(tsStart)
 
 			log.Infow("computing window post", "batch", batchIdx, "elapsed", elapsed)
-
-			sectorstorage.WindowsPostLk = false
-			log.Info("end lock ", sectorstorage.WindowsPostLk)
 
 			if err == nil {
 				if len(postOut) == 0 {
