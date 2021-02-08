@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -500,21 +499,6 @@ var runCmd = &cli.Command{
 			}()
 			return out
 		}
-
-		go func() {
-			ticker := time.NewTicker(1 * time.Minute)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-ticker.C:
-					memStatus := runtime.MemStats{}
-					runtime.ReadMemStats(&memStatus)
-					var gb uint64
-					gb = 1024 * 1024 * 1024
-					log.Infof("get gorouting %v %vGb %vGb %vGb", runtime.NumGoroutine(), memStatus.Alloc/gb, memStatus.TotalAlloc/gb, memStatus.Sys/gb)
-				}
-			}
-		}()
 
 		go func() {
 			heartbeats := time.NewTicker(stores.HeartbeatInterval)

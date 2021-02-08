@@ -449,7 +449,7 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 	//log.Infof("start FinalizeSector %v", sector)
 	//defer finalizeLk.Unlock()
 
-	m.waitWindowsPost(sector)
+	//m.waitWindowsPost(sector)
 
 	return m.oldFinalizeSector(ctx, sector, keepUnsealed)
 }
@@ -599,43 +599,43 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 	return host
 }
 
-func (m *Manager) handlerP1(w http.ResponseWriter, r *http.Request) {
-	log.Info("method = ", r.Method)
-	log.Info("URL = ", r.URL)
-	log.Info("header = ", r.Header)
-	log.Info("body = ", r.Body)
-	log.Info(r.RemoteAddr, " connect success")
-
-	body, _ := ioutil.ReadAll(r.Body)
-	data := make(map[string]string)
-	err := json.Unmarshal(body, &data)
-	if err != nil {
-		log.Error("Unmarshal error %+v", err)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	log.Info("result :", data["result"])
-
-	sector, err := storiface.ParseSectorID(data["sector"])
-	if err != nil {
-		log.Error("data error %+v", err)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	m.lkChan.Lock()
-	if ch, ok := m.mapChan[sector]; ok {
-		close(ch)
-		delete(m.mapChan, sector)
-		log.Infof("delete channel %v %v", sector, m.mapChan)
-	} else {
-		log.Error("handlerP1 not find ", sector)
-	}
-	m.lkChan.Unlock()
-
-	w.Write([]byte(""))
-}
+//func (m *Manager) handlerP1(w http.ResponseWriter, r *http.Request) {
+//	log.Info("method = ", r.Method)
+//	log.Info("URL = ", r.URL)
+//	log.Info("header = ", r.Header)
+//	log.Info("body = ", r.Body)
+//	log.Info(r.RemoteAddr, " connect success")
+//
+//	body, _ := ioutil.ReadAll(r.Body)
+//	data := make(map[string]string)
+//	err := json.Unmarshal(body, &data)
+//	if err != nil {
+//		log.Error("Unmarshal error %+v", err)
+//		w.Write([]byte(err.Error()))
+//		return
+//	}
+//
+//	log.Info("result :", data["result"])
+//
+//	sector, err := storiface.ParseSectorID(data["sector"])
+//	if err != nil {
+//		log.Error("data error %+v", err)
+//		w.Write([]byte(err.Error()))
+//		return
+//	}
+//
+//	m.lkChan.Lock()
+//	if ch, ok := m.mapChan[sector]; ok {
+//		close(ch)
+//		delete(m.mapChan, sector)
+//		log.Infof("delete channel %v %v", sector, m.mapChan)
+//	} else {
+//		log.Error("handlerP1 not find ", sector)
+//	}
+//	m.lkChan.Unlock()
+//
+//	w.Write([]byte(""))
+//}
 
 func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 	log.Info("method = ", r.Method)
@@ -668,11 +668,11 @@ func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Manager) handlerStatus(w http.ResponseWriter, r *http.Request) {
-	log.Info("method = ", r.Method)
-	log.Info("URL = ", r.URL)
-	log.Info("header = ", r.Header)
-	log.Info("body = ", r.Body)
-	log.Info(r.RemoteAddr, " connect success")
+	//log.Info("method = ", r.Method)
+	//log.Info("URL = ", r.URL)
+	//log.Info("header = ", r.Header)
+	//log.Info("body = ", r.Body)
+	//log.Info(r.RemoteAddr, " connect success")
 
 	body, _ := ioutil.ReadAll(r.Body)
 	data := make(map[string]string)

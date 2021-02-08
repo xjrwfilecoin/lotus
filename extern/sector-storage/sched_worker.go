@@ -56,7 +56,7 @@ func (sh *scheduler) runWorker(ctx context.Context, w Worker, tasks map[abi.Sect
 		return xerrors.Errorf("getting worker para: %w", err)
 	}
 
-	log.Infof("%v addworker %v  para %v", info.Hostname, sessID, para)
+	//log.Infof("%v addworker %v  para %v", info.Hostname, sessID, para)
 
 	ids := make(map[string]struct{})
 	for _, path := range paths {
