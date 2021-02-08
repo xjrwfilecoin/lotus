@@ -200,7 +200,7 @@ func initDispatchServer(m *Manager) {
 		return
 	}
 	http.HandleFunc("/getHost", m.handlerP2)
-	http.HandleFunc("/setFinish", m.handlerP1)
+	//http.HandleFunc("/setFinish", m.handlerP1)
 	dispatch := os.Getenv("DISPATCH_SERVER")
 	if dispatch == "" {
 		panic("DISPATCH_SERVER not set")
