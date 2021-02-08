@@ -208,7 +208,7 @@ loop:
 			}
 		}
 
-		log.Infof("StorageDeclareSector %v %v %v %v", storageID, s, ft, primary)
+		//log.Infof("StorageDeclareSector %v %v %v %v", storageID, s, ft, primary)
 		i.sectors[d] = append(i.sectors[d], &declMeta{
 			storage: storageID,
 			primary: primary,
@@ -242,7 +242,7 @@ func (i *Index) StorageDropSector(ctx context.Context, storageID ID, s abi.Secto
 			rewritten = append(rewritten, sid)
 		}
 		if len(rewritten) == 0 {
-			log.Infof("StorageDropSector delete %v %v %v", storageID, s, ft)
+			//log.Infof("StorageDropSector delete %v %v %v", storageID, s, ft)
 			delete(i.sectors, d)
 			return nil
 		}

@@ -16,44 +16,44 @@ func (a *activeResources) withResources(taskDone chan struct{}, req *workerReque
 		a.cond.Wait()
 	}
 
-	log.Infof("start %v %v %s", req.sector, req.taskType, id)
+	//log.Infof("start %v %v %s", req.sector, req.taskType, id)
 	if req.taskType == sealtasks.TTPreCommit2 {
 		worker.p2Running[req.sector.ID] = struct{}{}
-		log.Info("p2Running add", worker.p2Running)
+		//log.Info("p2Running add", worker.p2Running)
 	} else if req.taskType == sealtasks.TTCommit2 {
 		worker.c2Running[req.sector.ID] = struct{}{}
-		log.Info("c2Running add", worker.c2Running)
+		//log.Info("c2Running add", worker.c2Running)
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		worker.p1Running[req.sector.ID] = struct{}{}
-		log.Info("p1Running add", worker.p1Running)
+		//log.Info("p1Running add", worker.p1Running)
 	} else if req.taskType == sealtasks.TTAddPiece {
 		worker.addPieceRuning[req.sector.ID] = struct{}{}
-		log.Info("addPieceRuning add", worker.addPieceRuning)
+		//log.Info("addPieceRuning add", worker.addPieceRuning)
 	}
 
 	a.add(wr, r)
 
 	err := cb()
 
-	log.Infof("finish %v %v %v", req.sector, req.taskType, id)
+	//log.Infof("finish %v %v %v", req.sector, req.taskType, id)
 	if req.taskType == sealtasks.TTPreCommit2 {
 		delete(worker.p2Running, req.sector.ID)
-		log.Info("p2Running del", worker.p2Running)
+		//log.Info("p2Running del", worker.p2Running)
 	} else if req.taskType == sealtasks.TTCommit2 {
 		delete(worker.c2Running, req.sector.ID)
-		log.Info("c2Running del", worker.c2Running)
+		//log.Info("c2Running del", worker.c2Running)
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		delete(worker.p1Running, req.sector.ID)
-		log.Info("p1Running del", worker.p1Running)
+		//log.Info("p1Running del", worker.p1Running)
 	} else if req.taskType == sealtasks.TTAddPiece {
 		delete(worker.addPieceRuning, req.sector.ID)
-		log.Info("addPieceRuning del", worker.addPieceRuning)
+		//log.Info("addPieceRuning del", worker.addPieceRuning)
 	}
 
 	a.free(wr, r)
 
 	go func() {
-		log.Infof("taskDone %v %v", req.sector, req.taskType)
+		//log.Infof("taskDone %v %v", req.sector, req.taskType)
 		select {
 		case taskDone <- struct{}{}:
 		}
@@ -189,7 +189,7 @@ func (wh *workerHandle) utilization() float64 {
 	//}
 	//wh.wndLk.Unlock()
 
-	log.Infof("utilization %v %v", wh.info.Hostname, u)
+	//log.Infof("utilization %v %v", wh.info.Hostname, u)
 
 	return u
 }

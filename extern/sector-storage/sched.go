@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/rand"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -372,12 +371,6 @@ func (sh *scheduler) trySched() {
 		// nothing to schedule on
 		return
 	}
-	querylist := ""
-	for i := 0; i < sh.schedQueue.Len(); i++ {
-		task := (*sh.schedQueue)[i]
-		querylist = querylist + strconv.Itoa(int(task.sector.ID.Number)) + "-" + string(task.taskType) + ","
-	}
-	log.Info("querylist: ", querylist)
 
 	windows := make([]schedWindow, windowsLen)
 	acceptableWindows := make([][]int, queuneLen)
@@ -437,7 +430,7 @@ func (sh *scheduler) trySched() {
 				return
 			}
 
-			log.Infof("start sort %v %v", task.sector, task.taskType)
+			//log.Infof("start sort %v %v", task.sector, task.taskType)
 			// Pick best worker (shuffle in case some workers are equally as good)
 			rand.Shuffle(len(acceptableWindows[sqi]), func(i, j int) {
 				acceptableWindows[sqi][i], acceptableWindows[sqi][j] = acceptableWindows[sqi][j], acceptableWindows[sqi][i] // nolint:scopelint
@@ -463,7 +456,7 @@ func (sh *scheduler) trySched() {
 				}
 				return r
 			})
-			log.Infof("start end %v %v", task.sector, task.taskType)
+			//log.Infof("start end %v %v", task.sector, task.taskType)
 		}(i)
 	}
 
