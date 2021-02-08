@@ -445,9 +445,9 @@ func (m *Manager) FinalizeSector(ctx context.Context, sector storage.SectorRef, 
 		log.Infof("xjrw cast mgr FinalizeSector %v, %v, %v, %v", sector, t2.Sub(t1), t1, t2)
 	}()
 
-	finalizeLk.Lock()
-	log.Infof("start FinalizeSector %v", sector)
-	defer finalizeLk.Unlock()
+	//finalizeLk.Lock()
+	//log.Infof("start FinalizeSector %v", sector)
+	//defer finalizeLk.Unlock()
 
 	m.waitWindowsPost(sector)
 
