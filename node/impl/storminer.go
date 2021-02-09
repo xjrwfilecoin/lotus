@@ -3,6 +3,8 @@ package impl
 import (
 	"context"
 	"encoding/json"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	proof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 	"net/http"
 	"os"
 	"strconv"
@@ -355,6 +357,57 @@ func (sm *StorageMinerAPI) GetGasFee(ctx context.Context) (string, error) {
 func (sm *StorageMinerAPI) RefreshConf(ctx context.Context) (string, error) {
 	return sm.Miner.RefreshConf(ctx)
 }
+
+func (sm *StorageMinerAPI) WindowsPost(ctx context.Context, number int) error {
+	head, err := sm.Full.ChainHead(ctx)
+	if err != nil {
+		return err
+	}
+
+	sset, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), nil, head.Key())
+	if err != nil {
+		return err
+	}
+
+	list, err := sm.SectorsList(ctx)
+	if err != nil {
+		return err
+	}
+
+	var proofSectors []proof2.SectorInfo
+	n := 0
+	for _, s := range list {
+		st, err := sm.SectorsStatus(ctx, s, true)
+		if err != nil {
+			continue
+		}
+
+		if n >= number {
+			continue
+		}
+
+		if st.State != "Proving" {
+			continue
+		}
+
+		n++
+
+		for _, sector := range sset {
+			if sector.SectorNumber == s {
+				substitute := proof.SectorInfo{
+					SectorNumber: sector.SectorNumber,
+					SealedCID:    sector.SealedCID,
+					SealProof:    sector.SealProof,
+				}
+				proofSectors = append(proofSectors, substitute)
+				log.Info("WindowsPost ", s)
+			}
+		}
+	}
+
+	return sm.Miner.WindowsPost(ctx, proofSectors, number)
+}
+
 func (sm *StorageMinerAPI) SectorRemove(ctx context.Context, id abi.SectorNumber) error {
 	return sm.Miner.RemoveSector(ctx, id)
 }
