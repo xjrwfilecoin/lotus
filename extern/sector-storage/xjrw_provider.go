@@ -836,7 +836,7 @@ func (m *Manager) pledgeTask() {
 	for _, worker := range m.sched.workers {
 		if _, supported := worker.taskTypes[sealtasks.TTPreCommit1]; supported && worker.enabled {
 			var avai int64
-			log.Infof("storeIDs %v", worker.storeIDs)
+			//log.Infof("storeIDs %v", worker.storeIDs)
 			for id, _ := range worker.storeIDs {
 				si, err := m.index.StorageFsi(stores.ID(id))
 				if err == nil {
@@ -846,7 +846,7 @@ func (m *Manager) pledgeTask() {
 
 			avai = avai / 1024 / 1024 / 1024
 			if int(avai) > p1SpaceLimit {
-				log.Infof("%v P1 space %vG %vG", worker.info.Hostname, avai, p1SpaceLimit)
+				//log.Infof("%v P1 space %vG %vG", worker.info.Hostname, avai, p1SpaceLimit)
 				p1Server++
 				tasks += len(worker.addPieceRuning) + len(worker.p1Running)
 			} else {

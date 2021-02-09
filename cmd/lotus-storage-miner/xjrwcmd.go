@@ -22,6 +22,7 @@ var gasCmd = &cli.Command{
 		setGasFee,
 		getGasFee,
 		reloadConf,
+		windowsPost,
 	},
 }
 
@@ -178,5 +179,34 @@ var reloadConf = &cli.Command{
 		}
 		fmt.Println(conf)
 		return nil
+	},
+}
+
+var windowsPost = &cli.Command{
+	Name:      "windowspost",
+	Usage:     "windows post",
+	ArgsUsage: "<WindowsPost>",
+	Action: func(cctx *cli.Context) error {
+		nodeApi, closer, err := lcli.GetStorageMinerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := lcli.ReqContext(cctx)
+		if cctx.Args().Len() != 1 {
+			return xerrors.Errorf("must input number")
+		}
+
+		str := cctx.Args().Get(0)
+
+		number, err := strconv.Atoi(str)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("windows post ", number)
+
+		return nodeApi.WindowsPost(ctx, number)
 	},
 }
