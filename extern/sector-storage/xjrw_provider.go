@@ -697,7 +697,7 @@ func (m *Manager) handlerStatus(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("1"))
 	}
 
-	log.Info("sector = ", sector, exist)
+	log.Debug("sector = ", sector, exist)
 }
 
 func (m *Manager) setWorker(host string, sector abi.SectorID) {
