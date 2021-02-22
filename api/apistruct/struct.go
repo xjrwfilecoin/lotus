@@ -322,6 +322,7 @@ type StorageMinerStruct struct {
 		GetGasFee             func(context.Context) (string, error) `perm:"admin"`
 
 		WindowsPost func(context.Context, int) error `perm:"admin"`
+		WinningPost func(context.Context, int) error `perm:"admin"`
 
 		RefreshConf   func(context.Context) (string, error)                              `perm:"admin"`
 		WorkerConnect func(context.Context, string) error                                `perm:"admin" retry:"true"` // TODO: worker perm
@@ -1338,6 +1339,10 @@ func (c *StorageMinerStruct) RefreshConf(ctx context.Context) (string, error) {
 
 func (c *StorageMinerStruct) WindowsPost(ctx context.Context, number int) error {
 	return c.Internal.WindowsPost(ctx, number)
+}
+
+func (c *StorageMinerStruct) WinningPost(ctx context.Context, number int) error {
+	return c.Internal.WinningPost(ctx, number)
 }
 
 func (c *StorageMinerStruct) SectorRemove(ctx context.Context, number abi.SectorNumber) error {

@@ -80,6 +80,16 @@ func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo,
 	return nil
 }
 
+func (m *Miner) WinningPost(ctx context.Context, sectorInfo []proof2.SectorInfo, number int) error {
+	mid, err := address.IDFromAddress(m.maddr)
+	if err != nil {
+		return err
+	}
+
+	m.sealer.GenerateWinningPoSt(ctx, abi.ActorID(mid), sectorInfo, abi.PoStRandomness{0, 9, 2, 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 45, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9, 7})
+	return nil
+}
+
 func (m *Miner) RemoveSector(ctx context.Context, id abi.SectorNumber) error {
 	return m.sealing.Remove(ctx, id)
 }

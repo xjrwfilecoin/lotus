@@ -400,12 +400,61 @@ func (sm *StorageMinerAPI) WindowsPost(ctx context.Context, number int) error {
 					SealProof:    sector.SealProof,
 				}
 				proofSectors = append(proofSectors, substitute)
-				log.Info("WindowsPost ", s)
+				log.Debug("WindowsPost ", s)
 			}
 		}
 	}
 
 	return sm.Miner.WindowsPost(ctx, proofSectors, number)
+}
+func (sm *StorageMinerAPI) WinningPost(ctx context.Context, number int) error {
+	head, err := sm.Full.ChainHead(ctx)
+	if err != nil {
+		return err
+	}
+
+	sset, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), nil, head.Key())
+	if err != nil {
+		return err
+	}
+
+	list, err := sm.SectorsList(ctx)
+	if err != nil {
+		return err
+	}
+
+	var proofSectors []proof2.SectorInfo
+	n := 0
+	for _, s := range list {
+		st, err := sm.SectorsStatus(ctx, s, true)
+		if err != nil {
+			continue
+		}
+
+		if n >= number {
+			continue
+		}
+
+		if st.State != "Proving" {
+			continue
+		}
+
+		n++
+
+		for _, sector := range sset {
+			if sector.SectorNumber == s {
+				substitute := proof.SectorInfo{
+					SectorNumber: sector.SectorNumber,
+					SealedCID:    sector.SealedCID,
+					SealProof:    sector.SealProof,
+				}
+				proofSectors = append(proofSectors, substitute)
+				log.Debug("WinningPost ", s)
+			}
+		}
+	}
+
+	return sm.Miner.WinningPost(ctx, proofSectors, number)
 }
 
 func (sm *StorageMinerAPI) SectorRemove(ctx context.Context, id abi.SectorNumber) error {

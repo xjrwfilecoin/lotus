@@ -62,7 +62,7 @@ func (m *Sealing) handlePacking(ctx statemachine.Context, sector SectorInfo) err
 }
 
 func checkTicketExpired(sector SectorInfo, epoch abi.ChainEpoch) bool {
-	log.Infof("checkTicketExpired %v %v %v", sector.TicketEpoch, epoch, MaxTicketAge)
+	log.Debugf("checkTicketExpired %v %v %v %v %v", sector.SectorNumber, sector.TicketEpoch, epoch, MaxTicketAge, epoch-sector.TicketEpoch > MaxTicketAge)
 	return epoch-sector.TicketEpoch > MaxTicketAge // TODO: allow configuring expected seal durations
 }
 
