@@ -76,6 +76,7 @@ type StorageMiner interface {
 	GetGasFee(context.Context) (string, error)
 
 	WindowsPost(context.Context, int) error
+	WinningPost(context.Context, int) error
 
 	RefreshConf(context.Context) (string, error)
 	StorageList(ctx context.Context) (map[stores.ID][]stores.Decl, error)
