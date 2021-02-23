@@ -4,6 +4,7 @@ package ffiwrapper
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -23,6 +24,7 @@ var wPostPath string
 
 func InitData() {
 	wPostPath = os.Getenv("MINER_WPOST_PATH")
+	fmt.Printf("MINER_WPOST_PATH = %v", wPostPath)
 }
 
 func (sb *Sealer) GenerateWinningPoSt(ctx context.Context, minerID abi.ActorID, sectorInfo []proof2.SectorInfo, randomness abi.PoStRandomness) ([]proof2.PoStProof, error) {
@@ -36,7 +38,7 @@ func (sb *Sealer) GenerateWinningPoSt(ctx context.Context, minerID abi.ActorID, 
 		return nil, xerrors.Errorf("pubSectorToPriv skipped sectors: %+v", skipped)
 	}
 
-	log.Infof("GenerateWinningPoSt %+v", privsectors)
+	//log.Infof("GenerateWinningPoSt %+v", privsectors)
 
 	return ffi.GenerateWinningPoSt(minerID, privsectors, randomness)
 }
@@ -53,7 +55,7 @@ func (sb *Sealer) GenerateWindowPoSt(ctx context.Context, minerID abi.ActorID, s
 		return nil, skipped, xerrors.Errorf("pubSectorToPriv skipped some sectors")
 	}
 
-	log.Infof("GenerateWindowPoSt %+v", privsectors)
+	//log.Infof("GenerateWindowPoSt %+v", privsectors)
 
 	proof, faulty, err := ffi.GenerateWindowPoSt(minerID, privsectors, randomness)
 
