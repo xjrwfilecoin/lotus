@@ -153,6 +153,11 @@ func (m *Sealing) handlePreCommit1(ctx statemachine.Context, sector SectorInfo) 
 		return ctx.Send(SectorOldTicket{}) // go get new ticket
 	}
 
+	if height-sector.TicketEpoch > builtin0.EpochsInDay/2 {
+		log.Infof("handlePreCommit1 ErrExpiredTicket %v", sector.SectorNumber)
+		return ctx.Send(SectorTicketExpired{xerrors.Errorf("p1 ticket expired error, removing sector: %w", err)})
+	}
+
 	pc1o, err := m.sealer.SealPreCommit1(sector.sealingCtx(ctx.Context()), m.minerSector(sector.SectorType, sector.SectorNumber), sector.TicketValue, sector.pieceInfos())
 	if err != nil {
 		return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("seal pre commit(1) failed: %w", err)})
