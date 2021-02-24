@@ -601,6 +601,14 @@ func (st *Local) removeSector(ctx context.Context, sid abi.SectorID, typ storifa
 				log.Errorf("removing sector file (%v) from %s: %+v", sid, file, err)
 			}
 		}
+
+		file = spath + ".c1"
+		if _, err := os.Stat(file); err == nil {
+			log.Infof("remove %s", file)
+			if err := os.Remove(file); err != nil {
+				log.Errorf("removing sector file (%v) from %s: %+v", sid, file, err)
+			}
+		}
 	}
 
 	return nil
