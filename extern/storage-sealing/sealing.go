@@ -28,7 +28,6 @@ import (
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/actors/builtin/market"
 	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
-	"github.com/filecoin-project/lotus/chain/types"
 	sectorstorage "github.com/filecoin-project/lotus/extern/sector-storage"
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper"
 )
@@ -83,7 +82,7 @@ type Sealing struct {
 	api    SealingAPI
 	feeCfg FeeConfig
 	events Events
-	Full api.FullNode
+	Full   api.FullNode
 
 	maddr address.Address
 
@@ -206,7 +205,6 @@ func (m *Sealing) GetGasFee(ctx context.Context) (string, error) {
 func (m *Sealing) RefreshConf(ctx context.Context) (string, error) {
 	return m.sealer.RefreshConf(ctx)
 }
-
 
 func (m *Sealing) Stop(ctx context.Context) error {
 	if err := m.terminator.Stop(ctx); err != nil {

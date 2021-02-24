@@ -19,11 +19,12 @@ import (
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
+
 var wPostPath string
 
 func InitData() {
 	wPostPath = os.Getenv("MINER_WPOST_PATH")
-	fmt.Printf("MINER_WPOST_PATH = %v", wPostPath)
+	fmt.Printf("MINER_WPOST_PATH = %v \n", wPostPath)
 }
 
 func (sb *Sealer) GenerateWinningPoSt(ctx context.Context, minerID abi.ActorID, sectorInfo []proof2.SectorInfo, randomness abi.PoStRandomness) ([]proof2.PoStProof, error) {

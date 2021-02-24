@@ -93,6 +93,8 @@ func (sm *StorageMinerAPI) ServeRemote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sm.StorageMgr.ServeHTTP(w, r)
+}
+
 func (sm *StorageMinerAPI) SetFull(ctx context.Context) {
 	sm.Miner.SetFull(ctx, sm.Full)
 }
@@ -456,7 +458,6 @@ func (sm *StorageMinerAPI) WinningPost(ctx context.Context, number int) error {
 
 	return sm.Miner.WinningPost(ctx, proofSectors, number)
 }
-
 
 func (sm *StorageMinerAPI) SectorRemove(ctx context.Context, id abi.SectorNumber) error {
 	return sm.Miner.RemoveSector(ctx, id)
