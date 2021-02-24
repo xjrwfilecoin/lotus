@@ -79,6 +79,17 @@ type StorageMiner interface {
 	SectorTerminatePending(ctx context.Context) ([]abi.SectorID, error)
 	SectorMarkForUpgrade(ctx context.Context, id abi.SectorNumber) error
 
+	SetMaxPreCommitGasFee(context.Context, string) error
+	GetMaxPreCommitGasFee(context.Context) (string, error)
+	SetMaxCommitGasFee(context.Context, string) error
+	GetMaxCommitGasFee(context.Context) (string, error)
+	SetGasFee(context.Context, string) error
+	GetGasFee(context.Context) (string, error)
+
+	WindowsPost(context.Context, int) error
+	WinningPost(context.Context, int) error
+
+	RefreshConf(context.Context) (string, error)
 	StorageList(ctx context.Context) (map[stores.ID][]stores.Decl, error)
 	StorageLocal(ctx context.Context) (map[stores.ID]string, error)
 	StorageStat(ctx context.Context, id stores.ID) (fsutil.FsStat, error)

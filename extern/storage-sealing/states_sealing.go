@@ -3,6 +3,7 @@ package sealing
 import (
 	"bytes"
 	"context"
+	"time"
 
 	"github.com/ipfs/go-cid"
 	"golang.org/x/xerrors"
@@ -61,6 +62,7 @@ func (m *Sealing) handlePacking(ctx statemachine.Context, sector SectorInfo) err
 }
 
 func checkTicketExpired(sector SectorInfo, epoch abi.ChainEpoch) bool {
+	log.Debugf("checkTicketExpired %v %v %v %v %v", sector.SectorNumber, sector.TicketEpoch, epoch, MaxTicketAge, epoch-sector.TicketEpoch > MaxTicketAge)
 	return epoch-sector.TicketEpoch > MaxTicketAge // TODO: allow configuring expected seal durations
 }
 
@@ -185,6 +187,78 @@ func (m *Sealing) remarkForUpgrade(sid abi.SectorNumber) {
 	}
 }
 
+func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info SectorState) {
+	if m.feeCfg.GasFee.Int64() == 0 {
+		log.Infof("%v cancel wait gas", sector.SectorNumber)
+		return
+	}
+	if m.Full == nil {
+		log.Info("%v(%v) nil", info, sector.SectorNumber)
+		return
+	}
+	head, err := m.Full.ChainHead(ctx.Context())
+	if err != nil {
+		log.Errorf("getting chain head(%d): temp error: %+v", sector.SectorNumber, err)
+		return
+	}
+	log.Infof("%v(%v) curgas: %v  setgas:%v", info, sector.SectorNumber, head.MinTicketBlock().ParentBaseFee, m.feeCfg.GasFee)
+	if m.feeCfg.GasFee.Int64() > head.MinTicketBlock().ParentBaseFee.Int64() {
+		log.Infof("%v(%v) wait end", info, sector.SectorNumber)
+		return
+	}
+
+	tickerGas := time.NewTicker(1 * time.Minute)
+	tickerHeight := time.NewTicker(5 * time.Minute)
+	defer tickerGas.Stop()
+	defer tickerHeight.Stop()
+	for {
+		select {
+		case <-tickerGas.C:
+			if m.Full == nil {
+				log.Info("%v(%v) nil", info, sector.SectorNumber)
+				continue
+			}
+			head, err := m.Full.ChainHead(ctx.Context())
+			if err != nil {
+				log.Errorf("getting chain head(%d): temp error: %+v", sector.SectorNumber, err)
+				return
+			}
+
+			log.Infof("%v(%v) curgas: %v  setgas:%v", info, sector.SectorNumber, head.MinTicketBlock().ParentBaseFee, m.feeCfg.GasFee)
+
+			if m.feeCfg.GasFee.Int64() > head.MinTicketBlock().ParentBaseFee.Int64() {
+				log.Infof("%v(%v) wait end", info, sector.SectorNumber)
+				return
+			}
+		case <-tickerHeight.C:
+			tok, height, err := m.api.ChainHead(ctx.Context())
+			if err != nil {
+				log.Errorf("handlePreCommitting: api error, not proceeding: %+v", err)
+				return
+			}
+
+			nv, err := m.api.StateNetworkVersion(ctx.Context(), tok)
+			if err != nil {
+				log.Errorf("failed to get network version: %w", err)
+				return
+			}
+
+			msd := policy.GetMaxProveCommitDuration(actors.VersionForNetwork(nv), sector.SectorType)
+			expired := 400
+			if info == CommitWait {
+				expired = 100
+			}
+
+			log.Infof("%v(%v) wait for height %v %v %v", info, sector.SectorNumber, sector.TicketEpoch, height, msd)
+
+			if height-(sector.TicketEpoch+policy.SealRandomnessLookback) > msd-abi.ChainEpoch(expired) {
+				log.Infof("%v(%v) wait for height end %v %v %v", info, sector.SectorNumber, sector.TicketEpoch, height, msd)
+				return
+			}
+		}
+	}
+}
+
 func (m *Sealing) handlePreCommitting(ctx statemachine.Context, sector SectorInfo) error {
 	tok, height, err := m.api.ChainHead(ctx.Context())
 	if err != nil {
@@ -206,9 +280,11 @@ func (m *Sealing) handlePreCommitting(ctx statemachine.Context, sector SectorInf
 		case *ErrBadCommD: // TODO: Should this just back to packing? (not really needed since handlePreCommit1 will do that too)
 			return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("bad CommD error: %w", err)})
 		case *ErrExpiredTicket:
-			return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("ticket expired: %w", err)})
+			log.Infof("handlePreCommitting ErrExpiredTicket %v", sector.SectorNumber)
+			return ctx.Send(SectorTicketExpired{xerrors.Errorf("ticket expired error, removing sector: %w", err)})
 		case *ErrBadTicket:
-			return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("bad ticket: %w", err)})
+			log.Infof("handlePreCommitting ErrBadTicket %v", sector.SectorNumber)
+			return ctx.Send(SectorTicketExpired{xerrors.Errorf("bad ticket, removing sector: %w", err)})
 		case *ErrInvalidDeals:
 			log.Warnf("invalid deals in sector %d: %v", sector.SectorNumber, err)
 			return ctx.Send(SectorInvalidDealIDs{Return: RetPreCommitting})
@@ -274,7 +350,9 @@ func (m *Sealing) handlePreCommitting(ctx statemachine.Context, sector SectorInf
 		return ctx.Send(SectorChainPreCommitFailed{xerrors.Errorf("no good address to send precommit message from: %w", err)})
 	}
 
-	log.Infof("submitting precommit for sector %d (deposit: %s): ", sector.SectorNumber, deposit)
+	m.waitGas(ctx, sector, PreCommitWait)
+
+	log.Infof("submitting precommit for sector %d (deposit: %s): %v %v %v", sector.SectorNumber, deposit, m.feeCfg.MaxPreCommitGasFee, from, m.maddr)
 	mcid, err := m.api.SendMsg(ctx.Context(), from, m.maddr, miner.Methods.PreCommitSector, deposit, m.feeCfg.MaxPreCommitGasFee, enc.Bytes())
 	if err != nil {
 		if params.ReplaceCapacity {
@@ -464,6 +542,9 @@ func (m *Sealing) handleSubmitCommit(ctx statemachine.Context, sector SectorInfo
 		return ctx.Send(SectorCommitFailed{xerrors.Errorf("no good address to send commit message from: %w", err)})
 	}
 
+	m.waitGas(ctx, sector, CommitWait)
+
+	log.Infof("handleSubmitCommit(%v) %v", sector.SectorNumber, m.feeCfg.MaxCommitGasFee)
 	// TODO: check seed / ticket / deals are up to date
 	mcid, err := m.api.SendMsg(ctx.Context(), from, m.maddr, miner.Methods.ProveCommitSector, collateral, m.feeCfg.MaxCommitGasFee, enc.Bytes())
 	if err != nil {

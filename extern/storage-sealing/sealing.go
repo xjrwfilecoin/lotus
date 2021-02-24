@@ -3,6 +3,7 @@ package sealing
 import (
 	"context"
 	"errors"
+	"github.com/filecoin-project/lotus/chain/types"
 	"io"
 	"math"
 	"sync"
@@ -82,6 +83,7 @@ type Sealing struct {
 	api    SealingAPI
 	feeCfg FeeConfig
 	events Events
+	Full api.FullNode
 
 	maddr address.Address
 
@@ -111,6 +113,7 @@ type FeeConfig struct {
 	MaxPreCommitGasFee abi.TokenAmount
 	MaxCommitGasFee    abi.TokenAmount
 	MaxTerminateGasFee abi.TokenAmount
+	GasFee             abi.TokenAmount
 }
 
 type UnsealedSectorMap struct {
@@ -172,6 +175,38 @@ func (m *Sealing) Run(ctx context.Context) error {
 
 	return nil
 }
+
+func (m *Sealing) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit types.FIL) error {
+	m.feeCfg.MaxPreCommitGasFee = abi.TokenAmount(maxPreCommit)
+	return nil
+}
+
+func (m *Sealing) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return m.feeCfg.MaxPreCommitGasFee.String(), nil
+}
+
+func (m *Sealing) SetMaxCommitGasFee(ctx context.Context, maxCommit types.FIL) error {
+	m.feeCfg.MaxCommitGasFee = abi.TokenAmount(maxCommit)
+	return nil
+}
+
+func (m *Sealing) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return m.feeCfg.MaxCommitGasFee.String(), nil
+}
+
+func (m *Sealing) SetGasFee(ctx context.Context, gas types.FIL) error {
+	m.feeCfg.GasFee = big.Div(abi.TokenAmount(gas), types.NewInt(1e9))
+	return nil
+}
+
+func (m *Sealing) GetGasFee(ctx context.Context) (string, error) {
+	return types.FIL(m.feeCfg.GasFee).Short(), nil
+}
+
+func (m *Sealing) RefreshConf(ctx context.Context) (string, error) {
+	return m.sealer.RefreshConf(ctx)
+}
+
 
 func (m *Sealing) Stop(ctx context.Context) error {
 	if err := m.terminator.Stop(ctx); err != nil {

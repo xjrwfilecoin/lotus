@@ -3,6 +3,8 @@ package impl
 import (
 	"context"
 	"encoding/json"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	proof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 	"net/http"
 	"os"
 	"strconv"
@@ -91,6 +93,8 @@ func (sm *StorageMinerAPI) ServeRemote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sm.StorageMgr.ServeHTTP(w, r)
+func (sm *StorageMinerAPI) SetFull(ctx context.Context) {
+	sm.Miner.SetFull(ctx, sm.Full)
 }
 
 func (sm *StorageMinerAPI) WorkerStats(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) {
@@ -325,6 +329,134 @@ func (sm *StorageMinerAPI) SectorGetExpectedSealDuration(ctx context.Context) (t
 func (sm *StorageMinerAPI) SectorsUpdate(ctx context.Context, id abi.SectorNumber, state api.SectorState) error {
 	return sm.Miner.ForceSectorState(ctx, id, sealing.SectorState(state))
 }
+
+func (sm *StorageMinerAPI) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return sm.Miner.SetMaxPreCommitGasFee(ctx, types.MustParseFIL(maxPreCommit))
+}
+
+func (sm *StorageMinerAPI) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetMaxPreCommitGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) SetMaxCommitGasFee(ctx context.Context, maxCommit string) error {
+	return sm.Miner.SetMaxCommitGasFee(ctx, types.MustParseFIL(maxCommit))
+}
+
+func (sm *StorageMinerAPI) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetMaxCommitGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) SetGasFee(ctx context.Context, gas string) error {
+	return sm.Miner.SetGasFee(ctx, types.MustParseFIL(gas))
+}
+
+func (sm *StorageMinerAPI) GetGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) RefreshConf(ctx context.Context) (string, error) {
+	return sm.Miner.RefreshConf(ctx)
+}
+
+func (sm *StorageMinerAPI) WindowsPost(ctx context.Context, number int) error {
+	head, err := sm.Full.ChainHead(ctx)
+	if err != nil {
+		return err
+	}
+
+	sset, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), nil, head.Key())
+	if err != nil {
+		return err
+	}
+
+	list, err := sm.SectorsList(ctx)
+	if err != nil {
+		return err
+	}
+
+	var proofSectors []proof2.SectorInfo
+	n := 0
+	for _, s := range list {
+		st, err := sm.SectorsStatus(ctx, s, true)
+		if err != nil {
+			continue
+		}
+
+		if n >= number {
+			continue
+		}
+
+		if st.State != "Proving" {
+			continue
+		}
+
+		n++
+
+		for _, sector := range sset {
+			if sector.SectorNumber == s {
+				substitute := proof.SectorInfo{
+					SectorNumber: sector.SectorNumber,
+					SealedCID:    sector.SealedCID,
+					SealProof:    sector.SealProof,
+				}
+				proofSectors = append(proofSectors, substitute)
+				log.Debug("WindowsPost ", s)
+			}
+		}
+	}
+
+	return sm.Miner.WindowsPost(ctx, proofSectors, number)
+}
+func (sm *StorageMinerAPI) WinningPost(ctx context.Context, number int) error {
+	head, err := sm.Full.ChainHead(ctx)
+	if err != nil {
+		return err
+	}
+
+	sset, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), nil, head.Key())
+	if err != nil {
+		return err
+	}
+
+	list, err := sm.SectorsList(ctx)
+	if err != nil {
+		return err
+	}
+
+	var proofSectors []proof2.SectorInfo
+	n := 0
+	for _, s := range list {
+		st, err := sm.SectorsStatus(ctx, s, true)
+		if err != nil {
+			continue
+		}
+
+		if n >= number {
+			continue
+		}
+
+		if st.State != "Proving" {
+			continue
+		}
+
+		n++
+
+		for _, sector := range sset {
+			if sector.SectorNumber == s {
+				substitute := proof.SectorInfo{
+					SectorNumber: sector.SectorNumber,
+					SealedCID:    sector.SealedCID,
+					SealProof:    sector.SealProof,
+				}
+				proofSectors = append(proofSectors, substitute)
+				log.Debug("WinningPost ", s)
+			}
+		}
+	}
+
+	return sm.Miner.WinningPost(ctx, proofSectors, number)
+}
+
 
 func (sm *StorageMinerAPI) SectorRemove(ctx context.Context, id abi.SectorNumber) error {
 	return sm.Miner.RemoveSector(ctx, id)

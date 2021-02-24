@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -142,8 +143,13 @@ var runCmd = &cli.Command{
 			Value: true,
 		},
 		&cli.BoolFlag{
-			Name:  "commit",
-			Usage: "enable commit (32G sectors: all cores or GPUs, 128GiB Memory + 64GiB swap)",
+			Name:  "commit1",
+			Usage: "enable commit1 (32G sectors: all cores or GPUs, 128GiB Memory + 64GiB swap)",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "commit2",
+			Usage: "enable commit2 (32G sectors: all cores or GPUs, 128GiB Memory + 64GiB swap)",
 			Value: true,
 		},
 		&cli.IntFlag{
@@ -170,12 +176,36 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting lotus worker")
 
+		defer func() {
+			logFile, err := os.OpenFile("./fatal.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+			if err != nil {
+				fmt.Println("worker server", "open file fail", err)
+				return
+			}
+			syscall.Dup2(int(logFile.Fd()), int(os.Stderr.Fd()))
+
+			if err := recover(); err != nil {
+				fmt.Println("recover msg: ", err)
+				logFile.WriteString(fmt.Sprintf("recover msg: %v \n", err))
+			} else {
+				logFile.WriteString("recover msg: nil \n")
+			}
+			logFile.Close()
+
+		}()
+
 		if !cctx.Bool("enable-gpu-proving") {
 			if err := os.Setenv("BELLMAN_NO_GPU", "true"); err != nil {
 				return xerrors.Errorf("could not set no-gpu env: %+v", err)
 			}
 		}
 
+		if os.Getenv("FIL_PROOFS_SSD_PARENT") == "" {
+			panic("FIL_PROOFS_SSD_PARENT not set")
+		}
+
+		sectorstorage.InitTask(false)
+		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
 		// Connect to storage-miner
 		ctx := lcli.ReqContext(cctx)
 
@@ -234,7 +264,7 @@ var runCmd = &cli.Command{
 
 		var taskTypes []sealtasks.TaskType
 
-		taskTypes = append(taskTypes, sealtasks.TTFetch, sealtasks.TTCommit1, sealtasks.TTFinalize)
+		taskTypes = append(taskTypes, sealtasks.TTFetch, sealtasks.TTFinalize)
 
 		if cctx.Bool("addpiece") {
 			taskTypes = append(taskTypes, sealtasks.TTAddPiece)
@@ -248,7 +278,10 @@ var runCmd = &cli.Command{
 		if cctx.Bool("precommit2") {
 			taskTypes = append(taskTypes, sealtasks.TTPreCommit2)
 		}
-		if cctx.Bool("commit") {
+		if cctx.Bool("commit1") {
+			taskTypes = append(taskTypes, sealtasks.TTCommit1)
+		}
+		if cctx.Bool("commit2") {
 			taskTypes = append(taskTypes, sealtasks.TTCommit2)
 		}
 
