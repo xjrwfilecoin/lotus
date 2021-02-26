@@ -419,6 +419,8 @@ func (cg *ChainGen) NextTipSetFromMiners(base *types.TipSet, miners []address.Ad
 }
 
 func (cg *ChainGen) NextTipSetFromMinersWithMessages(base *types.TipSet, miners []address.Address, msgs [][]*types.SignedMessage) (*store.FullTipSet, error) {
+	log.Info("#####################################111111111")
+
 	var blks []*types.FullBlock
 
 	for round := base.Height() + 1; len(blks) == 0; round++ {
