@@ -186,6 +186,7 @@ func GetSectorsForWinningPoSt(ctx context.Context, nv network.Version, pv ffiwra
 
 	// TODO(review): is this right? feels fishy to me
 	if numProvSect == 0 {
+		log.Infof("####################2")
 		return nil, nil
 	}
 
@@ -467,7 +468,7 @@ func MinerGetBaseInfo(ctx context.Context, sm *StateManager, bcs beacon.Schedule
 		if err != nil {
 			return nil, xerrors.Errorf("loading miner in current state: %w", err)
 		}
-
+		log.Infof("##################444444")
 		return nil, nil
 	}
 	if err != nil {
@@ -497,6 +498,7 @@ func MinerGetBaseInfo(ctx context.Context, sm *StateManager, bcs beacon.Schedule
 	}
 
 	if len(sectors) == 0 {
+		log.Infof("##################22222")
 		return nil, nil
 	}
 
