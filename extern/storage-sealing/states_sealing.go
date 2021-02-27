@@ -154,7 +154,7 @@ func (m *Sealing) handlePreCommit1(ctx statemachine.Context, sector SectorInfo) 
 	}
 
 	//if height-sector.TicketEpoch > builtin0.EpochsInDay * 3/4 {
-	if height-sector.TicketEpoch > 100 {
+	if height-sector.TicketEpoch > 1000 {
 		log.Infof("handlePreCommit1 ErrExpiredTicket %v %v %v", sector.SectorNumber, height, sector.TicketEpoch)
 		return ctx.Send(SectorTicketExpired{xerrors.Errorf("p1 ticket expired error, removing sector: %v", sector)})
 	}
