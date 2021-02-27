@@ -361,12 +361,15 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (*types.BlockMsg,
 
 	mbi, err := m.api.MinerGetBaseInfo(ctx, m.address, round, base.TipSet.Key())
 	if err != nil {
+		log.Info("attempting to mine a block222222")
 		return nil, xerrors.Errorf("failed to get mining base info: %w", err)
 	}
 	if mbi == nil {
+		log.Info("attempting to mine a block1111111")
 		return nil, nil
 	}
 	if !mbi.EligibleForMining {
+		log.Info("attempting to mine a block33333")
 		// slashed or just have no power yet
 		return nil, nil
 	}

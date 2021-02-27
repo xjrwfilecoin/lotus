@@ -56,6 +56,7 @@ var fsmPlanners = map[SectorState]func(events []statemachine.Event, state *Secto
 		on(SectorDealsExpired{}, DealsExpired),
 		on(SectorInvalidDealIDs{}, RecoverDealIDs),
 		on(SectorOldTicket{}, GetTicket),
+		on(SectorTicketExpired{}, Removing),
 	),
 	PreCommit2: planOne(
 		on(SectorPreCommit2{}, PreCommitting),
