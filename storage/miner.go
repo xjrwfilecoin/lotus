@@ -257,6 +257,7 @@ func (wpp *StorageWpp) GenerateCandidates(ctx context.Context, randomness abi.Po
 
 func (wpp *StorageWpp) ComputeProof(ctx context.Context, ssi []builtin.SectorInfo, rand abi.PoStRandomness) ([]builtin.PoStProof, error) {
 	if build.InsecurePoStValidation {
+		log.Info("ComputeProof InsecurePoStValidation")
 		return []builtin.PoStProof{{ProofBytes: []byte("valid proof")}}, nil
 	}
 

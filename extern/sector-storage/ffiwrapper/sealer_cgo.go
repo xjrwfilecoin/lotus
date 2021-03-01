@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math/bits"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -638,6 +639,17 @@ func (sb *Sealer) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 }
 
 func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (storage.Commit1Out, error) {
+	fileC1Path := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID)) + ".c1"
+	if _, errState := os.Stat(fileC1Path); errState == nil {
+		if bytes, errFile := ioutil.ReadFile(fileC1Path); errFile == nil {
+			fileTreed := filepath.Join(filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID)), "sc-02-data-tree-d.dat")
+			if _, err := os.Stat(fileTreed); err != nil {
+				log.Infof("SealCommit1 exist %v", sector.ID)
+				return bytes, nil
+			}
+		}
+	}
+
 	paths, done, err := sb.sectors.AcquireSector(ctx, sector, storiface.FTSealed|storiface.FTCache, 0, storiface.PathSealing)
 	if err != nil {
 		return nil, xerrors.Errorf("acquire sector paths: %w", err)
@@ -672,8 +684,22 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 	}
 	defer doneCache()
 
-	log.Info("ClearCache %v", pathsCache.Cache)
+	log.Infof("ClearCache %v", pathsCache.Cache)
 	ffi.ClearCache(uint64(ssize), pathsCache.Cache)
+
+	if _, errState := os.Stat(fileC1Path); errState == nil {
+		cmd := exec.Command("/bin/bash", "-c", "rm -rf "+fileC1Path, "|sh")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		err := cmd.Run()
+		log.Infof("ShellExecute rm %s : %v", fileC1Path, err)
+	}
+
+	if file, err := os.OpenFile(fileC1Path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660); err == nil {
+		file.Write(output)
+		file.Close()
+	}
 	return output, nil
 }
 

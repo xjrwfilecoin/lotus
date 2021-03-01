@@ -153,6 +153,10 @@ func (m *Sealing) handlePreCommit1(ctx statemachine.Context, sector SectorInfo) 
 		return ctx.Send(SectorOldTicket{}) // go get new ticket
 	}
 
+	if height-sector.TicketEpoch-policy.SealRandomnessLookback > builtin0.EpochsInDay/2 {
+		log.Infof("handlePreCommit1 ErrExpiredTicket %v %v %v", sector.SectorNumber, height, sector.TicketEpoch)
+		return ctx.Send(SectorTicketExpired{xerrors.Errorf("p1 ticket expired error, removing sector: %v", sector)})
+	}
 	pc1o, err := m.sealer.SealPreCommit1(sector.sealingCtx(ctx.Context()), m.minerSector(sector.SectorType, sector.SectorNumber), sector.TicketValue, sector.pieceInfos())
 	if err != nil {
 		return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("seal pre commit(1) failed: %w", err)})
@@ -202,7 +206,7 @@ func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info Sect
 		return
 	}
 	log.Infof("%v(%v) curgas: %v  setgas:%v", info, sector.SectorNumber, head.MinTicketBlock().ParentBaseFee, m.feeCfg.GasFee)
-	if m.feeCfg.GasFee.Int64() > head.MinTicketBlock().ParentBaseFee.Int64() {
+	if m.feeCfg.GasFee.Int64() >= head.MinTicketBlock().ParentBaseFee.Int64() {
 		log.Infof("%v(%v) wait end", info, sector.SectorNumber)
 		return
 	}
@@ -226,7 +230,7 @@ func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info Sect
 
 			log.Infof("%v(%v) curgas: %v  setgas:%v", info, sector.SectorNumber, head.MinTicketBlock().ParentBaseFee, m.feeCfg.GasFee)
 
-			if m.feeCfg.GasFee.Int64() > head.MinTicketBlock().ParentBaseFee.Int64() {
+			if m.feeCfg.GasFee.Int64() >= head.MinTicketBlock().ParentBaseFee.Int64() {
 				log.Infof("%v(%v) wait end", info, sector.SectorNumber)
 				return
 			}
