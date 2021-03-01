@@ -88,6 +88,7 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 	if worker.enabled == false {
 		if _, exist := worker.disSectors[req.sector.ID]; !exist {
 			go req.respond(xerrors.Errorf("canHandleRequest enable: %v %v %v", req.sector, wid, req.taskType))
+			log.Infof("canHandleRequest enable go %v %v %v %v %v", req.sector, wid, req.taskType, caller, wid)
 		}
 		worker.disSectors[req.sector.ID] = struct{}{}
 		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, worker.info.Hostname)
