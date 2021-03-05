@@ -86,11 +86,11 @@ func (a *activeResources) free(wr storiface.WorkerResources, r Resources) {
 
 func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, caller string, res storiface.WorkerResources, req *workerRequest, worker *workerHandle) bool {
 	if worker.enabled == false {
-		if _, exist := worker.disSectors[req.sector.ID]; !exist {
+		if _, exist := worker.disSectors.Load(req.sector.ID); !exist {
 			go req.respond(xerrors.Errorf("canHandleRequest enable: %v %v %v", req.sector, wid, req.taskType))
 			log.Infof("canHandleRequest enable go %v %v %v %v %v", req.sector, wid, req.taskType, caller, wid)
 		}
-		worker.disSectors[req.sector.ID] = struct{}{}
+		worker.disSectors.Store(req.sector.ID, struct{}{})
 		log.Infof("canHandleRequest enable %v %v %v %v %v %v %v %v", req.sector, wid, req.taskType, caller, len(res.GPUs), needRes.CanGPU, a.gpuUsed, worker.info.Hostname)
 		return false
 	}
@@ -190,6 +190,6 @@ func (wh *workerHandle) utilization() float64 {
 	//}
 	//wh.wndLk.Unlock()
 
-	//log.Infof("utilization %v %v", wh.info.Hostname, u)
+	log.Debugf("utilization %v %v", wh.info.Hostname, u)
 	return u
 }

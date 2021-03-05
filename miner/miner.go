@@ -354,7 +354,7 @@ func (m *Miner) GetBestMiningCandidate(ctx context.Context) (*MiningBase, error)
 //
 //  1.
 func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (*types.BlockMsg, error) {
-	log.Info("attempting to mine a block", "tipset", types.LogCids(base.TipSet.Cids()))
+	log.Debug("attempting to mine a block", "tipset", types.LogCids(base.TipSet.Cids()))
 	start := build.Clock.Now()
 
 	round := base.TipSet.Height() + base.NullRounds + 1
@@ -389,18 +389,18 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (*types.BlockMsg,
 
 	ticket, err := m.computeTicket(ctx, &rbase, base, mbi)
 	if err != nil {
-		log.Infof("computeTicket %v", err)
+		log.Debugf("computeTicket %v", err)
 		return nil, xerrors.Errorf("scratching ticket failed: %w", err)
 	}
 
 	winner, err := gen.IsRoundWinner(ctx, base.TipSet, round, m.address, rbase, mbi, m.api)
 	if err != nil {
-		log.Infof("IsRoundWinner %v", err)
+		log.Debugf("IsRoundWinner %v", err)
 		return nil, xerrors.Errorf("failed to check if we win next round: %w", err)
 	}
 
 	if winner == nil {
-		log.Info("winner")
+		log.Debug("winner")
 		return nil, nil
 	}
 
@@ -408,13 +408,13 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (*types.BlockMsg,
 
 	buf := new(bytes.Buffer)
 	if err := m.address.MarshalCBOR(buf); err != nil {
-		log.Infof("MarshalCBOR %v", err)
+		log.Debugf("MarshalCBOR %v", err)
 		return nil, xerrors.Errorf("failed to marshal miner address: %w", err)
 	}
 
 	rand, err := store.DrawRandomness(rbase.Data, crypto.DomainSeparationTag_WinningPoStChallengeSeed, round, buf.Bytes())
 	if err != nil {
-		log.Infof("DrawRandomness %v", err)
+		log.Debugf("DrawRandomness %v", err)
 		return nil, xerrors.Errorf("failed to get randomness for winning post: %w", err)
 	}
 
@@ -424,7 +424,7 @@ func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (*types.BlockMsg,
 
 	postProof, err := m.epp.ComputeProof(ctx, mbi.Sectors, prand)
 	if err != nil {
-		log.Infof("ComputeProof %v", err)
+		log.Debugf("ComputeProof %v", err)
 		return nil, xerrors.Errorf("failed to compute winning post proof: %w", err)
 	}
 

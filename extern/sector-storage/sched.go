@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/rand"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -96,7 +97,7 @@ type workerHandle struct {
 	c2Running map[abi.SectorID]struct{}
 
 	addPieceRuning map[abi.SectorID]struct{}
-	disSectors     map[abi.SectorID]struct{}
+	disSectors     sync.Map
 
 	para storiface.WorkerPara
 
@@ -370,6 +371,13 @@ func (sh *scheduler) trySched() {
 		// nothing to schedule on
 		return
 	}
+
+	querylist := ""
+	for i := 0; i < sh.schedQueue.Len(); i++ {
+		task := (*sh.schedQueue)[i]
+		querylist = querylist + strconv.Itoa(int(task.sector.ID.Number)) + "-" + string(task.taskType) + ","
+	}
+	log.Debug("querylist: ", querylist)
 
 	windows := make([]schedWindow, windowsLen)
 	acceptableWindows := make([][]int, queuneLen)

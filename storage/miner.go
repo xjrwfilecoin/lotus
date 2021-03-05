@@ -151,7 +151,6 @@ func (m *Miner) Run(ctx context.Context) error {
 		MaxCommitGasFee:    abi.TokenAmount(m.feeCfg.MaxCommitGasFee),
 		MaxTerminateGasFee: abi.TokenAmount(m.feeCfg.MaxTerminateGasFee),
 		GasFee:             abi.TokenAmount(m.feeCfg.GasFee),
-
 	}
 
 	evts := events.NewEvents(ctx, m.api)
@@ -257,7 +256,7 @@ func (wpp *StorageWpp) GenerateCandidates(ctx context.Context, randomness abi.Po
 
 func (wpp *StorageWpp) ComputeProof(ctx context.Context, ssi []builtin.SectorInfo, rand abi.PoStRandomness) ([]builtin.PoStProof, error) {
 	if build.InsecurePoStValidation {
-		log.Info("ComputeProof InsecurePoStValidation")
+		log.Debug("ComputeProof InsecurePoStValidation")
 		return []builtin.PoStProof{{ProofBytes: []byte("valid proof")}}, nil
 	}
 

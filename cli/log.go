@@ -43,7 +43,7 @@ var logList = &cli.Command{
 
 var logSetLevel = &cli.Command{
 	Name:      "set-level",
-	Usage:     "Set log level",
+	Usage:     "Set log level(debug/info/warn/error)",
 	ArgsUsage: "[level]",
 	Description: `Set the log level for logging systems:
 
