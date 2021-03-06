@@ -522,9 +522,9 @@ func (m *Manager) UnselectWorkerPreComit2(host string, sector abi.SectorID) {
 	}
 	if find {
 		delete(m.sched.workers[id].p2Tasks, sector)
-		log.Infof("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Size = %v", id, host, sector, len(m.sched.workers[WorkerID(id)].p2Tasks))
+		log.Debugf("UnselectWorkerPreComit2 wid = %v host = %v sector = %v p2Size = %v", id, host, sector, len(m.sched.workers[WorkerID(id)].p2Tasks))
 	} else {
-		log.Errorf("UnselectWorkerPreComit2 not find %v %v", host, sector)
+		log.Debugf("UnselectWorkerPreComit2 not find %v %v", host, sector)
 	}
 }
 
@@ -547,17 +547,17 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		}
 
 		if _, exit := worker.p2Tasks[sector]; exit {
-			log.Infof("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
+			log.Debugf("%v SelectWorkerPreComit2 delete %v", worker.info.Hostname, sector)
 			delete(worker.p2Tasks, sector)
 		}
 
 		if P2NumberLimit > 0 && len(worker.p2Tasks) >= P2NumberLimit {
-			log.Infof("%v P2 exceed %v %v", worker.info.Hostname, len(worker.p2Tasks), P2NumberLimit)
+			log.Debugf("%v P2 exceed %v %v", worker.info.Hostname, len(worker.p2Tasks), P2NumberLimit)
 			continue
 		}
 
 		var avai int64
-		log.Infof("storeIDs %v", worker.storeIDs)
+		log.Debugf("storeIDs %v", worker.storeIDs)
 		for id, _ := range worker.storeIDs {
 			si, err := m.index.StorageFsi(stores.ID(id))
 			if err == nil {
@@ -566,14 +566,14 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 		}
 
 		avai = avai / 1024 / 1024 / 1024
-		log.Infof("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
+		log.Debugf("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
 		if avai < p2SpaceLimit {
 			log.Infof("%v P2 no space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
 			continue
 		}
 
 		tasks[wid] = len(worker.p2Tasks)
-		log.Infof("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v", wid, worker.info.Hostname, len(worker.p2Tasks))
+		log.Debugf("SelectWorkerPreComit2 wid = %v host = %v p2Size = %v", wid, worker.info.Hostname, len(worker.p2Tasks))
 	}
 
 	host := ""
@@ -638,11 +638,11 @@ func (m *Manager) SelectWorkerPreComit2(sector abi.SectorID) string {
 //}
 
 func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
-	log.Info("method = ", r.Method)
-	log.Info("URL = ", r.URL)
-	log.Info("header = ", r.Header)
-	log.Info("body = ", r.Body)
-	log.Info(r.RemoteAddr, " connect success")
+	log.Debug("method = ", r.Method)
+	log.Debug("URL = ", r.URL)
+	log.Debug("header = ", r.Header)
+	log.Debug("body = ", r.Body)
+	log.Debug(r.RemoteAddr, " connect success")
 
 	body, _ := ioutil.ReadAll(r.Body)
 	data := make(map[string]string)
@@ -660,9 +660,8 @@ func (m *Manager) handlerP2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("sector = ", sector)
 	host := m.SelectWorkerPreComit2(sector)
-	log.Info("return host = ", host)
+	log.Infof("sector = %v return host = %v", sector, host)
 
 	w.Write([]byte(host))
 }
@@ -718,9 +717,9 @@ func (m *Manager) setWorker(host string, sector abi.SectorID) {
 	}
 
 	if find {
-		log.Infof("p2 online %v %v %v", id, sector, host)
+		log.Debugf("p2 online %v %v %v", id, sector, host)
 	} else {
-		log.Infof("p2 not online %v %v", sector, host)
+		log.Debugf("p2 not online %v %v", sector, host)
 	}
 }
 
@@ -738,7 +737,7 @@ func (m *Manager) getP2Worker() bool {
 				continue
 			} else {
 				var avai int64
-				log.Infof("storeIDs %v", worker.storeIDs)
+				log.Debugf("storeIDs %v", worker.storeIDs)
 				for id, _ := range worker.storeIDs {
 					si, err := m.index.StorageFsi(stores.ID(id))
 					if err == nil {
@@ -747,7 +746,7 @@ func (m *Manager) getP2Worker() bool {
 				}
 
 				avai = avai / 1024 / 1024 / 1024
-				log.Infof("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
+				log.Debugf("%v P2 space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
 				if avai < p2SpaceLimit {
 					log.Infof("%v P2 no space %vG %vG", worker.info.Hostname, avai, p2SpaceLimit)
 				} else {
@@ -763,7 +762,7 @@ func (m *Manager) getP2Worker() bool {
 
 func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
 	if state == "Removed" || state == "FailedUnrecoverable" || state == "Removing" {
-		log.Infof("SetSectorState %v %v", sector, state)
+		log.Debugf("SetSectorState %v %v", sector, state)
 		m.mapStatus[sector] = struct{}{}
 	}
 
@@ -789,7 +788,7 @@ func (m *Manager) SetSectorState(ctx context.Context, sector abi.SectorNumber, s
 	for host, mp := range m.mapP2Tasks {
 		for s, _ := range mp {
 			if s.Number == sector {
-				log.Infof("SetSectorState remove %v %v", sector, state)
+				log.Debugf("SetSectorState remove %v %v", sector, state)
 				delete(m.mapP2Tasks[host], s)
 			}
 		}

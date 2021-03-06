@@ -193,11 +193,11 @@ func (m *Sealing) remarkForUpgrade(sid abi.SectorNumber) {
 
 func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info SectorState) {
 	if m.feeCfg.GasFee.Int64() == 0 {
-		log.Infof("%v cancel wait gas", sector.SectorNumber)
+		log.Debugf("%v cancel wait gas", sector.SectorNumber)
 		return
 	}
 	if m.Full == nil {
-		log.Info("%v(%v) nil", info, sector.SectorNumber)
+		log.Debugf("%v(%v) nil", info, sector.SectorNumber)
 		return
 	}
 	head, err := m.Full.ChainHead(ctx.Context())
@@ -205,9 +205,9 @@ func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info Sect
 		log.Errorf("getting chain head(%d): temp error: %+v", sector.SectorNumber, err)
 		return
 	}
-	log.Infof("%v(%v) curgas: %v  setgas:%v", info, sector.SectorNumber, head.MinTicketBlock().ParentBaseFee, m.feeCfg.GasFee)
+	log.Debugf("%v(%v) curgas: %v  setgas:%v", info, sector.SectorNumber, head.MinTicketBlock().ParentBaseFee, m.feeCfg.GasFee)
 	if m.feeCfg.GasFee.Int64() >= head.MinTicketBlock().ParentBaseFee.Int64() {
-		log.Infof("%v(%v) wait end", info, sector.SectorNumber)
+		log.Debugf("%v(%v) wait end", info, sector.SectorNumber)
 		return
 	}
 
@@ -219,7 +219,7 @@ func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info Sect
 		select {
 		case <-tickerGas.C:
 			if m.Full == nil {
-				log.Info("%v(%v) nil", info, sector.SectorNumber)
+				log.Debugf("%v(%v) nil", info, sector.SectorNumber)
 				continue
 			}
 			head, err := m.Full.ChainHead(ctx.Context())
@@ -231,7 +231,7 @@ func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info Sect
 			log.Infof("%v(%v) curgas: %v  setgas:%v", info, sector.SectorNumber, head.MinTicketBlock().ParentBaseFee, m.feeCfg.GasFee)
 
 			if m.feeCfg.GasFee.Int64() >= head.MinTicketBlock().ParentBaseFee.Int64() {
-				log.Infof("%v(%v) wait end", info, sector.SectorNumber)
+				log.Debugf("%v(%v) wait end", info, sector.SectorNumber)
 				return
 			}
 		case <-tickerHeight.C:
@@ -253,10 +253,10 @@ func (m *Sealing) waitGas(ctx statemachine.Context, sector SectorInfo, info Sect
 				expired = 100
 			}
 
-			log.Infof("%v(%v) wait for height %v %v %v", info, sector.SectorNumber, sector.TicketEpoch, height, msd)
+			log.Debugf("%v(%v) wait for height %v %v %v", info, sector.SectorNumber, sector.TicketEpoch, height, msd)
 
 			if height-(sector.TicketEpoch+policy.SealRandomnessLookback) > msd-abi.ChainEpoch(expired) {
-				log.Infof("%v(%v) wait for height end %v %v %v", info, sector.SectorNumber, sector.TicketEpoch, height, msd)
+				log.Debugf("%v(%v) wait for height end %v %v %v", info, sector.SectorNumber, sector.TicketEpoch, height, msd)
 				return
 			}
 		}
@@ -467,9 +467,9 @@ func (m *Sealing) handleCommitting(ctx statemachine.Context, sector SectorInfo) 
 		}
 	}
 
-	log.Info("scheduling seal proof computation...")
+	log.Debug("scheduling seal proof computation...")
 
-	log.Infof("KOMIT %d %x(%d); %x(%d); %v; r:%x; d:%x", sector.SectorNumber, sector.TicketValue, sector.TicketEpoch, sector.SeedValue, sector.SeedEpoch, sector.pieceInfos(), sector.CommR, sector.CommD)
+	log.Debugf("KOMIT %d %x(%d); %x(%d); %v; r:%x; d:%x", sector.SectorNumber, sector.TicketValue, sector.TicketEpoch, sector.SeedValue, sector.SeedEpoch, sector.pieceInfos(), sector.CommR, sector.CommD)
 
 	if sector.CommD == nil || sector.CommR == nil {
 		return ctx.Send(SectorCommitFailed{xerrors.Errorf("sector had nil commR or commD")})
@@ -548,7 +548,7 @@ func (m *Sealing) handleSubmitCommit(ctx statemachine.Context, sector SectorInfo
 
 	m.waitGas(ctx, sector, CommitWait)
 
-	log.Infof("handleSubmitCommit(%v) %v", sector.SectorNumber, m.feeCfg.MaxCommitGasFee)
+	log.Debugf("handleSubmitCommit(%v) %v", sector.SectorNumber, m.feeCfg.MaxCommitGasFee)
 	// TODO: check seed / ticket / deals are up to date
 	mcid, err := m.api.SendMsg(ctx.Context(), from, m.maddr, miner.Methods.ProveCommitSector, collateral, m.feeCfg.MaxCommitGasFee, enc.Bytes())
 	if err != nil {
