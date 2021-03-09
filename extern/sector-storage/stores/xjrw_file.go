@@ -7,15 +7,26 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
 const DEF_CACHE = 12
 
 var localIP = ""
+var sealedSize int64
 
 func init() {
 	fmt.Println("localIP: ", getLocalIP())
+}
+
+func InitData() {
+	if str := os.Getenv("SEALED_SIZE"); str != "" {
+		if data, err := strconv.ParseInt(str, 10, 64); err == nil {
+			sealedSize = data
+		}
+	}
+	fmt.Println("SEALED_SIZE: ", sealedSize)
 }
 
 func getLocalIP() string {

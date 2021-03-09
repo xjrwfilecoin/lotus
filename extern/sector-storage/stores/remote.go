@@ -273,6 +273,24 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 				continue
 			}
 
+			if fileType == storiface.FTSealed {
+				if fi, err := os.Stat(tempDest); err != nil {
+					log.Errorf("Stat error: %v", tempDest)
+					continue
+				} else {
+					if sealedSize != 0 && fi.Size() != sealedSize {
+						log.Infof("retry fetch %v %v %v %v", s, fi.Size(), sealedSize, tempDest)
+						err = r.fetch(ctx, url, tempDest)
+						if err != nil {
+							merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
+							continue
+						}
+					} else {
+						log.Infof("skip fetch %v %v %v %v", s, fi.Size(), sealedSize, tempDest)
+					}
+				}
+			}
+
 			if err := move(tempDest, dest); err != nil {
 				return "", xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
 			}

@@ -103,6 +103,11 @@ func (handler *FetchHandler) remoteGetSector(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	fi, err := os.Stat(path)
+	if err == nil {
+		log.Debugf("%v file size is %v", path, fi.Size())
+	}
+
 	var rd io.Reader
 	if stat.IsDir() {
 		rd, err = tarutil.TarDirectory(path)
