@@ -330,8 +330,9 @@ type StorageMinerStruct struct {
 		SetGasFee             func(context.Context, string) error   `perm:"admin"`
 		GetGasFee             func(context.Context) (string, error) `perm:"admin"`
 
-		WindowsPost func(context.Context, int) error `perm:"admin"`
-		WinningPost func(context.Context, int) error `perm:"admin"`
+		WindowsPost  func(context.Context, int, int) error `perm:"admin"`
+		DeadlinePost func(context.Context, int) error      `perm:"admin"`
+		WinningPost  func(context.Context, int) error      `perm:"admin"`
 
 		RefreshConf   func(context.Context) (string, error)                              `perm:"admin"`
 		WorkerConnect func(context.Context, string) error                                `perm:"admin" retry:"true"` // TODO: worker perm
@@ -420,8 +421,8 @@ type WorkerStruct struct {
 		ReadPiece       func(context.Context, io.Writer, storage.SectorRef, storiface.UnpaddedByteIndex, abi.UnpaddedPieceSize) (storiface.CallID, error)                                                             `perm:"admin"`
 		Fetch           func(context.Context, storage.SectorRef, storiface.SectorFileType, storiface.PathType, storiface.AcquireMode) (storiface.CallID, error)                                                       `perm:"admin"`
 		SetSectorState  func(ctx context.Context, sector abi.SectorNumber, state string)                                                                                                                              `perm:"admin"`
-		TaskDisable func(ctx context.Context, tt sealtasks.TaskType) error `perm:"admin"`
-		TaskEnable  func(ctx context.Context, tt sealtasks.TaskType) error `perm:"admin"`
+		TaskDisable     func(ctx context.Context, tt sealtasks.TaskType) error                                                                                                                                        `perm:"admin"`
+		TaskEnable      func(ctx context.Context, tt sealtasks.TaskType) error                                                                                                                                        `perm:"admin"`
 
 		Remove          func(ctx context.Context, sector abi.SectorID) error `perm:"admin"`
 		StorageAddLocal func(ctx context.Context, path string) error         `perm:"admin"`
@@ -1365,14 +1366,17 @@ func (c *StorageMinerStruct) RefreshConf(ctx context.Context) (string, error) {
 	return c.Internal.RefreshConf(ctx)
 }
 
-func (c *StorageMinerStruct) WindowsPost(ctx context.Context, number int) error {
-	return c.Internal.WindowsPost(ctx, number)
+func (c *StorageMinerStruct) WindowsPost(ctx context.Context, start int, end int) error {
+	return c.Internal.WindowsPost(ctx, start, end)
+}
+
+func (c *StorageMinerStruct) DeadlinePost(ctx context.Context, deadline int) error {
+	return c.Internal.DeadlinePost(ctx, deadline)
 }
 
 func (c *StorageMinerStruct) WinningPost(ctx context.Context, number int) error {
 	return c.Internal.WinningPost(ctx, number)
 }
-
 
 func (c *StorageMinerStruct) SectorRemove(ctx context.Context, number abi.SectorNumber) error {
 	return c.Internal.SectorRemove(ctx, number)

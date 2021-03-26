@@ -5,6 +5,8 @@ import (
 	"github.com/filecoin-project/lotus/chain/types"
 	proof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 	"io"
+	"math/rand"
+	"time"
 
 	"github.com/ipfs/go-cid"
 
@@ -72,13 +74,19 @@ func (m *Miner) RefreshConf(ctx context.Context) (string, error) {
 	return m.sealing.RefreshConf(ctx)
 }
 
-func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo, number int) error {
+func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo) error {
 	mid, err := address.IDFromAddress(m.maddr)
 	if err != nil {
 		return err
 	}
 
-	m.sealer.GenerateWindowPoSt(ctx, abi.ActorID(mid), sectorInfo, abi.PoStRandomness{0, 9, 2, 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 45, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9, 7})
+	randomness := make([]byte, abi.RandomnessLength)
+	rand.Seed(time.Now().Unix())
+	for i := 0; i < abi.RandomnessLength; i++ {
+		randomness[i] = byte(rand.Intn(256))
+	}
+	log.Info("WindowsPost random ", randomness)
+	m.sealer.GenerateWindowPoSt(ctx, abi.ActorID(mid), sectorInfo, randomness)
 	return nil
 }
 
@@ -91,7 +99,6 @@ func (m *Miner) WinningPost(ctx context.Context, sectorInfo []proof2.SectorInfo,
 	m.sealer.GenerateWinningPoSt(ctx, abi.ActorID(mid), sectorInfo, abi.PoStRandomness{0, 9, 2, 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 45, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9, 7})
 	return nil
 }
-
 
 func (m *Miner) RemoveSector(ctx context.Context, id abi.SectorNumber) error {
 	return m.sealing.Remove(ctx, id)

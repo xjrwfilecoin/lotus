@@ -23,6 +23,7 @@ var gasCmd = &cli.Command{
 		getGasFee,
 		reloadConf,
 		windowsPost,
+		deadlinePost,
 		winningPost,
 	},
 }
@@ -195,20 +196,56 @@ var windowsPost = &cli.Command{
 		defer closer()
 
 		ctx := lcli.ReqContext(cctx)
-		if cctx.Args().Len() != 1 {
-			return xerrors.Errorf("must input number")
+		if cctx.Args().Len() != 2 {
+			return xerrors.Errorf("must input 2 number")
 		}
 
 		str := cctx.Args().Get(0)
 
-		number, err := strconv.Atoi(str)
+		start, err := strconv.Atoi(str)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("windows post ", number)
+		str = cctx.Args().Get(1)
 
-		return nodeApi.WindowsPost(ctx, number)
+		end, err := strconv.Atoi(str)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("windows post ", start, "   ", end)
+
+		return nodeApi.WindowsPost(ctx, start, end)
+	},
+}
+
+var deadlinePost = &cli.Command{
+	Name:      "deadlinepost",
+	Usage:     "deadline post",
+	ArgsUsage: "<DeadlinePost>",
+	Action: func(cctx *cli.Context) error {
+		nodeApi, closer, err := lcli.GetStorageMinerAPI(cctx)
+		if err != nil {
+			return err
+		}
+		defer closer()
+
+		ctx := lcli.ReqContext(cctx)
+		if cctx.Args().Len() != 1 {
+			return xerrors.Errorf("must input 2 number")
+		}
+
+		str := cctx.Args().Get(0)
+
+		deadline, err := strconv.Atoi(str)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("deadline post ", deadline)
+
+		return nodeApi.DeadlinePost(ctx, deadline)
 	},
 }
 

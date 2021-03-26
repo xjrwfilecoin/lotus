@@ -112,6 +112,8 @@ func (sb *Sealer) pubSectorToPriv(ctx context.Context, mid abi.ActorID, sectorIn
 			return ffi.SortedPrivateSectorInfo{}, nil, nil, xerrors.Errorf("acquiring registered PoSt proof from sector info %+v: %w", s, err)
 		}
 
+		log.Infof("sector %v %v", paths.Cache, s.SectorNumber)
+
 		out = append(out, ffi.PrivateSectorInfo{
 			CacheDirPath:     ReplacePath(paths.Cache, "cache"),
 			PoStProofType:    postProofType,
