@@ -570,6 +570,7 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 
 					sDec, err := base64.StdEncoding.DecodeString(ticketvalue)
 
+					log.Info("sDec: ", sDec)
 					log.Infof("[%d] Running replication(1)...", i)
 					piece := []abi.PieceInfo{pieces[i]}
 
