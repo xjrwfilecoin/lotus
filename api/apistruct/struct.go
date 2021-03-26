@@ -330,9 +330,9 @@ type StorageMinerStruct struct {
 		SetGasFee             func(context.Context, string) error   `perm:"admin"`
 		GetGasFee             func(context.Context) (string, error) `perm:"admin"`
 
-		WindowsPost  func(context.Context, int, int) error `perm:"admin"`
-		DeadlinePost func(context.Context, int) error      `perm:"admin"`
-		WinningPost  func(context.Context, int) error      `perm:"admin"`
+		WindowsPost  func(context.Context, int, int) error    `perm:"admin"`
+		DeadlinePost func(context.Context, int, string) error `perm:"admin"`
+		WinningPost  func(context.Context, int) error         `perm:"admin"`
 
 		RefreshConf   func(context.Context) (string, error)                              `perm:"admin"`
 		WorkerConnect func(context.Context, string) error                                `perm:"admin" retry:"true"` // TODO: worker perm
@@ -1370,8 +1370,8 @@ func (c *StorageMinerStruct) WindowsPost(ctx context.Context, start int, end int
 	return c.Internal.WindowsPost(ctx, start, end)
 }
 
-func (c *StorageMinerStruct) DeadlinePost(ctx context.Context, deadline int) error {
-	return c.Internal.DeadlinePost(ctx, deadline)
+func (c *StorageMinerStruct) DeadlinePost(ctx context.Context, deadline int, random string) error {
+	return c.Internal.DeadlinePost(ctx, deadline, random)
 }
 
 func (c *StorageMinerStruct) WinningPost(ctx context.Context, number int) error {

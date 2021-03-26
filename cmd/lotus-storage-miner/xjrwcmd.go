@@ -232,9 +232,6 @@ var deadlinePost = &cli.Command{
 		defer closer()
 
 		ctx := lcli.ReqContext(cctx)
-		if cctx.Args().Len() != 1 {
-			return xerrors.Errorf("must input 2 number")
-		}
 
 		str := cctx.Args().Get(0)
 
@@ -243,9 +240,14 @@ var deadlinePost = &cli.Command{
 			return err
 		}
 
-		fmt.Println("deadline post ", deadline)
+		var random string
+		if cctx.Args().Len() > 1 {
+			random = cctx.Args().Get(1)
+		}
 
-		return nodeApi.DeadlinePost(ctx, deadline)
+		fmt.Println("deadline post ", deadline, " ", random)
+
+		return nodeApi.DeadlinePost(ctx, deadline, random)
 	},
 }
 

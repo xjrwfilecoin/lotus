@@ -74,7 +74,7 @@ func (m *Miner) RefreshConf(ctx context.Context) (string, error) {
 	return m.sealing.RefreshConf(ctx)
 }
 
-func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo) error {
+func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo, random string) error {
 	mid, err := address.IDFromAddress(m.maddr)
 	if err != nil {
 		return err
@@ -85,7 +85,12 @@ func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo)
 	for i := 0; i < abi.RandomnessLength; i++ {
 		randomness[i] = byte(rand.Intn(256))
 	}
-	log.Info("WindowsPost random ", randomness)
+
+	if random != "" {
+		randomness = abi.PoStRandomness(random)
+	}
+
+	log.Info("WindowsPost random ", string(randomness))
 	m.sealer.GenerateWindowPoSt(ctx, abi.ActorID(mid), sectorInfo, randomness)
 	return nil
 }

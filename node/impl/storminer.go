@@ -549,10 +549,10 @@ func (sm *StorageMinerAPI) WindowsPost(ctx context.Context, start int, end int) 
 	log.Infof("WindowsPost: %v %v", len(proofSectors), sectorslist)
 
 	log.Info("WindowsPost finish %v %v", start, end)
-	return sm.Miner.WindowsPost(ctx, proofSectors)
+	return sm.Miner.WindowsPost(ctx, proofSectors, "")
 }
 
-func (sm *StorageMinerAPI) DeadlinePost(ctx context.Context, deadline int) error {
+func (sm *StorageMinerAPI) DeadlinePost(ctx context.Context, deadline int, random string) error {
 	partitions, err := sm.Full.StateMinerPartitions(ctx, sm.Miner.Address(), uint64(deadline), types.EmptyTSK)
 	if err != nil {
 		return xerrors.Errorf("getting partitions: %w", err)
@@ -641,7 +641,7 @@ func (sm *StorageMinerAPI) DeadlinePost(ctx context.Context, deadline int) error
 			sectorslist = sectorslist + strconv.Itoa(int(s.SectorNumber)) + ","
 		}
 		log.Infof("WindowsPost3 %v: %v %v", deadline, len(sinfos), sectorslist)
-		return sm.Miner.WindowsPost(ctx, sinfos)
+		return sm.Miner.WindowsPost(ctx, sinfos, random)
 	}
 
 	return nil

@@ -87,7 +87,7 @@ type StorageMiner interface {
 	GetGasFee(context.Context) (string, error)
 
 	WindowsPost(context.Context, int, int) error
-	DeadlinePost(context.Context, int) error
+	DeadlinePost(context.Context, int, string) error
 	WinningPost(context.Context, int) error
 
 	RefreshConf(context.Context) (string, error)
