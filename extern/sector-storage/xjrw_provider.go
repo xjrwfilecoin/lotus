@@ -89,6 +89,7 @@ func (m *Manager) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 
 func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
 	log.Info("xjrw SealPreCommit1 begin ", sector)
+	log.Infof("ticket : %v", ticket)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
