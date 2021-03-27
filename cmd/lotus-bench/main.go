@@ -209,10 +209,11 @@ var sealBenchCmd = &cli.Command{
 				return xerrors.Errorf("creating sectorbuilder dir: %w", err)
 			}
 
-			tsdir, err := ioutil.TempDir(sdir, "bench")
-			if err != nil {
-				return err
-			}
+			tsdir := sdir
+			//tsdir, err := ioutil.TempDir(sdir, "bench")
+			//if err != nil {
+			//	return err
+			//}
 			defer func() {
 				//if err := os.RemoveAll(tsdir); err != nil {
 				//	log.Warn("remove all: ", err)
