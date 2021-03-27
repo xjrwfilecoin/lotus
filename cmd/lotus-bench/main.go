@@ -327,8 +327,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 	var rP1 sync.Map
 	var rP2 sync.Map
 	ids := make(map[int]SectorInfo)
-	p1CH := make(chan struct{})
-	p2CH := make(chan struct{})
 
 	go func() {
 		for {
@@ -349,18 +347,8 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 				log.Info("remove file ", path)
 			}
 
-			if len(ids) > 0 {
-				log.Info("task: ", ids)
-				p1CH <- struct{}{}
-			}
+			log.Info("task: ", ids)
 
-			<-time.After(time.Second * 1)
-		}
-	}()
-
-	go func() {
-		for {
-			<-p1CH
 			for id, info := range ids {
 				length := 0
 				rP1.Range(func(k, v interface{}) bool {
@@ -385,11 +373,15 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 						size := abi.PaddedPieceSize(sectorSize).Unpadded()
 						pi, err := sb.AddPiece(context.TODO(), sid, nil, size, sealing.NewNullReader(size))
 						if err != nil {
-							log.Infof("p1 ap failed: %v %v", sid, err)
+							log.Infof("p1 AddPiece failed: %v %v", sid, err)
 							return err
 						}
 
 						sDec, err := base64.StdEncoding.DecodeString(info.Random)
+						if err != nil {
+							log.Infof("p1 DecodeString failed: %v %v", sid, err)
+							return err
+						}
 
 						p1out, err := sb.SealPreCommit1(context.TODO(), sid, sDec, []abi.PieceInfo{pi})
 						if err != nil {
@@ -404,19 +396,16 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 
 						log.Infof("p1 finish: %v", sid)
 
-						p2CH <- struct{}{}
-
 						return nil
 					}(id, info)
 				}
 			}
-
+			<-time.After(time.Second * 1)
 		}
 	}()
 
 	go func() {
 		for {
-			<-p2CH
 			id := -1
 			var p1out storage.PreCommit1Out
 			var miner string
@@ -451,6 +440,8 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-d*"))
 				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-layer*"))
 			}
+
+			<-time.After(time.Second * 1)
 		}
 	}()
 
