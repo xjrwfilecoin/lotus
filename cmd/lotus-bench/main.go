@@ -165,7 +165,7 @@ var sealBenchCmd = &cli.Command{
 		&cli.IntFlag{
 			Name:  "num-sectors",
 			Usage: "select number of sectors to seal",
-			Value: 1,
+			Value: 4,
 		},
 		&cli.IntFlag{
 			Name:  "parallel",
@@ -235,8 +235,10 @@ var sealBenchCmd = &cli.Command{
 			return err
 		}
 
+		sectorNumber := c.Int("num-sectors")
+
 		if robench == "" {
-			err := runSeals(sb, sectorSize)
+			err := runSeals(sb, sectorSize, sectorNumber)
 			if err != nil {
 				return xerrors.Errorf("failed to run seals: %w", err)
 			}
@@ -321,7 +323,7 @@ func revertID(addr string) abi.ActorID {
 	return abi.ActorID(amid)
 }
 
-func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize) error {
+func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int) error {
 	var rP1 sync.Map
 	var rP2 sync.Map
 	ids := make(map[int]SectorInfo)
@@ -366,7 +368,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize) error {
 					return true
 				})
 
-				if length < 2 {
+				if length < sectorNumber {
 					delete(ids, id)
 					rP1.Store(id, info)
 					go func(id int, info SectorInfo) error {
@@ -395,7 +397,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize) error {
 						if err != nil {
 							return xerrors.Errorf("commit: %w", err)
 						}
-						time.Sleep(5 * time.Second)
 
 						rP2.Store(id, P1Info{
 							Miner: info.Miner,
