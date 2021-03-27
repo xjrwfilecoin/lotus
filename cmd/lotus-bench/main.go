@@ -334,7 +334,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 		for {
 			filesPath := scanDir(filepath.Join(os.Getenv("WORKER_PATH"), "faults"))
 			for _, path := range filesPath {
-				log.Info("bench2 ", path)
+				log.Info("read file ", path)
 				state := ReadJson(path)
 				for id, info := range state {
 					if id, err := strconv.Atoi(id); err == nil {
@@ -346,11 +346,11 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					}
 				}
 				os.Remove(path)
-				log.Info("bench3 ", path)
+				log.Info("remove file ", path)
 			}
 
 			if len(ids) > 0 {
-				fmt.Println("ids ", ids)
+				log.Info("task: ", ids)
 				p1CH <- struct{}{}
 			}
 
@@ -373,7 +373,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					rP1.Store(id, info)
 					go func(id int, info SectorInfo) error {
 						defer rP1.Delete(id)
-						log.Infof("#### %v %v", id, info)
 						sid := storage.SectorRef{
 							ID: abi.SectorID{
 								Miner:  revertID(info.Miner),
@@ -381,20 +380,20 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 							},
 							ProofType: spt(sectorSize),
 						}
-
-						log.Infof("[%d] Writing piece into sector...", sid)
+						log.Info("p1 start ", sid)
 
 						size := abi.PaddedPieceSize(sectorSize).Unpadded()
 						pi, err := sb.AddPiece(context.TODO(), sid, nil, size, sealing.NewNullReader(size))
 						if err != nil {
+							log.Infof("p1 ap failed: %v %v", sid, err)
 							return err
 						}
 
 						sDec, err := base64.StdEncoding.DecodeString(info.Random)
-						log.Infof("[%d] Running replication(1)...", sid)
 
 						p1out, err := sb.SealPreCommit1(context.TODO(), sid, sDec, []abi.PieceInfo{pi})
 						if err != nil {
+							log.Infof("p1 failed %v : %v", sid, err)
 							return xerrors.Errorf("commit: %w", err)
 						}
 
@@ -402,6 +401,8 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 							Miner: info.Miner,
 							out:   p1out,
 						})
+
+						log.Infof("p1 finish: %v", sid)
 
 						p2CH <- struct{}{}
 
@@ -427,7 +428,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 			})
 
 			if id != -1 {
-				log.Infof("@@@@ %v %v", id, miner)
 				rP2.Delete(id)
 				sid := storage.SectorRef{
 					ID: abi.SectorID{
@@ -437,12 +437,14 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					ProofType: spt(sectorSize),
 				}
 
-				log.Infof("[%d] Running replication(2)...", id)
+				log.Info("p2 start ", sid)
 				_, err := sb.SealPreCommit2(context.TODO(), sid, p1out)
 				if err != nil {
+					log.Infof("p2 failed %v : %v", sid, err)
 					continue
 				}
 
+				log.Info("p2 finish ", sid)
 				cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
 				destPath := filepath.Join(cachePath, storiface.SectorName(sid.ID))
 				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-c*"))
