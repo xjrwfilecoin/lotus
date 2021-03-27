@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	sectorstorage "github.com/filecoin-project/lotus/extern/sector-storage"
 	saproof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 
 	"github.com/docker/go-units"
@@ -592,6 +593,11 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 						return xerrors.Errorf("commit: %w", err)
 					}
 
+					cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
+					destPath := filepath.Join(cachePath, storiface.SectorName(sid.ID))
+					sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-c*"))
+					sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-d*"))
+					sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-layer*"))
 					return nil
 
 					precommit2 := time.Now()
