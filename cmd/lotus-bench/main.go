@@ -281,7 +281,7 @@ var sealBenchCmd = &cli.Command{
 				PreCommit2: 1,
 				Commit:     1,
 			}
-			sealTimings, sealedSectors, err = runSeals(sb, sbfs, sectorNumber, parCfg, mid, sectorSize, []byte(c.String("512da1148a3f8d3d7f6d92106b0d9e10ca50d235fed24714c8ff91194e38ddd8")), c.String("save-commit2-input"), skipc2, c.Bool("skip-unseal"), c.String("ticket"), c.Int("number"))
+			sealTimings, sealedSectors, err = runSeals(sb, sbfs, sectorNumber, parCfg, mid, sectorSize, []byte(c.String("ticket-preimage")), c.String("save-commit2-input"), skipc2, c.Bool("skip-unseal"), c.String("ticket"), c.Int("number"))
 			if err != nil {
 				return xerrors.Errorf("failed to run seals: %w", err)
 			}
