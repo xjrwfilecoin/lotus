@@ -233,6 +233,7 @@ func (p *proveHandler) processHeadChange(ctx context.Context, newTS *types.TipSe
 
 	// Check if the chain is above the Challenge height for the post window
 	if newTS.Height() < di.Challenge {
+		log.Info("runpost cancel ", di)
 		return
 	}
 
