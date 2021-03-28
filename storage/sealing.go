@@ -90,7 +90,7 @@ func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo,
 		randomness = abi.PoStRandomness(random)
 	}
 
-	log.Info("WindowsPost random ", string(randomness))
+	log.Info("WindowsPost random ", randomness)
 	m.sealer.GenerateWindowPoSt(ctx, abi.ActorID(mid), sectorInfo, randomness)
 	return nil
 }
