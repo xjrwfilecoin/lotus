@@ -281,20 +281,20 @@ func scanDir(dirName string) []string {
 	return fileList
 }
 
-func ReadJson(fileName string) map[string]SectorInfo {
+func ReadJson(fileName string) (map[string]SectorInfo, error) {
 	state := make(map[string]SectorInfo)
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		log.Info("read json err: ", err)
-		return map[string]SectorInfo{}
+		return map[string]SectorInfo{}, err
 	}
 
 	err = json.Unmarshal(data, &state)
 	if err != nil {
 		log.Info("Unmarshal json err : ", err)
-		return map[string]SectorInfo{}
+		return map[string]SectorInfo{}, err
 	}
-	return state
+	return state, nil
 }
 
 func deletefiles(id abi.SectorID) {
@@ -333,18 +333,21 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 			filesPath := scanDir(filepath.Join(os.Getenv("WORKER_PATH"), "faults"))
 			for _, path := range filesPath {
 				log.Info("read file ", path)
-				state := ReadJson(path)
-				for id, info := range state {
-					if id, err := strconv.Atoi(id); err == nil {
-						deletefiles(abi.SectorID{
-							Miner:  revertID(info.Miner),
-							Number: abi.SectorNumber(id),
-						})
-						ids[id] = info
+				if state, err := ReadJson(path); err == nil {
+					for id, info := range state {
+						if id, err := strconv.Atoi(id); err == nil {
+							deletefiles(abi.SectorID{
+								Miner:  revertID(info.Miner),
+								Number: abi.SectorNumber(id),
+							})
+							ids[id] = info
+						}
 					}
+					os.Remove(path)
+					log.Info("remove file ", path)
+				} else {
+					log.Info("file err: ", err)
 				}
-				os.Remove(path)
-				log.Info("remove file ", path)
 			}
 
 			log.Info("task: ", ids)
@@ -394,6 +397,8 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 							out:   p1out,
 						})
 
+						time.Sleep(2 * time.Minute)
+
 						log.Infof("p1 finish: %v", sid)
 
 						return nil
@@ -432,6 +437,8 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					log.Infof("p2 failed %v : %v", sid, err)
 					continue
 				}
+
+				time.Sleep(1 * time.Minute)
 
 				log.Info("p2 finish ", sid)
 				cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
