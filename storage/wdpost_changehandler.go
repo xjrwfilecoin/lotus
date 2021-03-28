@@ -220,6 +220,7 @@ func (p *proveHandler) processHeadChange(ctx context.Context, newTS *types.TipSe
 
 	// Only generate one proof at a time
 	if p.current != nil {
+		log.Info("runpost current ", di)
 		return
 	}
 
