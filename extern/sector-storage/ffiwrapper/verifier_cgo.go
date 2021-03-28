@@ -122,6 +122,8 @@ func (sb *Sealer) pubSectorToPriv(ctx context.Context, mid abi.ActorID, sectorIn
 		})
 	}
 
+	log.Infof("windowspost = %v, skip = %v", len(out), len(skipped))
+
 	return ffi.NewSortedPrivateSectorInfo(out...), skipped, done, nil
 }
 
