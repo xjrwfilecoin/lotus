@@ -397,8 +397,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 							out:   p1out,
 						})
 
-						time.Sleep(2 * time.Minute)
-
 						log.Infof("p1 finish: %v", sid)
 
 						return nil
@@ -437,8 +435,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					log.Infof("p2 failed %v : %v", sid, err)
 					continue
 				}
-
-				time.Sleep(1 * time.Minute)
 
 				log.Info("p2 finish ", sid)
 				cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
