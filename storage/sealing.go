@@ -95,9 +95,7 @@ func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo,
 	for _, sector := range skip {
 		log.Info("windowspost skip ", sector.Number)
 	}
-	if err != nil {
-		log.Info("windowspost err:", err)
-	}
+	log.Infof("windowspost %v err: %v", len(skip), err)
 	return nil
 }
 
