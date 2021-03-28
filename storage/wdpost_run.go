@@ -644,6 +644,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 
 			skipCount += uint64(len(ps))
 			for _, sector := range ps {
+				log.Info("windowspost skip ", sector.Number)
 				postSkipped.Set(uint64(sector.Number))
 			}
 		}
