@@ -91,7 +91,13 @@ func (m *Miner) WindowsPost(ctx context.Context, sectorInfo []proof2.SectorInfo,
 	}
 
 	log.Info("WindowsPost random ", randomness)
-	m.sealer.GenerateWindowPoSt(ctx, abi.ActorID(mid), sectorInfo, randomness)
+	_, skip, err := m.sealer.GenerateWindowPoSt(ctx, abi.ActorID(mid), sectorInfo, randomness)
+	for _, sector := range skip {
+		log.Info("windowspost skip ", sector.Number)
+	}
+	if err != nil {
+		log.Info("windowspost err:", err)
+	}
 	return nil
 }
 
