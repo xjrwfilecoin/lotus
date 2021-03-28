@@ -53,8 +53,10 @@ func (ch *changeHandler) update(ctx context.Context, revert *types.TipSet, advan
 	}
 
 	if !di.PeriodStarted() {
+		log.Info("update abort ", di)
 		return nil // not proving anything yet
 	}
+	log.Info("update ", di)
 
 	hc := &headChange{
 		ctx:     ctx,

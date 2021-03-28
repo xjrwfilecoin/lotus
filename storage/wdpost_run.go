@@ -421,6 +421,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 		// late to declare them for this deadline
 		declDeadline := (di.Index + 2) % di.WPoStPeriodDeadlines
 
+		log.Infof("pre runPost %v %v", di, declDeadline)
 		partitions, err := s.api.StateMinerPartitions(context.TODO(), s.actor, declDeadline, ts.Key())
 		if err != nil {
 			log.Errorf("getting partitions: %v", err)
@@ -498,6 +499,8 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 	if err != nil {
 		return nil, err
 	}
+
+	log.Infof("runPost %v", di)
 
 	// Generate proofs in batches
 	posts := make([]miner.SubmitWindowedPoStParams, 0, len(partitionBatches))
