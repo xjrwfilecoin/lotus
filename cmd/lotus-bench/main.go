@@ -242,6 +242,7 @@ var sealBenchCmd = &cli.Command{
 		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
 
 		os.Mkdir(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), 0755)
+		os.Mkdir(filepath.Join(os.Getenv("WORKER_PATH"), "faults"), 0755)
 
 		filesPath := scanDir(filepath.Join(os.Getenv("WORKER_PATH"), "undo"))
 		for _, path := range filesPath {
