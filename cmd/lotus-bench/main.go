@@ -237,6 +237,8 @@ var sealBenchCmd = &cli.Command{
 
 		sectorNumber := c.Int("num-sectors")
 
+		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
+
 		if robench == "" {
 			err := runSeals(sb, sectorSize, sectorNumber)
 			if err != nil {
