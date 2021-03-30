@@ -94,6 +94,8 @@ type Commit2In struct {
 	SectorSize uint64
 }
 
+var tasks sync.Map
+
 func main() {
 	logging.SetLogLevel("*", "INFO")
 
@@ -239,6 +241,14 @@ var sealBenchCmd = &cli.Command{
 
 		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
 
+		os.Mkdir(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), 0755)
+
+		filesPath := scanDir(filepath.Join(os.Getenv("WORKER_PATH"), "undo"))
+		for _, path := range filesPath {
+			log.Info("recover file ", path)
+			sectorstorage.ShellExecute("mv " + path + " " + filepath.Join(os.Getenv("WORKER_PATH"), "faults"))
+		}
+
 		if robench == "" {
 			err := runSeals(sb, sectorSize, sectorNumber)
 			if err != nil {
@@ -299,6 +309,37 @@ func ReadJson(fileName string) (map[string]SectorInfo, error) {
 	return state, nil
 }
 
+func WriteJson(id int) error {
+	if id != -1 {
+		tasks.Delete(id)
+	}
+
+	state := make(map[string]SectorInfo)
+
+	tasks.Range(func(k, v interface{}) bool {
+		state[strconv.Itoa(k.(int))] = v.(SectorInfo)
+		return true
+	})
+
+	file := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), "back.json")
+	f, err := os.Create(file)
+	if err != nil {
+		fmt.Println("err :", err)
+		return err
+	}
+	defer f.Close()
+
+	d, err := json.MarshalIndent(state, "", " ")
+	if err != nil {
+		fmt.Println("err :", err)
+		return err
+	}
+
+	f.Write(d)
+
+	return nil
+}
+
 func deletefiles(id abi.SectorID) {
 	cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
 	destPath := filepath.Join(cachePath, storiface.SectorName(id))
@@ -343,6 +384,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 								Number: abi.SectorNumber(id),
 							})
 							ids[id] = info
+							tasks.Store(id, info)
 						}
 					}
 					os.Remove(path)
@@ -350,6 +392,10 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 				} else {
 					log.Info("file err: ", err)
 				}
+			}
+
+			if len(filesPath) > 0 {
+				WriteJson(-1)
 			}
 
 			log.Info("task: ", ids)
@@ -437,6 +483,8 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					log.Infof("p2 failed %v : %v", sid, err)
 					continue
 				}
+
+				WriteJson(id)
 
 				log.Info("p2 finish ", sid)
 				cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
