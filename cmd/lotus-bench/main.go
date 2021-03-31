@@ -121,13 +121,6 @@ func main() {
 
 	log.Info("Starting lotus-bench")
 
-	f, err := SingleProcess(filepath.Join(os.Getenv("WORKER_PATH"), "bench.lock"))
-	defer f.Close()
-	if err != nil {
-		log.Error("bench already start")
-		return
-	}
-
 	app := &cli.App{
 		Name:    "lotus-bench",
 		Usage:   "Benchmark performance of lotus on your hardware",
@@ -240,6 +233,14 @@ var sealBenchCmd = &cli.Command{
 			}
 			sbdir = exp
 		}
+
+		f, err := SingleProcess(filepath.Join(sbdir, "bench.lock"))
+		defer f.Close()
+		if err != nil {
+			log.Error("bench already start")
+			return err
+		}
+
 		// sector size
 		sectorSizeInt, err := units.RAMInBytes(c.String("sector-size"))
 		if err != nil {
@@ -268,13 +269,16 @@ var sealBenchCmd = &cli.Command{
 
 		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
 
-		os.Mkdir(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), 0755)
-		os.Mkdir(filepath.Join(os.Getenv("WORKER_PATH"), "faults"), 0755)
+		os.Mkdir(filepath.Join(sbdir, "cache"), 0755)
+		os.Mkdir(filepath.Join(sbdir, "unsealed"), 0755)
+		os.Mkdir(filepath.Join(sbdir, "sealed"), 0755)
+		os.Mkdir(filepath.Join(sbdir, "undo"), 0755)
+		os.Mkdir(filepath.Join(sbdir, "faults"), 0755)
 
-		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), "back.json") + " " + filepath.Join(os.Getenv("WORKER_PATH"), "faults"))
+		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(sbdir, "undo"), "back.json") + " " + filepath.Join(sbdir, "faults"))
 
 		if robench == "" {
-			err := runSeals(sb, sectorSize, sectorNumber)
+			err := runSeals(sb, sectorSize, sectorNumber, sbdir)
 			if err != nil {
 				return xerrors.Errorf("failed to run seals: %w", err)
 			}
@@ -333,7 +337,7 @@ func ReadJson(fileName string) (map[string]SectorInfo, error) {
 	return state, nil
 }
 
-func WriteJson(id int) error {
+func WriteJson(id int, sbdir string) error {
 	if id != -1 {
 		tasks.Delete(id)
 	}
@@ -345,8 +349,7 @@ func WriteJson(id int) error {
 		return true
 	})
 
-	file := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), "back.json")
-	os.Remove(file)
+	file := filepath.Join(filepath.Join(sbdir, "undo"), "back.json")
 	f, err := os.Create(file)
 	if err != nil {
 		fmt.Println("err :", err)
@@ -365,16 +368,16 @@ func WriteJson(id int) error {
 	return nil
 }
 
-func deletefiles(id abi.SectorID) {
-	cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
+func deletefiles(id abi.SectorID, sbdir string) {
+	cachePath := filepath.Join(sbdir, "cache")
 	destPath := filepath.Join(cachePath, storiface.SectorName(id))
 	sectorstorage.ShellExecute("rm -rf " + destPath)
 
-	sealedPath := filepath.Join(os.Getenv("WORKER_PATH"), "sealed")
+	sealedPath := filepath.Join(sbdir, "sealed")
 	destPath = filepath.Join(sealedPath, storiface.SectorName(id))
 	sectorstorage.ShellExecute("rm -rf " + destPath)
 
-	unsealedPath := filepath.Join(os.Getenv("WORKER_PATH"), "unsealed")
+	unsealedPath := filepath.Join(sbdir, "unsealed")
 	destPath = filepath.Join(unsealedPath, storiface.SectorName(id))
 	sectorstorage.ShellExecute("rm -rf " + destPath)
 }
@@ -391,14 +394,14 @@ func revertID(addr string) abi.ActorID {
 	return abi.ActorID(amid)
 }
 
-func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int) error {
+func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int, sbdir string) error {
 	var rP1 sync.Map
 	var rP2 sync.Map
 	ids := make(map[int]SectorInfo)
 
 	go func() {
 		for {
-			filesPath := scanDir(filepath.Join(os.Getenv("WORKER_PATH"), "faults"))
+			filesPath := scanDir(filepath.Join(sbdir, "faults"))
 			for _, path := range filesPath {
 				log.Info("read file ", path)
 				if state, err := ReadJson(path); err == nil {
@@ -407,7 +410,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 							deletefiles(abi.SectorID{
 								Miner:  revertID(info.Miner),
 								Number: abi.SectorNumber(id),
-							})
+							}, sbdir)
 							ids[id] = info
 							tasks.Store(id, info)
 						}
@@ -420,7 +423,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 			}
 
 			if len(filesPath) > 0 {
-				WriteJson(-1)
+				WriteJson(-1, sbdir)
 			}
 
 			log.Info("task: ", ids)
@@ -509,10 +512,10 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					continue
 				}
 
-				WriteJson(id)
+				WriteJson(id, sbdir)
 
 				log.Info("p2 finish ", sid)
-				cachePath := filepath.Join(os.Getenv("WORKER_PATH"), "cache")
+				cachePath := filepath.Join(sbdir, "cache")
 				destPath := filepath.Join(cachePath, storiface.SectorName(sid.ID))
 				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-c*"))
 				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-d*"))
