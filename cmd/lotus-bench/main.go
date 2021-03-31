@@ -244,11 +244,7 @@ var sealBenchCmd = &cli.Command{
 		os.Mkdir(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), 0755)
 		os.Mkdir(filepath.Join(os.Getenv("WORKER_PATH"), "faults"), 0755)
 
-		filesPath := scanDir(filepath.Join(os.Getenv("WORKER_PATH"), "undo"))
-		for _, path := range filesPath {
-			log.Info("recover file ", path)
-			sectorstorage.ShellExecute("mv " + path + " " + filepath.Join(os.Getenv("WORKER_PATH"), "faults"))
-		}
+		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), "back.json") + " " + filepath.Join(os.Getenv("WORKER_PATH"), "faults"))
 
 		if robench == "" {
 			err := runSeals(sb, sectorSize, sectorNumber)
@@ -323,6 +319,7 @@ func WriteJson(id int) error {
 	})
 
 	file := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "undo"), "back.json")
+	os.Remove(file)
 	f, err := os.Create(file)
 	if err != nil {
 		fmt.Println("err :", err)
