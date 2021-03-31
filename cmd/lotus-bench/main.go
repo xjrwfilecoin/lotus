@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/docker/go-units"
@@ -96,10 +97,36 @@ type Commit2In struct {
 
 var tasks sync.Map
 
+func SingleProcess(sigfile string) (*os.File, error) {
+	f, err := os.OpenFile(sigfile, os.O_RDONLY|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		log.Error("SingleProcess ", err)
+		return nil, err
+	}
+
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		log.Error("SingleProcess ", err)
+		return nil, err
+	}
+
+	if err := ioutil.WriteFile(sigfile, []byte(fmt.Sprintln(os.Getpid())), os.ModePerm); err != nil {
+		log.Error("SingleProcess ", err)
+		return nil, err
+	}
+	return f, nil
+}
+
 func main() {
 	logging.SetLogLevel("*", "INFO")
 
 	log.Info("Starting lotus-bench")
+
+	f, err := SingleProcess(filepath.Join(os.Getenv("WORKER_PATH"), "bench.lock"))
+	defer f.Close()
+	if err != nil {
+		log.Error("bench already start")
+		return
+	}
 
 	app := &cli.App{
 		Name:    "lotus-bench",
