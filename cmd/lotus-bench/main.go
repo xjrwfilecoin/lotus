@@ -171,6 +171,17 @@ var sealBenchCmd = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "skip-commit2",
 			Usage: "skip the commit2 (snark) portion of the benchmark",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "only-p1",
+			Usage: "only do ap&p1 of the benchmark",
+			Value: false,
+		},
+		&cli.BoolFlag{
+			Name:  "only-p2",
+			Usage: "only do p2 of the benchmark",
+			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "skip-unseal",
@@ -185,9 +196,14 @@ var sealBenchCmd = &cli.Command{
 			Usage: "save commit2 input to a file",
 		},
 		&cli.IntFlag{
-			Name:  "num-sectors",
-			Usage: "select number of sectors to seal",
+			Name:  "p1-limit",
+			Usage: "Parallel P1 numbers  at the same time",
 			Value: 4,
+		},
+		&cli.IntFlag{
+			Name:  "p2-limit",
+			Usage: "Parallel P2 numbers  at the same time",
+			Value: 1,
 		},
 		&cli.IntFlag{
 			Name:  "parallel",
@@ -234,7 +250,7 @@ var sealBenchCmd = &cli.Command{
 			sbdir = exp
 		}
 
-		f, err := SingleProcess(filepath.Join(sbdir, "bench.lock"))
+		f, err := SingleProcess(filepath.Join(os.TempDir(), "bench.lock"))
 		defer f.Close()
 		if err != nil {
 			log.Error("bench already start")
@@ -265,7 +281,16 @@ var sealBenchCmd = &cli.Command{
 			return err
 		}
 
-		sectorNumber := c.Int("num-sectors")
+		onlyp1 := c.Bool("only-p1")
+		onlyp2 := c.Bool("only-p2")
+		p1limit := c.Int("p1-limit")
+		p2limit := c.Int("p2-limit")
+
+		log.Infof("para: %v %v %v %v", onlyp1, onlyp2, p1limit, p2limit)
+
+		if onlyp1 && onlyp2 {
+			return xerrors.Errorf("only-p1 and only-p2 cannot be true at the same time")
+		}
 
 		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
 
@@ -278,7 +303,7 @@ var sealBenchCmd = &cli.Command{
 		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(sbdir, "undo"), "back.json") + " " + filepath.Join(sbdir, "faults"))
 
 		if robench == "" {
-			err := runSeals(sb, sectorSize, sectorNumber, sbdir)
+			err := runSeals(sb, sectorSize, p1limit, p2limit, sbdir, onlyp1, onlyp2)
 			if err != nil {
 				return xerrors.Errorf("failed to run seals: %w", err)
 			}
@@ -394,9 +419,10 @@ func revertID(addr string) abi.ActorID {
 	return abi.ActorID(amid)
 }
 
-func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int, sbdir string) error {
+func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2limit int, sbdir string, onlyp1 bool, onlyp2 bool) error {
 	var rP1 sync.Map
 	var rP2 sync.Map
+	var r sync.Map
 	ids := make(map[int]SectorInfo)
 
 	go func() {
@@ -435,7 +461,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 					return true
 				})
 
-				if length < sectorNumber {
+				if length < p1limit {
 					delete(ids, id)
 					rP1.Store(id, info)
 					go func(id int, info SectorInfo) error {
@@ -485,42 +511,52 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, sectorNumber int
 
 	go func() {
 		for {
-			id := -1
-			var p1out storage.PreCommit1Out
-			var miner string
 			rP2.Range(func(k, v interface{}) bool {
-				id = k.(int)
-				miner = (v.(P1Info)).Miner
-				p1out = (v.(P1Info)).out
+				id := k.(int)
+				info := v.(P1Info)
+
+				length := 0
+				r.Range(func(k, v interface{}) bool {
+					length++
+					return true
+				})
+
+				if length < p2limit {
+					rP2.Delete(k)
+					r.Store(id, info)
+
+					go func(id int, info P1Info) error {
+						defer r.Delete(id)
+						sid := storage.SectorRef{
+							ID: abi.SectorID{
+								Miner:  revertID(info.Miner),
+								Number: abi.SectorNumber(id),
+							},
+							ProofType: spt(sectorSize),
+						}
+
+						log.Info("p2 start ", sid)
+						_, err := sb.SealPreCommit2(context.TODO(), sid, info.out)
+						if err != nil {
+							log.Infof("p2 failed %v : %v", sid, err)
+							return err
+						}
+
+						WriteJson(id, sbdir)
+
+						log.Info("p2 finish ", sid)
+						cachePath := filepath.Join(sbdir, "cache")
+						destPath := filepath.Join(cachePath, storiface.SectorName(sid.ID))
+						sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-c*"))
+						sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-d*"))
+						sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-layer*"))
+
+						return nil
+					}(id, info)
+				}
+
 				return true
 			})
-
-			if id != -1 {
-				rP2.Delete(id)
-				sid := storage.SectorRef{
-					ID: abi.SectorID{
-						Miner:  revertID(miner),
-						Number: abi.SectorNumber(id),
-					},
-					ProofType: spt(sectorSize),
-				}
-
-				log.Info("p2 start ", sid)
-				_, err := sb.SealPreCommit2(context.TODO(), sid, p1out)
-				if err != nil {
-					log.Infof("p2 failed %v : %v", sid, err)
-					continue
-				}
-
-				WriteJson(id, sbdir)
-
-				log.Info("p2 finish ", sid)
-				cachePath := filepath.Join(sbdir, "cache")
-				destPath := filepath.Join(cachePath, storiface.SectorName(sid.ID))
-				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-c*"))
-				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-d*"))
-				sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-layer*"))
-			}
 
 			<-time.After(time.Second * 1)
 		}
