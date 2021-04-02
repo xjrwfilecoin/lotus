@@ -427,32 +427,42 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 
 	go func() {
 		for {
-			filesPath := scanDir(filepath.Join(sbdir, "faults"))
-			for _, path := range filesPath {
-				log.Info("read file ", path)
-				if state, err := ReadJson(path); err == nil {
-					for id, info := range state {
-						if id, err := strconv.Atoi(id); err == nil {
-							deletefiles(abi.SectorID{
-								Miner:  revertID(info.Miner),
-								Number: abi.SectorNumber(id),
-							}, sbdir)
-							ids[id] = info
-							tasks.Store(id, info)
+			if len(ids) == 0 {
+				filesPath := scanDir(filepath.Join(sbdir, "faults"))
+				for _, path := range filesPath {
+					log.Info("read file ", path)
+					if state, err := ReadJson(path); err == nil {
+						for id, info := range state {
+							if id, err := strconv.Atoi(id); err == nil {
+								deletefiles(abi.SectorID{
+									Miner:  revertID(info.Miner),
+									Number: abi.SectorNumber(id),
+								}, sbdir)
+								ids[id] = info
+								tasks.Store(id, info)
+							}
 						}
+						os.Remove(path)
+						log.Info("remove file ", path)
+						break
+					} else {
+						log.Info("file err: ", err)
 					}
-					os.Remove(path)
-					log.Info("remove file ", path)
-				} else {
-					log.Info("file err: ", err)
+				}
+
+				if len(ids) > 0 {
+					WriteJson(-1, sbdir)
 				}
 			}
 
-			if len(filesPath) > 0 {
-				WriteJson(-1, sbdir)
+			waitlist := fmt.Sprintf("wait task %v: ", len(ids))
+			for id, info := range ids {
+				waitlist = waitlist + storiface.SectorName(abi.SectorID{
+					Miner:  revertID(info.Miner),
+					Number: abi.SectorNumber(id),
+				}) + ", "
 			}
-
-			log.Info("task: ", ids)
+			log.Info(waitlist)
 
 			for id, info := range ids {
 				length := 0
