@@ -300,7 +300,8 @@ var sealBenchCmd = &cli.Command{
 		os.Mkdir(filepath.Join(sbdir, "undo"), 0755)
 		os.Mkdir(filepath.Join(sbdir, "faults"), 0755)
 
-		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(sbdir, "undo"), "back.json") + " " + filepath.Join(sbdir, "faults"))
+		destFile := strconv.FormatInt(time.Now().UnixNano()/1e6, 10) + ".json"
+		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(sbdir, "undo"), "back.json") + " " + filepath.Join(filepath.Join(sbdir, "faults"), destFile))
 
 		if robench == "" {
 			err := runSeals(sb, sectorSize, p1limit, p2limit, sbdir, onlyp1, onlyp2)
