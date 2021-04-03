@@ -562,6 +562,10 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 						sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-d*"))
 						sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-layer*"))
 
+						unsealedPath := filepath.Join(sbdir, "unsealed")
+						destPath = filepath.Join(unsealedPath, storiface.SectorName(sid.ID))
+						sectorstorage.ShellExecute("rm -rf " + destPath)
+
 						return nil
 					}(id, info)
 				}
