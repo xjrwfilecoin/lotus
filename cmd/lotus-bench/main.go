@@ -17,7 +17,7 @@ import (
 	"github.com/docker/go-units"
 	sectorstorage "github.com/filecoin-project/lotus/extern/sector-storage"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/mitchellh/go-homedir"
+	//"github.com/mitchellh/go-homedir"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 
@@ -212,40 +212,44 @@ var sealBenchCmd = &cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
-		if c.Bool("no-gpu") {
-			err := os.Setenv("BELLMAN_NO_GPU", "1")
-			if err != nil {
-				return xerrors.Errorf("setting no-gpu flag: %w", err)
-			}
-		}
+		//if c.Bool("no-gpu") {
+		//	err := os.Setenv("BELLMAN_NO_GPU", "1")
+		//	if err != nil {
+		//		return xerrors.Errorf("setting no-gpu flag: %w", err)
+		//	}
+		//}
 
-		robench := c.String("benchmark-existing-sectorbuilder")
+		//robench := c.String("benchmark-existing-sectorbuilder")
 
 		var sbdir string
 
-		if robench == "" {
-			//err := os.Mkdir(sdir, 0775) //nolint:gosec
-			//if err != nil {
-			//	return xerrors.Errorf("creating sectorbuilder dir: %w", err)
-			//}
+		//if robench == "" {
+		//err := os.Mkdir(sdir, 0775) //nolint:gosec
+		//if err != nil {
+		//	return xerrors.Errorf("creating sectorbuilder dir: %w", err)
+		//}
 
-			tsdir := c.String("storage-dir")
+		tsdir := c.String("storage-dir")
 
-			os.Mkdir(tsdir, 0775)
+		log.Info("storage-dir: ", tsdir)
 
-			// TODO: pretty sure this isnt even needed?
-			//if err := os.MkdirAll(tsdir, 0775); err != nil {
-			//	return err
-			//}
+		os.Mkdir(tsdir, 0775)
 
-			sbdir = tsdir
-		} else {
-			exp, err := homedir.Expand(robench)
-			if err != nil {
-				return err
-			}
-			sbdir = exp
-		}
+		// TODO: pretty sure this isnt even needed?
+		//if err := os.MkdirAll(tsdir, 0775); err != nil {
+		//	return err
+		//}
+
+		sbdir = tsdir
+		//} else {
+		//	exp, err := homedir.Expand(robench)
+		//	if err != nil {
+		//		return err
+		//	}
+		//	sbdir = exp
+		//}
+
+		log.Info("storage-dir: ", sbdir)
 
 		f, err := SingleProcess(filepath.Join(os.TempDir(), "bench.lock"))
 		defer f.Close()
@@ -303,12 +307,12 @@ var sealBenchCmd = &cli.Command{
 		destFile := strconv.FormatInt(time.Now().UnixNano()/1e6, 10) + ".json"
 		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(sbdir, "undo"), "back.json") + " " + filepath.Join(filepath.Join(sbdir, "faults"), destFile))
 
-		if robench == "" {
-			err := runSeals(sb, sectorSize, p1limit, p2limit, sbdir, onlyp1, onlyp2)
-			if err != nil {
-				return xerrors.Errorf("failed to run seals: %w", err)
-			}
+		//if robench == "" {
+		err = runSeals(sb, sectorSize, p1limit, p2limit, sbdir, onlyp1, onlyp2)
+		if err != nil {
+			return xerrors.Errorf("failed to run seals: %w", err)
 		}
+		//}
 
 		stop := make(chan struct{})
 		<-stop
