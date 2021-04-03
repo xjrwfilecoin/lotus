@@ -224,22 +224,19 @@ var sealBenchCmd = &cli.Command{
 		var sbdir string
 
 		if robench == "" {
-			sdir, err := homedir.Expand(c.String("storage-dir"))
-			if err != nil {
-				return err
-			}
+			//err := os.Mkdir(sdir, 0775) //nolint:gosec
+			//if err != nil {
+			//	return xerrors.Errorf("creating sectorbuilder dir: %w", err)
+			//}
 
-			err = os.MkdirAll(sdir, 0775) //nolint:gosec
-			if err != nil {
-				return xerrors.Errorf("creating sectorbuilder dir: %w", err)
-			}
+			tsdir := c.String("storage-dir")
 
-			tsdir := sdir
+			os.Mkdir(tsdir, 0775)
 
 			// TODO: pretty sure this isnt even needed?
-			if err := os.MkdirAll(tsdir, 0775); err != nil {
-				return err
-			}
+			//if err := os.MkdirAll(tsdir, 0775); err != nil {
+			//	return err
+			//}
 
 			sbdir = tsdir
 		} else {
