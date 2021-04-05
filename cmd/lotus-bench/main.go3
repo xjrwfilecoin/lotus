@@ -424,24 +424,24 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 								ID: _id,
 								ProofType: spt(sectorSize),
 							}
-							log.Info("p1 start ", sid)
+							log.Info("p1 start ", id)
 
 							size := abi.PaddedPieceSize(sectorSize).Unpadded()
 							pi, err := sb.AddPiece(context.TODO(), sid, nil, size, sealing.NewNullReader(size))
 							if err != nil {
-								log.Infof("p1 AddPiece failed: %v %v", sid, err)
+								log.Infof("p1 AddPiece failed: %v %v", id, err)
 								return err
 							}
 
 							sDec, err := base64.StdEncoding.DecodeString(random)
 							if err != nil {
-								log.Infof("p1 DecodeString failed: %v %v", sid, err)
+								log.Infof("p1 DecodeString failed: %v %v", id, err)
 								return err
 							}
 
 							p1out, err := sb.SealPreCommit1(context.TODO(), sid, sDec, []abi.PieceInfo{pi})
 							if err != nil {
-								log.Infof("p1 failed %v : %v", sid, err)
+								log.Infof("p1 failed %v : %v", id, err)
 								return xerrors.Errorf("commit: %w", err)
 							}
 
@@ -456,7 +456,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 					}(id, random)
 				}
 			}
-			<-time.After(time.Second * 1)
+			<-time.After(time.Second * 5)
 		}
 	}()
 
@@ -485,16 +485,16 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 								ProofType: spt(sectorSize),
 							}
 
-							log.Info("p2 start ", sid)
+							log.Info("p2 start ", id)
 							_, err := sb.SealPreCommit2(context.TODO(), sid, p1out)
 							if err != nil {
-								log.Infof("p2 failed %v : %v", sid, err)
+								log.Infof("p2 failed %v : %v", id, err)
 								return err
 							}
 
 							WriteJson(id, sbdir)
 
-							log.Info("p2 finish ", sid)
+							log.Info("p2 finish ", id)
 							cachePath := filepath.Join(sbdir, "cache")
 							destPath := filepath.Join(cachePath, storiface.SectorName(sid.ID))
 							sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-c*"))
@@ -515,7 +515,7 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 				return true
 			})
 
-			<-time.After(time.Second * 1)
+			<-time.After(time.Second * 5)
 		}
 	}()
 
