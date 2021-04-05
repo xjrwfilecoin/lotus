@@ -351,9 +351,12 @@ func WriteJson(id string, sbdir string) error {
 }
 
 func deletefiles(id abi.SectorID, sbdir string) {
-	return
 	cachePath := filepath.Join(sbdir, "cache")
 	destPath := filepath.Join(cachePath, storiface.SectorName(id))
+	sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-r-last*"))
+	return
+	cachePath = filepath.Join(sbdir, "cache")
+	destPath = filepath.Join(cachePath, storiface.SectorName(id))
 	sectorstorage.ShellExecute("rm -rf " + destPath)
 
 	sealedPath := filepath.Join(sbdir, "sealed")
