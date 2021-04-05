@@ -445,8 +445,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 								return xerrors.Errorf("commit: %w", err)
 							}
 
-							time.Sleep(30*time.Second)
-
 							rP2.Store(id, p1out)
 
 							log.Infof("p1 finish: %v", id)
@@ -495,8 +493,6 @@ func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2l
 							}
 
 							WriteJson(id, sbdir)
-
-							time.Sleep(30*time.Second)
 
 							log.Info("p2 finish ", sid)
 							cachePath := filepath.Join(sbdir, "cache")
