@@ -22,6 +22,13 @@ type WorkerInfo struct {
 	Resources WorkerResources
 }
 
+type WorkerPara struct {
+	Hostname string
+
+	P1Limit int
+	P2Limit int
+	C2Limit int
+}
 type WorkerResources struct {
 	MemPhysical uint64
 	MemSwap     uint64
@@ -36,6 +43,8 @@ type WorkerStats struct {
 	Info    WorkerInfo
 	Enabled bool
 
+	TaskTypes  map[sealtasks.TaskType]struct{}
+	P2Tasks    map[int]struct{}
 	MemUsedMin uint64
 	MemUsedMax uint64
 	GpuUsed    bool   // nolint

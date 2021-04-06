@@ -354,7 +354,7 @@ func (m *Miner) GetBestMiningCandidate(ctx context.Context) (*MiningBase, error)
 //
 //  1.
 func (m *Miner) mineOne(ctx context.Context, base *MiningBase) (*types.BlockMsg, error) {
-	log.Debugw("attempting to mine a block", "tipset", types.LogCids(base.TipSet.Cids()))
+	log.Debug("attempting to mine a block", "tipset", types.LogCids(base.TipSet.Cids()))
 	start := build.Clock.Now()
 
 	round := base.TipSet.Height() + base.NullRounds + 1

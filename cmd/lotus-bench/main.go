@@ -2,21 +2,22 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
+	"sync"
+	"syscall"
 	"time"
 
-	saproof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
-
 	"github.com/docker/go-units"
+	sectorstorage "github.com/filecoin-project/lotus/extern/sector-storage"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/minio/blake2b-simd"
-	"github.com/mitchellh/go-homedir"
+	//"github.com/mitchellh/go-homedir"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
 
@@ -29,11 +30,10 @@ import (
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 	"github.com/filecoin-project/specs-storage/storage"
 
-	lapi "github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/filecoin-project/lotus/genesis"
+	sealing "github.com/filecoin-project/lotus/extern/storage-sealing"
 )
 
 var log = logging.Logger("lotus-bench")
@@ -95,6 +95,27 @@ type Commit2In struct {
 	SectorSize uint64
 }
 
+var tasks sync.Map
+
+func SingleProcess(sigfile string) (*os.File, error) {
+	f, err := os.OpenFile(sigfile, os.O_RDONLY|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		log.Error("bench already start: ", err)
+		return nil, err
+	}
+
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		log.Error("bench already start: ", err)
+		return nil, err
+	}
+
+	if err := ioutil.WriteFile(sigfile, []byte(fmt.Sprintln(os.Getpid())), os.ModePerm); err != nil {
+		log.Error("bench already start: ", err)
+		return nil, err
+	}
+	return f, nil
+}
+
 func main() {
 	logging.SetLogLevel("*", "INFO")
 
@@ -107,7 +128,6 @@ func main() {
 		Commands: []*cli.Command{
 			proveCmd,
 			sealBenchCmd,
-			importBenchCmd,
 		},
 	}
 
@@ -151,6 +171,17 @@ var sealBenchCmd = &cli.Command{
 		&cli.BoolFlag{
 			Name:  "skip-commit2",
 			Usage: "skip the commit2 (snark) portion of the benchmark",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "only-p1",
+			Usage: "only do ap&p1 of the benchmark",
+			Value: false,
+		},
+		&cli.BoolFlag{
+			Name:  "only-p2",
+			Usage: "only do p2 of the benchmark",
+			Value: false,
 		},
 		&cli.BoolFlag{
 			Name:  "skip-unseal",
@@ -165,8 +196,13 @@ var sealBenchCmd = &cli.Command{
 			Usage: "save commit2 input to a file",
 		},
 		&cli.IntFlag{
-			Name:  "num-sectors",
-			Usage: "select number of sectors to seal",
+			Name:  "p1-limit",
+			Usage: "Parallel P1 numbers  at the same time",
+			Value: 4,
+		},
+		&cli.IntFlag{
+			Name:  "p2-limit",
+			Usage: "Parallel P2 numbers  at the same time",
 			Value: 1,
 		},
 		&cli.IntFlag{
@@ -176,62 +212,19 @@ var sealBenchCmd = &cli.Command{
 		},
 	},
 	Action: func(c *cli.Context) error {
-		if c.Bool("no-gpu") {
-			err := os.Setenv("BELLMAN_NO_GPU", "1")
-			if err != nil {
-				return xerrors.Errorf("setting no-gpu flag: %w", err)
-			}
+		sbdir := c.String("storage-dir")
+
+		log.Info("storage-dir: ", sbdir)
+
+		if err := os.MkdirAll(os.TempDir(), 0775); err != nil {
+			return err
 		}
 
-		robench := c.String("benchmark-existing-sectorbuilder")
-
-		var sbdir string
-
-		if robench == "" {
-			sdir, err := homedir.Expand(c.String("storage-dir"))
-			if err != nil {
-				return err
-			}
-
-			err = os.MkdirAll(sdir, 0775) //nolint:gosec
-			if err != nil {
-				return xerrors.Errorf("creating sectorbuilder dir: %w", err)
-			}
-
-			tsdir, err := ioutil.TempDir(sdir, "bench")
-			if err != nil {
-				return err
-			}
-			defer func() {
-				if err := os.RemoveAll(tsdir); err != nil {
-					log.Warn("remove all: ", err)
-				}
-			}()
-
-			// TODO: pretty sure this isnt even needed?
-			if err := os.MkdirAll(tsdir, 0775); err != nil {
-				return err
-			}
-
-			sbdir = tsdir
-		} else {
-			exp, err := homedir.Expand(robench)
-			if err != nil {
-				return err
-			}
-			sbdir = exp
-		}
-
-		// miner address
-		maddr, err := address.NewFromString(c.String("miner-addr"))
+		f, err := SingleProcess(filepath.Join(os.TempDir(), "bench.lock"))
+		defer f.Close()
 		if err != nil {
 			return err
 		}
-		amid, err := address.IDFromAddress(maddr)
-		if err != nil {
-			return err
-		}
-		mid := abi.ActorID(amid)
 
 		// sector size
 		sectorSizeInt, err := units.RAMInBytes(c.String("sector-size"))
@@ -239,14 +232,6 @@ var sealBenchCmd = &cli.Command{
 			return err
 		}
 		sectorSize := abi.SectorSize(sectorSizeInt)
-
-		// Only fetch parameters if actually needed
-		skipc2 := c.Bool("skip-commit2")
-		if !skipc2 {
-			if err := paramfetch.GetParams(lcli.ReqContext(c), build.ParametersJSON(), uint64(sectorSize)); err != nil {
-				return xerrors.Errorf("getting params: %w", err)
-			}
-		}
 
 		sbfs := &basicfs.Provider{
 			Root: sbdir,
@@ -257,448 +242,287 @@ var sealBenchCmd = &cli.Command{
 			return err
 		}
 
-		sectorNumber := c.Int("num-sectors")
+		onlyp1 := c.Bool("only-p1")
+		onlyp2 := c.Bool("only-p2")
+		p1limit := c.Int("p1-limit")
+		p2limit := c.Int("p2-limit")
 
-		var sealTimings []SealingResult
-		var sealedSectors []saproof2.SectorInfo
+		log.Infof("para: %v %v %v %v", onlyp1, onlyp2, p1limit, p2limit)
 
-		if robench == "" {
-			var err error
-			parCfg := ParCfg{
-				PreCommit1: c.Int("parallel"),
-				PreCommit2: 1,
-				Commit:     1,
-			}
-			sealTimings, sealedSectors, err = runSeals(sb, sbfs, sectorNumber, parCfg, mid, sectorSize, []byte(c.String("ticket-preimage")), c.String("save-commit2-input"), skipc2, c.Bool("skip-unseal"))
-			if err != nil {
-				return xerrors.Errorf("failed to run seals: %w", err)
-			}
-		} else {
-			// TODO: implement sbfs.List() and use that for all cases (preexisting sectorbuilder or not)
-
-			// TODO: this assumes we only ever benchmark a preseal
-			// sectorbuilder directory... we need a better way to handle
-			// this in other cases
-
-			fdata, err := ioutil.ReadFile(filepath.Join(sbdir, "pre-seal-"+maddr.String()+".json"))
-			if err != nil {
-				return err
-			}
-
-			var genmm map[string]genesis.Miner
-			if err := json.Unmarshal(fdata, &genmm); err != nil {
-				return err
-			}
-
-			genm, ok := genmm[maddr.String()]
-			if !ok {
-				return xerrors.Errorf("preseal file didnt have expected miner in it")
-			}
-
-			for _, s := range genm.Sectors {
-				sealedSectors = append(sealedSectors, saproof2.SectorInfo{
-					SealedCID:    s.CommR,
-					SectorNumber: s.SectorID,
-					SealProof:    s.ProofType,
-				})
-			}
+		if onlyp1 && onlyp2 {
+			return xerrors.Errorf("only-p1 and only-p2 cannot be true at the same time")
 		}
 
-		bo := BenchResults{
-			SectorSize:     sectorSize,
-			SectorNumber:   sectorNumber,
-			SealingResults: sealTimings,
+		if os.Getenv("FIL_PROOFS_SSD_PARENT") == "" {
+			panic("FIL_PROOFS_SSD_PARENT not set")
 		}
-		if err := bo.SumSealingTime(); err != nil {
+		sectorstorage.ShellExecute("rm -rf " + filepath.Join(os.Getenv("FIL_PROOFS_SSD_PARENT"), "*"))
+
+		if err := os.MkdirAll(filepath.Join(sbdir, "cache"), 0775); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(sbdir, "unsealed"), 0775); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(sbdir, "sealed"), 0775); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(sbdir, "undo"), 0775); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(sbdir, "faults"), 0775); err != nil {
 			return err
 		}
 
-		var challenge [32]byte
-		rand.Read(challenge[:])
+		destFile := strconv.FormatInt(time.Now().UnixNano()/1e6, 10) + ".json"
+		sectorstorage.ShellExecute("mv " + filepath.Join(filepath.Join(sbdir, "undo"), "backup.json") + " " + filepath.Join(filepath.Join(sbdir, "faults"), destFile))
 
-		beforePost := time.Now()
-
-		if !skipc2 {
-			log.Info("generating winning post candidates")
-			wipt, err := spt(sectorSize).RegisteredWinningPoStProof()
-			if err != nil {
-				return err
-			}
-
-			fcandidates, err := ffiwrapper.ProofVerifier.GenerateWinningPoStSectorChallenge(context.TODO(), wipt, mid, challenge[:], uint64(len(sealedSectors)))
-			if err != nil {
-				return err
-			}
-
-			candidates := make([]saproof2.SectorInfo, len(fcandidates))
-			for i, fcandidate := range fcandidates {
-				candidates[i] = sealedSectors[fcandidate]
-			}
-
-			gencandidates := time.Now()
-
-			log.Info("computing winning post snark (cold)")
-			proof1, err := sb.GenerateWinningPoSt(context.TODO(), mid, candidates, challenge[:])
-			if err != nil {
-				return err
-			}
-
-			winningpost1 := time.Now()
-
-			log.Info("computing winning post snark (hot)")
-			proof2, err := sb.GenerateWinningPoSt(context.TODO(), mid, candidates, challenge[:])
-			if err != nil {
-				return err
-			}
-
-			winnningpost2 := time.Now()
-
-			pvi1 := saproof2.WinningPoStVerifyInfo{
-				Randomness:        abi.PoStRandomness(challenge[:]),
-				Proofs:            proof1,
-				ChallengedSectors: candidates,
-				Prover:            mid,
-			}
-			ok, err := ffiwrapper.ProofVerifier.VerifyWinningPoSt(context.TODO(), pvi1)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				log.Error("post verification failed")
-			}
-
-			verifyWinningPost1 := time.Now()
-
-			pvi2 := saproof2.WinningPoStVerifyInfo{
-				Randomness:        abi.PoStRandomness(challenge[:]),
-				Proofs:            proof2,
-				ChallengedSectors: candidates,
-				Prover:            mid,
-			}
-
-			ok, err = ffiwrapper.ProofVerifier.VerifyWinningPoSt(context.TODO(), pvi2)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				log.Error("post verification failed")
-			}
-			verifyWinningPost2 := time.Now()
-
-			log.Info("computing window post snark (cold)")
-			wproof1, _, err := sb.GenerateWindowPoSt(context.TODO(), mid, sealedSectors, challenge[:])
-			if err != nil {
-				return err
-			}
-
-			windowpost1 := time.Now()
-
-			log.Info("computing window post snark (hot)")
-			wproof2, _, err := sb.GenerateWindowPoSt(context.TODO(), mid, sealedSectors, challenge[:])
-			if err != nil {
-				return err
-			}
-
-			windowpost2 := time.Now()
-
-			wpvi1 := saproof2.WindowPoStVerifyInfo{
-				Randomness:        challenge[:],
-				Proofs:            wproof1,
-				ChallengedSectors: sealedSectors,
-				Prover:            mid,
-			}
-			ok, err = ffiwrapper.ProofVerifier.VerifyWindowPoSt(context.TODO(), wpvi1)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				log.Error("window post verification failed")
-			}
-
-			verifyWindowpost1 := time.Now()
-
-			wpvi2 := saproof2.WindowPoStVerifyInfo{
-				Randomness:        challenge[:],
-				Proofs:            wproof2,
-				ChallengedSectors: sealedSectors,
-				Prover:            mid,
-			}
-			ok, err = ffiwrapper.ProofVerifier.VerifyWindowPoSt(context.TODO(), wpvi2)
-			if err != nil {
-				return err
-			}
-			if !ok {
-				log.Error("window post verification failed")
-			}
-
-			verifyWindowpost2 := time.Now()
-
-			bo.PostGenerateCandidates = gencandidates.Sub(beforePost)
-			bo.PostWinningProofCold = winningpost1.Sub(gencandidates)
-			bo.PostWinningProofHot = winnningpost2.Sub(winningpost1)
-			bo.VerifyWinningPostCold = verifyWinningPost1.Sub(winnningpost2)
-			bo.VerifyWinningPostHot = verifyWinningPost2.Sub(verifyWinningPost1)
-
-			bo.PostWindowProofCold = windowpost1.Sub(verifyWinningPost2)
-			bo.PostWindowProofHot = windowpost2.Sub(windowpost1)
-			bo.VerifyWindowPostCold = verifyWindowpost1.Sub(windowpost2)
-			bo.VerifyWindowPostHot = verifyWindowpost2.Sub(verifyWindowpost1)
+		err = runSeals(sb, sectorSize, p1limit, p2limit, sbdir, onlyp1, onlyp2)
+		if err != nil {
+			return xerrors.Errorf("failed to run seals: %w", err)
 		}
 
-		bo.EnvVar = make(map[string]string)
-		for _, envKey := range []string{"BELLMAN_NO_GPU", "FIL_PROOFS_MAXIMIZE_CACHING", "FIL_PROOFS_USE_GPU_COLUMN_BUILDER",
-			"FIL_PROOFS_USE_GPU_TREE_BUILDER", "FIL_PROOFS_USE_MULTICORE_SDR", "BELLMAN_CUSTOM_GPU"} {
-			envValue, found := os.LookupEnv(envKey)
-			if found {
-				bo.EnvVar[envKey] = envValue
-			}
-		}
+		stop := make(chan struct{})
+		<-stop
 
-		if c.Bool("json-out") {
-			data, err := json.MarshalIndent(bo, "", "  ")
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(string(data))
-		} else {
-			fmt.Println("environment variable list:")
-			for envKey, envValue := range bo.EnvVar {
-				fmt.Printf("%s=%s\n", envKey, envValue)
-			}
-			fmt.Printf("----\nresults (v28) SectorSize:(%d), SectorNumber:(%d)\n", sectorSize, sectorNumber)
-			if robench == "" {
-				fmt.Printf("seal: addPiece: %s (%s)\n", bo.SealingSum.AddPiece, bps(bo.SectorSize, bo.SectorNumber, bo.SealingSum.AddPiece))
-				fmt.Printf("seal: preCommit phase 1: %s (%s)\n", bo.SealingSum.PreCommit1, bps(bo.SectorSize, bo.SectorNumber, bo.SealingSum.PreCommit1))
-				fmt.Printf("seal: preCommit phase 2: %s (%s)\n", bo.SealingSum.PreCommit2, bps(bo.SectorSize, bo.SectorNumber, bo.SealingSum.PreCommit2))
-				fmt.Printf("seal: commit phase 1: %s (%s)\n", bo.SealingSum.Commit1, bps(bo.SectorSize, bo.SectorNumber, bo.SealingSum.Commit1))
-				fmt.Printf("seal: commit phase 2: %s (%s)\n", bo.SealingSum.Commit2, bps(bo.SectorSize, bo.SectorNumber, bo.SealingSum.Commit2))
-				fmt.Printf("seal: verify: %s\n", bo.SealingSum.Verify)
-				if !c.Bool("skip-unseal") {
-					fmt.Printf("unseal: %s  (%s)\n", bo.SealingSum.Unseal, bps(bo.SectorSize, bo.SectorNumber, bo.SealingSum.Unseal))
-				}
-				fmt.Println("")
-			}
-			if !skipc2 {
-				fmt.Printf("generate candidates: %s (%s)\n", bo.PostGenerateCandidates, bps(bo.SectorSize, len(bo.SealingResults), bo.PostGenerateCandidates))
-				fmt.Printf("compute winning post proof (cold): %s\n", bo.PostWinningProofCold)
-				fmt.Printf("compute winning post proof (hot): %s\n", bo.PostWinningProofHot)
-				fmt.Printf("verify winning post proof (cold): %s\n", bo.VerifyWinningPostCold)
-				fmt.Printf("verify winning post proof (hot): %s\n\n", bo.VerifyWinningPostHot)
-
-				fmt.Printf("compute window post proof (cold): %s\n", bo.PostWindowProofCold)
-				fmt.Printf("compute window post proof (hot): %s\n", bo.PostWindowProofHot)
-				fmt.Printf("verify window post proof (cold): %s\n", bo.VerifyWindowPostCold)
-				fmt.Printf("verify window post proof (hot): %s\n", bo.VerifyWindowPostHot)
-			}
-		}
 		return nil
 	},
 }
 
-type ParCfg struct {
-	PreCommit1 int
-	PreCommit2 int
-	Commit     int
+func scanDir(dirName string) []string {
+	files, err := ioutil.ReadDir(dirName)
+	if err != nil {
+		log.Info(err)
+		return nil
+	}
+	var fileList []string
+	for _, file := range files {
+		path := dirName + string(os.PathSeparator) + file.Name()
+		fileList = append(fileList, path)
+	}
+	return fileList
 }
 
-func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par ParCfg, mid abi.ActorID, sectorSize abi.SectorSize, ticketPreimage []byte, saveC2inp string, skipc2, skipunseal bool) ([]SealingResult, []saproof2.SectorInfo, error) {
-	var pieces []abi.PieceInfo
-	sealTimings := make([]SealingResult, numSectors)
-	sealedSectors := make([]saproof2.SectorInfo, numSectors)
-
-	preCommit2Sema := make(chan struct{}, par.PreCommit2)
-	commitSema := make(chan struct{}, par.Commit)
-
-	if numSectors%par.PreCommit1 != 0 {
-		return nil, nil, fmt.Errorf("parallelism factor must cleanly divide numSectors")
-	}
-	for i := abi.SectorNumber(0); i < abi.SectorNumber(numSectors); i++ {
-		sid := storage.SectorRef{
-			ID: abi.SectorID{
-				Miner:  mid,
-				Number: i,
-			},
-			ProofType: spt(sectorSize),
-		}
-
-		start := time.Now()
-		log.Infof("[%d] Writing piece into sector...", i)
-
-		r := rand.New(rand.NewSource(100 + int64(i)))
-
-		pi, err := sb.AddPiece(context.TODO(), sid, nil, abi.PaddedPieceSize(sectorSize).Unpadded(), r)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		pieces = append(pieces, pi)
-
-		sealTimings[i].AddPiece = time.Since(start)
+func ReadJson(fileName string) (map[string]string, error) {
+	state := make(map[string]string)
+	data, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		log.Info("read json err: ", err)
+		return map[string]string{}, err
 	}
 
-	sectorsPerWorker := numSectors / par.PreCommit1
+	err = json.Unmarshal(data, &state)
+	if err != nil {
+		log.Info("Unmarshal json err : ", err)
+		return map[string]string{}, err
+	}
+	return state, nil
+}
 
-	errs := make(chan error, par.PreCommit1)
-	for wid := 0; wid < par.PreCommit1; wid++ {
-		go func(worker int) {
-			sealerr := func() error {
-				start := worker * sectorsPerWorker
-				end := start + sectorsPerWorker
-				for i := abi.SectorNumber(start); i < abi.SectorNumber(end); i++ {
-					sid := storage.SectorRef{
-						ID: abi.SectorID{
-							Miner:  mid,
-							Number: i,
-						},
-						ProofType: spt(sectorSize),
-					}
+func WriteJson(id string, sbdir string) error {
+	if id != "" {
+		tasks.Delete(id)
+	}
 
-					start := time.Now()
+	state := make(map[string]string)
 
-					trand := blake2b.Sum256(ticketPreimage)
-					ticket := abi.SealRandomness(trand[:])
+	tasks.Range(func(k, v interface{}) bool {
+		state[k.(string)] = v.(string)
+		return true
+	})
 
-					log.Infof("[%d] Running replication(1)...", i)
-					piece := []abi.PieceInfo{pieces[i]}
-					pc1o, err := sb.SealPreCommit1(context.TODO(), sid, ticket, piece)
-					if err != nil {
-						return xerrors.Errorf("commit: %w", err)
-					}
+	file := filepath.Join(filepath.Join(sbdir, "undo"), "backup.json")
+	f, err := os.Create(file)
+	if err != nil {
+		fmt.Println("err :", err)
+		return err
+	}
+	defer f.Close()
 
-					precommit1 := time.Now()
+	d, err := json.MarshalIndent(state, "", " ")
+	if err != nil {
+		fmt.Println("err :", err)
+		return err
+	}
 
-					preCommit2Sema <- struct{}{}
-					pc2Start := time.Now()
-					log.Infof("[%d] Running replication(2)...", i)
-					cids, err := sb.SealPreCommit2(context.TODO(), sid, pc1o)
-					if err != nil {
-						return xerrors.Errorf("commit: %w", err)
-					}
+	f.Write(d)
 
-					precommit2 := time.Now()
-					<-preCommit2Sema
+	return nil
+}
 
-					sealedSectors[i] = saproof2.SectorInfo{
-						SealProof:    sid.ProofType,
-						SectorNumber: i,
-						SealedCID:    cids.Sealed,
-					}
+func deletefiles(id abi.SectorID, sbdir string) {
+	cachePath := filepath.Join(sbdir, "cache")
+	destPath := filepath.Join(cachePath, storiface.SectorName(id))
+	sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-r-last*"))
+	return
+	cachePath = filepath.Join(sbdir, "cache")
+	destPath = filepath.Join(cachePath, storiface.SectorName(id))
+	sectorstorage.ShellExecute("rm -rf " + destPath)
 
-					seed := lapi.SealSeed{
-						Epoch: 101,
-						Value: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 255},
-					}
+	sealedPath := filepath.Join(sbdir, "sealed")
+	destPath = filepath.Join(sealedPath, storiface.SectorName(id))
+	sectorstorage.ShellExecute("rm -rf " + destPath)
 
-					commitSema <- struct{}{}
-					commitStart := time.Now()
-					log.Infof("[%d] Generating PoRep for sector (1)", i)
-					c1o, err := sb.SealCommit1(context.TODO(), sid, ticket, seed.Value, piece, cids)
-					if err != nil {
-						return err
-					}
+	unsealedPath := filepath.Join(sbdir, "unsealed")
+	destPath = filepath.Join(unsealedPath, storiface.SectorName(id))
+	sectorstorage.ShellExecute("rm -rf " + destPath)
+}
 
-					sealcommit1 := time.Now()
+func runSeals(sb *ffiwrapper.Sealer, sectorSize abi.SectorSize, p1limit int, p2limit int, sbdir string, onlyp1 bool, onlyp2 bool) error {
+	var rP1 sync.Map
+	var rP2 sync.Map
+	var r sync.Map
+	ids := make(map[string]string)
 
-					log.Infof("[%d] Generating PoRep for sector (2)", i)
-
-					if saveC2inp != "" {
-						c2in := Commit2In{
-							SectorNum:  int64(i),
-							Phase1Out:  c1o,
-							SectorSize: uint64(sectorSize),
-						}
-
-						b, err := json.Marshal(&c2in)
-						if err != nil {
-							return err
-						}
-
-						if err := ioutil.WriteFile(saveC2inp, b, 0664); err != nil {
-							log.Warnf("%+v", err)
-						}
-					}
-
-					var proof storage.Proof
-					if !skipc2 {
-						proof, err = sb.SealCommit2(context.TODO(), sid, c1o)
-						if err != nil {
-							return err
-						}
-					}
-
-					sealcommit2 := time.Now()
-					<-commitSema
-
-					if !skipc2 {
-						svi := saproof2.SealVerifyInfo{
-							SectorID:              abi.SectorID{Miner: mid, Number: i},
-							SealedCID:             cids.Sealed,
-							SealProof:             sid.ProofType,
-							Proof:                 proof,
-							DealIDs:               nil,
-							Randomness:            ticket,
-							InteractiveRandomness: seed.Value,
-							UnsealedCID:           cids.Unsealed,
-						}
-
-						ok, err := ffiwrapper.ProofVerifier.VerifySeal(svi)
-						if err != nil {
-							return err
-						}
-						if !ok {
-							return xerrors.Errorf("porep proof for sector %d was invalid", i)
-						}
-					}
-
-					verifySeal := time.Now()
-
-					if !skipunseal {
-						log.Infof("[%d] Unsealing sector", i)
-						{
-							p, done, err := sbfs.AcquireSector(context.TODO(), sid, storiface.FTUnsealed, storiface.FTNone, storiface.PathSealing)
-							if err != nil {
-								return xerrors.Errorf("acquire unsealed sector for removing: %w", err)
-							}
-							done()
-
-							if err := os.Remove(p.Unsealed); err != nil {
-								return xerrors.Errorf("removing unsealed sector: %w", err)
+	go func() {
+		for {
+			if len(ids) == 0 {
+				filesPath := scanDir(filepath.Join(sbdir, "faults"))
+				for _, path := range filesPath {
+					log.Info("read file ", path)
+					if state, err := ReadJson(path); err == nil {
+						for id, random := range state {
+							if sid, err := storiface.ParseSectorID(id); err == nil {
+								deletefiles(sid, sbdir)
+								ids[id] = random
+								tasks.Store(id, random)
+							} else {
+								log.Errorf("%v parse sector : %v",  id, err)
 							}
 						}
-
-						err := sb.UnsealPiece(context.TODO(), sid, 0, abi.PaddedPieceSize(sectorSize).Unpadded(), ticket, cids.Unsealed)
-						if err != nil {
-							return err
-						}
+						os.Remove(path)
+						log.Info("remove file ", path)
+						break
+					} else {
+						log.Info("file err: ", err)
 					}
-					unseal := time.Now()
-
-					sealTimings[i].PreCommit1 = precommit1.Sub(start)
-					sealTimings[i].PreCommit2 = precommit2.Sub(pc2Start)
-					sealTimings[i].Commit1 = sealcommit1.Sub(commitStart)
-					sealTimings[i].Commit2 = sealcommit2.Sub(sealcommit1)
-					sealTimings[i].Verify = verifySeal.Sub(sealcommit2)
-					sealTimings[i].Unseal = unseal.Sub(verifySeal)
 				}
-				return nil
-			}()
-			if sealerr != nil {
-				errs <- sealerr
-				return
+
+				if len(ids) > 0 {
+					WriteJson("", sbdir)
+				}
 			}
-			errs <- nil
-		}(wid)
-	}
 
-	for i := 0; i < par.PreCommit1; i++ {
-		err := <-errs
-		if err != nil {
-			return nil, nil, err
+			waitlist := fmt.Sprintf("wait task %v: ", len(ids))
+			for id, _ := range ids {
+				waitlist = waitlist + id + ", "
+			}
+			log.Info(waitlist)
+
+			for id, random := range ids {
+				length := 0
+				rP1.Range(func(k, v interface{}) bool {
+					length++
+					return true
+				})
+
+				if length < p1limit {
+					delete(ids, id)
+					rP1.Store(id, random)
+					go func(id string, random string) error {
+						defer rP1.Delete(id)
+
+						if _id, err := storiface.ParseSectorID(id); err == nil {
+							sid := storage.SectorRef{
+								ID: _id,
+								ProofType: spt(sectorSize),
+							}
+							log.Info("p1 start ", id)
+
+							size := abi.PaddedPieceSize(sectorSize).Unpadded()
+							pi, err := sb.AddPiece(context.TODO(), sid, nil, size, sealing.NewNullReader(size))
+							if err != nil {
+								log.Infof("p1 AddPiece failed: %v %v", id, err)
+								return err
+							}
+
+							sDec, err := base64.StdEncoding.DecodeString(random)
+							if err != nil {
+								log.Infof("p1 DecodeString failed: %v %v", id, err)
+								return err
+							}
+
+							p1out, err := sb.SealPreCommit1(context.TODO(), sid, sDec, []abi.PieceInfo{pi})
+							if err != nil {
+								log.Infof("p1 failed %v : %v", id, err)
+								return xerrors.Errorf("commit: %w", err)
+							}
+
+							rP2.Store(id, p1out)
+
+							log.Infof("p1 finish: %v", id)
+						} else {
+							log.Errorf("%v parse sector : %v",  id, err)
+						}
+
+						return nil
+					}(id, random)
+				}
+			}
+			<-time.After(time.Second * 5)
 		}
-	}
+	}()
 
-	return sealTimings, sealedSectors, nil
+	go func() {
+		for {
+			rP2.Range(func(k, v interface{}) bool {
+				id := k.(string)
+				p1out := v.(storage.PreCommit1Out)
+
+				length := 0
+				r.Range(func(k, v interface{}) bool {
+					length++
+					return true
+				})
+
+				if length < p2limit {
+					rP2.Delete(k)
+					r.Store(id, p1out)
+
+					go func(id string, p1out storage.PreCommit1Out) error {
+						defer r.Delete(id)
+
+						if _id, err := storiface.ParseSectorID(id); err == nil {
+							sid := storage.SectorRef{
+								ID: _id,
+								ProofType: spt(sectorSize),
+							}
+
+							log.Info("p2 start ", id)
+							_, err := sb.SealPreCommit2(context.TODO(), sid, p1out)
+							if err != nil {
+								log.Infof("p2 failed %v : %v", id, err)
+								return err
+							}
+
+							WriteJson(id, sbdir)
+
+							log.Info("p2 finish ", id)
+							cachePath := filepath.Join(sbdir, "cache")
+							destPath := filepath.Join(cachePath, storiface.SectorName(sid.ID))
+							sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-c*"))
+							sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-tree-d*"))
+							sectorstorage.ShellExecute("rm -rf " + filepath.Join(destPath, "sc-02-data-layer*"))
+
+							unsealedPath := filepath.Join(sbdir, "unsealed")
+							destPath = filepath.Join(unsealedPath, storiface.SectorName(sid.ID))
+							sectorstorage.ShellExecute("rm -rf " + destPath)
+						} else {
+							log.Errorf("%v parse sector : %v",  id, err)
+						}
+
+						return nil
+					}(id, p1out)
+				}
+
+				return true
+			})
+
+			<-time.After(time.Second * 5)
+		}
+	}()
+
+	return nil
 }
 
 var proveCmd = &cli.Command{
@@ -785,6 +609,9 @@ var proveCmd = &cli.Command{
 }
 
 func bps(sectorSize abi.SectorSize, sectorNum int, d time.Duration) string {
+	if d.Nanoseconds() == 0 {
+		return "Nan"
+	}
 	bdata := new(big.Int).SetUint64(uint64(sectorSize))
 	bdata = bdata.Mul(bdata, big.NewInt(int64(sectorNum)))
 	bdata = bdata.Mul(bdata, big.NewInt(time.Second.Nanoseconds()))
