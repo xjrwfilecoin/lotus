@@ -16,44 +16,44 @@ func (a *activeResources) withResources(taskDone chan struct{}, req *workerReque
 		a.cond.Wait()
 	}
 
-	//log.Infof("start %v %v %s", req.sector, req.taskType, id)
+	log.Debugf("start %v %v %s", req.sector, req.taskType, id)
 	if req.taskType == sealtasks.TTPreCommit2 {
 		worker.p2Running[req.sector.ID] = struct{}{}
-		//log.Info("p2Running add", worker.p2Running)
+		log.Debug("p2Running add", worker.p2Running)
 	} else if req.taskType == sealtasks.TTCommit2 {
 		worker.c2Running[req.sector.ID] = struct{}{}
-		//log.Info("c2Running add", worker.c2Running)
+		log.Debug("c2Running add", worker.c2Running)
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		worker.p1Running[req.sector.ID] = struct{}{}
-		//log.Info("p1Running add", worker.p1Running)
+		log.Debug("p1Running add", worker.p1Running)
 	} else if req.taskType == sealtasks.TTAddPiece {
 		worker.addPieceRuning[req.sector.ID] = struct{}{}
-		//log.Info("addPieceRuning add", worker.addPieceRuning)
+		log.Debug("addPieceRuning add", worker.addPieceRuning)
 	}
 
 	a.add(wr, r)
 
 	err := cb()
 
-	//log.Infof("finish %v %v %v", req.sector, req.taskType, id)
+	log.Debugf("finish %v %v %v", req.sector, req.taskType, id)
 	if req.taskType == sealtasks.TTPreCommit2 {
 		delete(worker.p2Running, req.sector.ID)
-		//log.Info("p2Running del", worker.p2Running)
+		log.Debug("p2Running del", worker.p2Running)
 	} else if req.taskType == sealtasks.TTCommit2 {
 		delete(worker.c2Running, req.sector.ID)
-		//log.Info("c2Running del", worker.c2Running)
+		log.Debug("c2Running del", worker.c2Running)
 	} else if req.taskType == sealtasks.TTPreCommit1 {
 		delete(worker.p1Running, req.sector.ID)
-		//log.Info("p1Running del", worker.p1Running)
+		log.Debug("p1Running del", worker.p1Running)
 	} else if req.taskType == sealtasks.TTAddPiece {
 		delete(worker.addPieceRuning, req.sector.ID)
-		//log.Info("addPieceRuning del", worker.addPieceRuning)
+		log.Debug("addPieceRuning del", worker.addPieceRuning)
 	}
 
 	a.free(wr, r)
 
 	go func() {
-		//log.Infof("taskDone %v %v", req.sector, req.taskType)
+		log.Debugf("taskDone %v %v", req.sector, req.taskType)
 		select {
 		case taskDone <- struct{}{}:
 		}
@@ -163,7 +163,8 @@ func (a *activeResources) canHandleRequest(needRes Resources, wid WorkerID, call
 func (a *activeResources) utilization(wr storiface.WorkerResources) float64 {
 	var max float64
 
-	cpu := float64(a.cpuUse) / float64(wr.CPUs)
+	//cpu := float64(a.cpuUse) / float64(wr.CPUs)
+	cpu := float64(a.cpuUse)
 	max = cpu
 
 	//memMin := float64(a.memUsedMin+wr.MemReserved) / float64(wr.MemPhysical)
