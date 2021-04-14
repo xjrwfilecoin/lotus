@@ -13,6 +13,7 @@ import (
 
 	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/cli/rwauth"
 )
 
 var sendCmd = &cli.Command{
@@ -143,6 +144,9 @@ var sendCmd = &cli.Command{
 			n := cctx.Uint64("nonce")
 			params.Nonce = &n
 		}
+
+		// add rwauth
+		rwauth.Sender(params.From.String())
 
 		msgCid, err := srv.Send(ctx, params)
 

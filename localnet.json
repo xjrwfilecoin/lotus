@@ -1,0 +1,99 @@
+{
+  "Accounts": [
+    {
+      "Type": "account",
+      "Balance": "50000000000000000000000000",
+      "Meta": {
+        "Owner": "t3q4gsbpl2tfi2bhfjhyevc427zjbvhuuuducn4eztnimif3tuvwcpfz6s6jhxja7igkdnzvxwojg5m2wqa2mq"
+      }
+    }
+  ],
+  "Miners": [
+    {
+      "ID": "t01000",
+      "Owner": "t3q4gsbpl2tfi2bhfjhyevc427zjbvhuuuducn4eztnimif3tuvwcpfz6s6jhxja7igkdnzvxwojg5m2wqa2mq",
+      "Worker": "t3q4gsbpl2tfi2bhfjhyevc427zjbvhuuuducn4eztnimif3tuvwcpfz6s6jhxja7igkdnzvxwojg5m2wqa2mq",
+      "PeerId": "12D3KooWNs2JErvTcHJJWtXLDhtdyWH5ydG9nBFXDwCJnv1xuRCT",
+      "MarketBalance": "0",
+      "PowerBalance": "0",
+      "SectorSize": 2048,
+      "Sectors": [
+        {
+          "CommR": {
+            "/": "bagboea4b5abcbxjbvlgsfz56timfu4inltekvlajled2qytvjjjr3hf7wnhrmdrh"
+          },
+          "CommD": {
+            "/": "baga6ea4seaqopd6bh4wccj6jiql5mpgvh6l6sagtxqspklvqitpylz5uawmcoky"
+          },
+          "SectorID": 0,
+          "Deal": {
+            "PieceCID": {
+              "/": "baga6ea4seaqopd6bh4wccj6jiql5mpgvh6l6sagtxqspklvqitpylz5uawmcoky"
+            },
+            "PieceSize": 2048,
+            "VerifiedDeal": false,
+            "Client": "t3q4gsbpl2tfi2bhfjhyevc427zjbvhuuuducn4eztnimif3tuvwcpfz6s6jhxja7igkdnzvxwojg5m2wqa2mq",
+            "Provider": "t01000",
+            "Label": "0",
+            "StartEpoch": 0,
+            "EndEpoch": 9001,
+            "StoragePricePerEpoch": "0",
+            "ProviderCollateral": "0",
+            "ClientCollateral": "0"
+          },
+          "ProofType": 0
+        },
+        {
+          "CommR": {
+            "/": "bagboea4b5abca4dk6ckcziqzzpil3zwkp2ngsw3lyvyoewsmcboy2wwgnx3jegtp"
+          },
+          "CommD": {
+            "/": "baga6ea4seaqbkmryaif4skeqaxh23awcgcyxwksmj4zvty3ckxgfiiqhaugiqby"
+          },
+          "SectorID": 1,
+          "Deal": {
+            "PieceCID": {
+              "/": "baga6ea4seaqbkmryaif4skeqaxh23awcgcyxwksmj4zvty3ckxgfiiqhaugiqby"
+            },
+            "PieceSize": 2048,
+            "VerifiedDeal": false,
+            "Client": "t3q4gsbpl2tfi2bhfjhyevc427zjbvhuuuducn4eztnimif3tuvwcpfz6s6jhxja7igkdnzvxwojg5m2wqa2mq",
+            "Provider": "t01000",
+            "Label": "1",
+            "StartEpoch": 0,
+            "EndEpoch": 9001,
+            "StoragePricePerEpoch": "0",
+            "ProviderCollateral": "0",
+            "ClientCollateral": "0"
+          },
+          "ProofType": 0
+        }
+      ]
+    }
+  ],
+  "NetworkName": "localnet-2064ec46-34dd-4eab-a2e6-5b466bea85bc",
+  "VerifregRootKey": {
+    "Type": "multisig",
+    "Balance": "0",
+    "Meta": {
+      "Signers": [
+        "t1ceb34gnsc6qk5dt6n7xg6ycwzasjhbxm3iylkiy"
+      ],
+      "Threshold": 1,
+      "VestingDuration": 0,
+      "VestingStart": 0
+    }
+  },
+  "RemainderAccount": {
+    "Type": "multisig",
+    "Balance": "0",
+    "Meta": {
+      "Signers": [
+        "t1ceb34gnsc6qk5dt6n7xg6ycwzasjhbxm3iylkiy"
+      ],
+      "Threshold": 1,
+      "VestingDuration": 0,
+      "VestingStart": 0
+    }
+  }
+}

@@ -18,6 +18,7 @@ import (
 	"github.com/filecoin-project/go-state-types/crypto"
 
 	"github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/cli/rwauth"
 	"github.com/filecoin-project/lotus/lib/tablewriter"
 )
 
@@ -36,8 +37,23 @@ var walletCmd = &cli.Command{
 		walletVerify,
 		walletDelete,
 		walletMarket,
+		changePwd,
 	},
 }
+
+var changePwd = &cli.Command{
+	Name:      "chpwd",
+	Usage:     "change password for a wallet",
+	ArgsUsage: "<address>",
+	Action: func(cctx *cli.Context) error {
+		if !cctx.Args().Present() || cctx.NArg() != 1 {
+			return fmt.Errorf("must specify address")
+		}
+
+		address := cctx.Args().First()
+
+		return rwauth.ChangePwd(address)
+	}}
 
 var walletNew = &cli.Command{
 	Name:      "new",
@@ -56,12 +72,18 @@ var walletNew = &cli.Command{
 			t = "secp256k1"
 		}
 
-		nk, err := api.WalletNew(ctx, types.KeyType(t))
-		if err != nil {
-			return err
+		fnCreate := func() (string, error) {
+			nk, err := api.WalletNew(ctx, types.KeyType(t))
+			if err != nil {
+				return "", err
+			}
+			return nk.String(), nil
 		}
 
-		fmt.Println(nk.String())
+		//type a password
+		res := rwauth.Register(fnCreate)
+
+		fmt.Println(res)
 
 		return nil
 	},
@@ -284,7 +306,12 @@ var walletExport = &cli.Command{
 			return err
 		}
 
-		fmt.Println(hex.EncodeToString(b))
+		key := hex.EncodeToString(b)
+
+		//add rwauth
+		res := rwauth.Encrypter(cctx.Args().First(), key)
+
+		fmt.Println(res)
 		return nil
 	},
 }
@@ -330,6 +357,13 @@ var walletImport = &cli.Command{
 			inpdata = fdata
 		}
 
+		//add rwauth
+		str := strings.TrimSpace(string(inpdata))
+		isEncrypted := rwauth.IsEncrypted(str)
+		if isEncrypted {
+			inpdata = rwauth.Decrypter(str)
+		}
+
 		var ki types.KeyInfo
 		switch cctx.String("format") {
 		case "hex-lotus":
@@ -370,9 +404,20 @@ var walletImport = &cli.Command{
 			return fmt.Errorf("unrecognized format: %s", cctx.String("format"))
 		}
 
-		addr, err := api.WalletImport(ctx, &ki)
-		if err != nil {
-			return err
+		//add rwauth
+		var addr address.Address
+		create := func() (string, error) {
+			addr, err = api.WalletImport(ctx, &ki)
+			if err != nil {
+				return "", err
+			}
+			return addr.String(), nil
+		}
+
+		if !isEncrypted {
+			rwauth.Register(create)
+		} else {
+			create()
 		}
 
 		if cctx.Bool("as-default") {
@@ -500,7 +545,12 @@ var walletDelete = &cli.Command{
 			return err
 		}
 
-		return api.WalletDelete(ctx, addr)
+		err = api.WalletDelete(ctx, addr)
+
+		if err == nil {
+			rwauth.Delete(cctx.Args().First())
+		}
+		return err
 	},
 }
 
