@@ -21,8 +21,6 @@ const (
 
 var filePath string
 
-//= "./.rwauth"
-
 func init() {
 	lsp := os.Getenv("LOTUS_PATH")
 	if lsp != "" {

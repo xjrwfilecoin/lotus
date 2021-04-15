@@ -86,7 +86,7 @@ func writeFile(users []User) error {
 		return err
 	}
 
-	os.WriteFile(filePath, []byte(encoding(bytes)), 0600)
+	os.WriteFile(filePath, []byte(encoding(bytes)), 0766)
 	return nil
 }
 
