@@ -26,6 +26,7 @@ import (
 	badgerbs "github.com/filecoin-project/lotus/blockstore/badger"
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
 	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
+	"github.com/filecoin-project/lotus/rwauth"
 
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/node/config"
@@ -505,6 +506,8 @@ func (fsr *fsLockedRepo) List() ([]string, error) {
 	return keys, nil
 }
 
+var wallet_prefix = "wallet-"
+
 // Get gets a key out of keystore and returns types.KeyInfo coresponding to named key
 func (fsr *fsLockedRepo) Get(name string) (types.KeyInfo, error) {
 	if err := fsr.stillValid(); err != nil {
@@ -542,12 +545,14 @@ func (fsr *fsLockedRepo) Get(name string) (types.KeyInfo, error) {
 		return types.KeyInfo{}, xerrors.Errorf("decoding key '%s': %w", name, err)
 	}
 
-	// //decrypt
-	// key, err := rwauth.DecryptDES_ECB(string(res.PrivateKey))
-	// if err != nil {
-	// 	return types.KeyInfo{}, err
-	// }
-	// res.PrivateKey = []byte(key)
+	//decrypt
+	if len(name) > len(wallet_prefix) && name[:len(wallet_prefix)] == wallet_prefix {
+		key, err := rwauth.DecryptDES_ECB(string(res.PrivateKey))
+		if err != nil {
+			return types.KeyInfo{}, err
+		}
+		res.PrivateKey = []byte(key)
+	}
 
 	return res, nil
 }
@@ -568,12 +573,14 @@ func (fsr *fsLockedRepo) Put(name string, info types.KeyInfo) error {
 		return xerrors.Errorf("checking key before put '%s': %w", name, err)
 	}
 
-	// //encrypt
-	// key, err := rwauth.EncryptDES_ECB(string(info.PrivateKey))
-	// if err != nil {
-	// 	return err
-	// }
-	// info.PrivateKey = []byte(key)
+	//encrypt
+	if len(name) > len(wallet_prefix) && name[:len(wallet_prefix)] == wallet_prefix {
+		key, err := rwauth.EncryptDES_ECB(string(info.PrivateKey))
+		if err != nil {
+			return err
+		}
+		info.PrivateKey = []byte(key)
+	}
 
 	keyData, err := json.Marshal(info)
 	if err != nil {
