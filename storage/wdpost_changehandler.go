@@ -243,6 +243,7 @@ func (p *proveHandler) processHeadChange(ctx context.Context, newTS *types.TipSe
 		return
 	}
 
+	log.Info("runpost start ", di)
 	p.current = &currentPost{di: di}
 	curr := p.current
 	p.current.abort = p.api.startGeneratePoST(ctx, newTS, di, func(posts []miner.SubmitWindowedPoStParams, err error) {
