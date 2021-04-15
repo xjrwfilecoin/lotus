@@ -30,7 +30,7 @@ func init() {
 			return
 		}
 	}
-	filePath = path.Join("./", FILE_NAME)
+	filePath = path.Join(os.Getenv("HOME"), FILE_NAME)
 }
 
 type User struct {

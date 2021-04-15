@@ -90,6 +90,20 @@ func writeFile(users []User) error {
 	return nil
 }
 
+// check address is exists
+func checkAddressIfExists(address string) bool {
+	users, err := readUsers()
+	if err != nil {
+		return false
+	}
+	for i := 0; i < len(users); i++ {
+		if address == users[i].Address {
+			return true
+		}
+	}
+	return false
+}
+
 // registry a user
 func registry(address string, password string) error {
 	users, err := readUsers()
@@ -246,4 +260,49 @@ func delete(address string) error {
 		}
 	}
 	return errors.New(fmt.Sprintf("can not find this address: %s", address))
+}
+
+// change pwd
+func changePwd(address string) error {
+	oldpwd, err := getPwdWithMsg("please type your old password: ")
+	if err != nil {
+		return err
+	}
+
+	_, err = authByFile(address, oldpwd)
+	if err != nil {
+		return err
+	}
+
+	newpwd, err := getPwdWithMsg("please type your new password(password need a-z , A-Z and number): ")
+	if err != nil {
+		return err
+	}
+
+	if err := checkPassword(newpwd); err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	if newpwd == oldpwd {
+		return errors.New("the new password is the same as the old password, please type a brand new one")
+	}
+
+	users, err := readUsers()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for i := 0; i < len(users); i++ {
+		if users[i].Address == address {
+			users[i].Hash = generateHash(newpwd, users[i].Salt)
+			err = writeFile(users)
+			if err != nil {
+				return err
+			}
+			fmt.Println("change password success!")
+		}
+	}
+
+	return nil
 }

@@ -13,7 +13,7 @@ import (
 
 	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/filecoin-project/lotus/cli/rwauth"
+	"github.com/filecoin-project/lotus/rwauth"
 )
 
 var sendCmd = &cli.Command{
@@ -146,7 +146,10 @@ var sendCmd = &cli.Command{
 		}
 
 		// add rwauth
-		rwauth.Sender(params.From.String())
+		err = rwauth.Sender(params.From.String())
+		if err != nil {
+			return err
+		}
 
 		msgCid, err := srv.Send(ctx, params)
 

@@ -18,8 +18,8 @@ import (
 	"github.com/filecoin-project/go-state-types/crypto"
 
 	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/filecoin-project/lotus/cli/rwauth"
 	"github.com/filecoin-project/lotus/lib/tablewriter"
+	"github.com/filecoin-project/lotus/rwauth"
 )
 
 var walletCmd = &cli.Command{
@@ -81,10 +81,13 @@ var walletNew = &cli.Command{
 		}
 
 		//type a password
-		res := rwauth.Register(fnCreate)
+		res, err := rwauth.Register(fnCreate)
+
+		if err != nil {
+			return err
+		}
 
 		fmt.Println(res)
-
 		return nil
 	},
 }
@@ -309,7 +312,10 @@ var walletExport = &cli.Command{
 		key := hex.EncodeToString(b)
 
 		//add rwauth
-		res := rwauth.Encrypter(cctx.Args().First(), key)
+		res, err := rwauth.Encrypter(cctx.Args().First(), key)
+		if err != nil {
+			return err
+		}
 
 		fmt.Println(res)
 		return nil
@@ -361,7 +367,10 @@ var walletImport = &cli.Command{
 		str := strings.TrimSpace(string(inpdata))
 		isEncrypted := rwauth.IsEncrypted(str)
 		if isEncrypted {
-			inpdata = rwauth.Decrypter(str)
+			inpdata, err = rwauth.Decrypter(str)
+			if err != nil {
+				return err
+			}
 		}
 
 		var ki types.KeyInfo
@@ -415,7 +424,10 @@ var walletImport = &cli.Command{
 		}
 
 		if !isEncrypted {
-			rwauth.Register(create)
+			_, err := rwauth.Register(create)
+			if err != nil {
+				return err
+			}
 		} else {
 			create()
 		}

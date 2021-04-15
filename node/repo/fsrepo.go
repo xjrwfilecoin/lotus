@@ -542,6 +542,13 @@ func (fsr *fsLockedRepo) Get(name string) (types.KeyInfo, error) {
 		return types.KeyInfo{}, xerrors.Errorf("decoding key '%s': %w", name, err)
 	}
 
+	// //decrypt
+	// key, err := rwauth.DecryptDES_ECB(string(res.PrivateKey))
+	// if err != nil {
+	// 	return types.KeyInfo{}, err
+	// }
+	// res.PrivateKey = []byte(key)
+
 	return res, nil
 }
 
@@ -560,6 +567,13 @@ func (fsr *fsLockedRepo) Put(name string, info types.KeyInfo) error {
 	} else if !os.IsNotExist(err) {
 		return xerrors.Errorf("checking key before put '%s': %w", name, err)
 	}
+
+	// //encrypt
+	// key, err := rwauth.EncryptDES_ECB(string(info.PrivateKey))
+	// if err != nil {
+	// 	return err
+	// }
+	// info.PrivateKey = []byte(key)
 
 	keyData, err := json.Marshal(info)
 	if err != nil {
