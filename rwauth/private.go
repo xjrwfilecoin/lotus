@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -58,7 +59,7 @@ func readUsers() ([]User, error) {
 		file.Write([]byte(encoding([]byte("[]"))))
 	}
 
-	bytes, err := os.ReadFile(filePath)
+	bytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +87,7 @@ func writeFile(users []User) error {
 		return err
 	}
 
-	os.WriteFile(filePath, []byte(encoding(bytes)), 0766)
+	ioutil.WriteFile(filePath, []byte(encoding(bytes)), 0766)
 	return nil
 }
 
