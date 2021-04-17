@@ -25,6 +25,13 @@ var wPostPath string
 func InitData() {
 	wPostPath = os.Getenv("MINER_WPOST_PATH")
 	fmt.Printf("MINER_WPOST_PATH = %v \n", wPostPath)
+
+	if wPostPath != "" {
+		_, err := os.Stat(wPostPath)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (sb *Sealer) GenerateWinningPoSt(ctx context.Context, minerID abi.ActorID, sectorInfo []proof2.SectorInfo, randomness abi.PoStRandomness) ([]proof2.PoStProof, error) {
