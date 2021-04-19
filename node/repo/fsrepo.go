@@ -546,7 +546,7 @@ func (fsr *fsLockedRepo) Get(name string) (types.KeyInfo, error) {
 	}
 
 	//decrypt
-	if len(name) > len(wallet_prefix) && name[:len(wallet_prefix)] == wallet_prefix {
+	if len(name) > len(wallet_prefix) && name[:len(wallet_prefix)] == wallet_prefix && rwauth.IsEncrypted(string(res.PrivateKey)) {
 		key, err := rwauth.DecryptDES_ECB(string(res.PrivateKey))
 		if err != nil {
 			return types.KeyInfo{}, err
