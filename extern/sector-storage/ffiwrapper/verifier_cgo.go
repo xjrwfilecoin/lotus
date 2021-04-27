@@ -4,6 +4,10 @@ package ffiwrapper
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path"
+	"strings"
 
 	"go.opencensus.io/trace"
 	"golang.org/x/xerrors"
@@ -15,6 +19,20 @@ import (
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/storiface"
 )
+
+var wPostPath string
+
+func InitData() {
+	wPostPath = os.Getenv("MINER_WPOST_PATH")
+	fmt.Printf("MINER_WPOST_PATH = %v \n", wPostPath)
+
+	if wPostPath != "" {
+		_, err := os.Stat(wPostPath)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
 
 func (sb *Sealer) GenerateWinningPoSt(ctx context.Context, minerID abi.ActorID, sectorInfo []proof2.SectorInfo, randomness abi.PoStRandomness) ([]proof2.PoStProof, error) {
 	randomness[31] &= 0x3f
@@ -53,6 +71,13 @@ func (sb *Sealer) GenerateWindowPoSt(ctx context.Context, minerID abi.ActorID, s
 	}
 
 	return proof, faultyIDs, err
+}
+
+func ReplacePath(filePath string, separate string) string {
+	if wPostPath == "" {
+		return filePath
+	}
+	return path.Join(wPostPath, filePath[strings.Index(filePath, separate):])
 }
 
 func (sb *Sealer) pubSectorToPriv(ctx context.Context, mid abi.ActorID, sectorInfo []proof2.SectorInfo, faults []abi.SectorNumber, rpt func(abi.RegisteredSealProof) (abi.RegisteredPoStProof, error)) (ffi.SortedPrivateSectorInfo, []abi.SectorID, func(), error) {
@@ -94,13 +119,17 @@ func (sb *Sealer) pubSectorToPriv(ctx context.Context, mid abi.ActorID, sectorIn
 			return ffi.SortedPrivateSectorInfo{}, nil, nil, xerrors.Errorf("acquiring registered PoSt proof from sector info %+v: %w", s, err)
 		}
 
+		log.Infof("sector %v %v", paths.Cache, s.SectorNumber)
+
 		out = append(out, ffi.PrivateSectorInfo{
-			CacheDirPath:     paths.Cache,
+			CacheDirPath:     ReplacePath(paths.Cache, "cache"),
 			PoStProofType:    postProofType,
-			SealedSectorPath: paths.Sealed,
+			SealedSectorPath: ReplacePath(paths.Sealed, "sealed"),
 			SectorInfo:       s,
 		})
 	}
+
+	log.Infof("windowspost = %v, skip = %v", len(out), len(skipped))
 
 	return ffi.NewSortedPrivateSectorInfo(out...), skipped, done, nil
 }

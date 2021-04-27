@@ -95,6 +95,7 @@ type MinerFeeConfig struct {
 	MaxWindowPoStGasFee    types.FIL
 	MaxPublishDealsFee     types.FIL
 	MaxMarketBalanceAddFee types.FIL
+	GasFee types.FIL
 }
 
 type MinerAddressConfig struct {
@@ -242,7 +243,8 @@ func DefaultStorageMiner() *StorageMiner {
 			AllowAddPiece:   true,
 			AllowPreCommit1: true,
 			AllowPreCommit2: true,
-			AllowCommit:     true,
+			AllowCommit1:    true,
+			AllowCommit2:    true,
 			AllowUnseal:     true,
 
 			// Default to 10 - tcp should still be able to figure this out, and
@@ -272,6 +274,7 @@ func DefaultStorageMiner() *StorageMiner {
 			MaxWindowPoStGasFee:    types.MustParseFIL("5"),
 			MaxPublishDealsFee:     types.MustParseFIL("0.05"),
 			MaxMarketBalanceAddFee: types.MustParseFIL("0.007"),
+			GasFee: types.MustParseFIL("0"),
 		},
 
 		Addresses: MinerAddressConfig{

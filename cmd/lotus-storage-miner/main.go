@@ -34,6 +34,7 @@ func main() {
 		initCmd,
 		runCmd,
 		stopCmd,
+		gasCmd,
 		configCmd,
 		backupCmd,
 		lcli.WithCategory("chain", actorCmd),
