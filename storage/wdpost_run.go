@@ -104,6 +104,7 @@ func (s *WindowPoStScheduler) runGeneratePoST(
 		log.Errorf("runPost failed: %+v", err)
 		return nil, err
 	}
+	log.Info("runPost finish ", deadline)
 
 	if len(posts) == 0 {
 		s.recordProofsEvent(nil, cid.Undef)
@@ -134,6 +135,7 @@ func (s *WindowPoStScheduler) startSubmitPoST(
 				}
 			})
 		}
+		log.Error("runSubmitPoST :", err)
 		completeSubmitPoST(err)
 	}()
 

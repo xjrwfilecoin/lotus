@@ -450,6 +450,7 @@ func (s *submitHandler) processHeadChangeForPW(ctx context.Context, revert *type
 // processPostReady is called when a proof generation completes
 func (s *submitHandler) processPostReady(pi *postInfo) {
 	pw, ok := s.postWindows[pi.di.Open]
+	log.Infof("processPostReady %v %v", pi, ok)
 	if ok {
 		s.submitIfReady(s.currentCtx, s.currentTS, pw)
 	}
@@ -460,27 +461,32 @@ func (s *submitHandler) processPostReady(pi *postInfo) {
 func (s *submitHandler) submitIfReady(ctx context.Context, advance *types.TipSet, pw *postWindow) {
 	// If the window has expired, there's nothing more to do.
 	if advance.Height() >= pw.di.Close {
+		log.Errorf("submitIfReady close %v %v", advance.Height(), pw.di.Close)
 		return
 	}
 
 	// Check if we're already submitting, or already completed submit
 	if pw.submitState != SubmitStateStart {
+		log.Errorf("submitIfReady state %v", pw.submitState)
 		return
 	}
 
 	// Check if we've reached the confidence height to submit
 	if advance.Height() < pw.di.Open+SubmitConfidence {
+		log.Errorf("submitIfReady submit %v %v", advance.Height(), pw.di.Open)
 		return
 	}
 
 	// Check if the proofs have been generated for this deadline
 	posts, ok := s.posts.get(pw.di)
 	if !ok {
+		log.Error("submitIfReady not ok")
 		return
 	}
 
 	// If there was nothing to prove, move straight to the complete state
 	if len(posts) == 0 {
+		log.Info("submitIfReady complete")
 		pw.submitState = SubmitStateComplete
 		return
 	}
