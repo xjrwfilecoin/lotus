@@ -461,26 +461,26 @@ func (s *submitHandler) processPostReady(pi *postInfo) {
 func (s *submitHandler) submitIfReady(ctx context.Context, advance *types.TipSet, pw *postWindow) {
 	// If the window has expired, there's nothing more to do.
 	if advance.Height() >= pw.di.Close {
-		log.Errorf("submitIfReady close %v %v", advance.Height(), pw.di.Close)
+		log.Infof("submitIfReady close %v %v", advance.Height(), pw.di.Close)
 		return
 	}
 
 	// Check if we're already submitting, or already completed submit
 	if pw.submitState != SubmitStateStart {
-		log.Errorf("submitIfReady state %v", pw.submitState)
+		log.Infof("submitIfReady state %v", pw.submitState)
 		return
 	}
 
 	// Check if we've reached the confidence height to submit
 	if advance.Height() < pw.di.Open+SubmitConfidence {
-		log.Errorf("submitIfReady submit %v %v", advance.Height(), pw.di.Open)
+		log.Infof("submitIfReady submit %v %v", advance.Height(), pw.di.Open)
 		return
 	}
 
 	// Check if the proofs have been generated for this deadline
 	posts, ok := s.posts.get(pw.di)
 	if !ok {
-		log.Error("submitIfReady not ok")
+		log.Info("submitIfReady not ok")
 		return
 	}
 

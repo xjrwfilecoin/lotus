@@ -135,7 +135,7 @@ func (s *WindowPoStScheduler) startSubmitPoST(
 				}
 			})
 		}
-		log.Error("runSubmitPoST :", err)
+		log.Info("runSubmitPoST :", err)
 		completeSubmitPoST(err)
 	}()
 
