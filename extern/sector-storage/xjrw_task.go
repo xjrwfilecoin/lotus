@@ -65,7 +65,7 @@ func InitTask(b bool) {
 		}
 	}
 
-	ffiwrapper.InitData()
+	ffiwrapper.InitData(b)
 	stores.InitData()
 
 	fmt.Printf("P1_SPACE = %v, P2_SPACE = %v, AUTO_INTERVAL_TIME = %v, P1P2_STATE = %v, P1_LIMIT = %v, P2_LIMIT = %v, C2_LIMIT = %v, P2_NUMBER = %v \n", p1SpaceLimit, p2SpaceLimit, autoInterval, p1p2State, p1Limit, p2Limit, c2Limit, P2NumberLimit)

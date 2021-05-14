@@ -22,11 +22,11 @@ import (
 
 var wPostPath string
 
-func InitData() {
+func InitData(b bool) {
 	wPostPath = os.Getenv("MINER_WPOST_PATH")
 	fmt.Printf("MINER_WPOST_PATH = %v \n", wPostPath)
 
-	if wPostPath != "" {
+	if b && wPostPath != "" {
 		_, err := os.Stat(wPostPath)
 		if err != nil {
 			panic(err)
