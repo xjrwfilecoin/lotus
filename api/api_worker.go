@@ -30,6 +30,8 @@ type Worker interface {
 
 	// TaskType -> Weight
 	TaskTypes(context.Context) (map[sealtasks.TaskType]struct{}, error) //perm:admin
+	GetPara(ctx context.Context) (storiface.WorkerPara, error)
+
 	Paths(context.Context) ([]stores.StoragePath, error)                //perm:admin
 	Info(context.Context) (storiface.WorkerInfo, error)                 //perm:admin
 

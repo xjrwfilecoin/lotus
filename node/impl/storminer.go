@@ -3,6 +3,10 @@ package impl
 import (
 	"context"
 	"encoding/json"
+	"github.com/filecoin-project/go-bitfield"
+	"github.com/filecoin-project/lotus/chain/actors/policy"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	proof2 "github.com/filecoin-project/specs-actors/v2/actors/runtime/proof"
 	"net/http"
 	"os"
 	"strconv"
@@ -98,6 +102,9 @@ func (sm *StorageMinerAPI) ServeRemote(w http.ResponseWriter, r *http.Request) {
 	sm.StorageMgr.ServeHTTP(w, r)
 }
 
+func (sm *StorageMinerAPI) SetFull(ctx context.Context) {
+	sm.Miner.SetFull(ctx, sm.Full)
+}
 func (sm *StorageMinerAPI) WorkerStats(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) {
 	return sm.StorageMgr.WorkerStats(), nil
 }
@@ -357,6 +364,368 @@ func (sm *StorageMinerAPI) SectorsUpdate(ctx context.Context, id abi.SectorNumbe
 	return sm.Miner.ForceSectorState(ctx, id, sealing.SectorState(state))
 }
 
+func (sm *StorageMinerAPI) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return sm.Miner.SetMaxPreCommitGasFee(ctx, types.MustParseFIL(maxPreCommit))
+}
+
+func (sm *StorageMinerAPI) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetMaxPreCommitGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) SetMaxCommitGasFee(ctx context.Context, maxCommit string) error {
+	return sm.Miner.SetMaxCommitGasFee(ctx, types.MustParseFIL(maxCommit))
+}
+
+func (sm *StorageMinerAPI) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetMaxCommitGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) SetGasFee(ctx context.Context, gas string) error {
+	return sm.Miner.SetGasFee(ctx, types.MustParseFIL(gas))
+}
+
+func (sm *StorageMinerAPI) GetGasFee(ctx context.Context) (string, error) {
+	return sm.Miner.GetGasFee(ctx)
+}
+
+func (sm *StorageMinerAPI) RefreshConf(ctx context.Context) (string, error) {
+	return sm.Miner.RefreshConf(ctx)
+}
+
+func batchPartitions(partitions []api.Partition, proof abi.RegisteredPoStProof) ([][]api.Partition, error) {
+	partitionsPerMsg, err := policy.GetMaxPoStPartitions(proof)
+	if err != nil {
+		return nil, xerrors.Errorf("getting sectors per partition: %w", err)
+	}
+
+	// The number of messages will be:
+	// ceiling(number of partitions / partitions per message)
+	batchCount := len(partitions) / partitionsPerMsg
+	if len(partitions)%partitionsPerMsg != 0 {
+		batchCount++
+	}
+
+	// Split the partitions into batches
+	batches := make([][]api.Partition, 0, batchCount)
+	for i := 0; i < len(partitions); i += partitionsPerMsg {
+		end := i + partitionsPerMsg
+		if end > len(partitions) {
+			end = len(partitions)
+		}
+		batches = append(batches, partitions[i:end])
+	}
+
+	return batches, nil
+}
+
+func (sm *StorageMinerAPI) checkSectors(ctx context.Context, check bitfield.BitField, proof abi.RegisteredPoStProof) (bitfield.BitField, error) {
+	mid, err := address.IDFromAddress(sm.Miner.Address())
+	if err != nil {
+		return bitfield.BitField{}, err
+	}
+
+	sectorInfos, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), &check, types.EmptyTSK)
+	if err != nil {
+		return bitfield.BitField{}, err
+	}
+
+	sectors := make(map[abi.SectorNumber]struct{})
+	var tocheck []sto.SectorRef
+	for _, info := range sectorInfos {
+		sectors[info.SectorNumber] = struct{}{}
+		tocheck = append(tocheck, sto.SectorRef{
+			ProofType: info.SealProof,
+			ID: abi.SectorID{
+				Miner:  abi.ActorID(mid),
+				Number: info.SectorNumber,
+			},
+		})
+	}
+
+	bad, err := sm.IStorageMgr.CheckProvable(ctx, proof, tocheck, nil)
+	if err != nil {
+		return bitfield.BitField{}, xerrors.Errorf("checking provable sectors: %w", err)
+	}
+	for id := range bad {
+		delete(sectors, id.Number)
+	}
+
+	log.Warnw("Checked sectors", "checked", len(tocheck), "good", len(sectors))
+
+	sbf := bitfield.New()
+	for s := range sectors {
+		sbf.Set(uint64(s))
+	}
+
+	return sbf, nil
+}
+
+func (sm *StorageMinerAPI) sectorsForProof(ctx context.Context, goodSectors, allSectors bitfield.BitField) ([]proof2.SectorInfo, error) {
+	sset, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), &goodSectors, types.EmptyTSK)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Infof("WindowsPost4: %v %v", len(sset), sset)
+
+	if len(sset) == 0 {
+		return nil, nil
+	}
+
+	//substitute := proof2.SectorInfo{
+	//	SectorNumber: sset[0].SectorNumber,
+	//	SealedCID:    sset[0].SealedCID,
+	//	SealProof:    sset[0].SealProof,
+	//}
+
+	sectorByID := make(map[uint64]proof2.SectorInfo, len(sset))
+	for _, sector := range sset {
+		sectorByID[uint64(sector.SectorNumber)] = proof2.SectorInfo{
+			SectorNumber: sector.SectorNumber,
+			SealedCID:    sector.SealedCID,
+			SealProof:    sector.SealProof,
+		}
+	}
+
+	proofSectors := make([]proof2.SectorInfo, 0, len(sset))
+	for _, info := range sectorByID {
+		proofSectors = append(proofSectors, info)
+	}
+	//if err := allSectors.ForEach(func(sectorNo uint64) error {
+	//	if info, found := sectorByID[sectorNo]; found {
+	//		proofSectors = append(proofSectors, info)
+	//	} else {
+	//		proofSectors = append(proofSectors, substitute)
+	//	}
+	//	return nil
+	//}); err != nil {
+	//	return nil, xerrors.Errorf("iterating partition sector bitmap: %w", err)
+	//}
+
+	log.Infof("WindowsPost5: %v %v", len(proofSectors), proofSectors)
+
+	return proofSectors, nil
+}
+
+func (sm *StorageMinerAPI) WindowsPost(ctx context.Context, start int, end int) error {
+	head, err := sm.Full.ChainHead(ctx)
+	if err != nil {
+		return err
+	}
+
+	sset, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), nil, head.Key())
+	if err != nil {
+		return err
+	}
+
+	list, err := sm.SectorsList(ctx)
+	if err != nil {
+		return err
+	}
+
+	mi, err := sm.Full.StateMinerInfo(context.TODO(), sm.Miner.Address(), types.EmptyTSK)
+	if err != nil {
+		return xerrors.Errorf("getting sector size: %w", err)
+	}
+
+	var proofSectors []proof2.SectorInfo
+	var sectors []abi.SectorNumber
+	for _, s := range list {
+		if s > abi.SectorNumber(end) || s < abi.SectorNumber(start) {
+			continue
+		}
+
+		st, err := sm.SectorsStatus(ctx, s, true)
+		if err != nil {
+			continue
+		}
+
+		if st.State != "Proving" {
+			continue
+		}
+
+		sectors = append(sectors, s)
+	}
+
+	toProve := bitfield.New()
+	for _, s := range sectors {
+		toProve.Set(uint64(s))
+	}
+
+	good, err := sm.checkSectors(ctx, toProve, mi.WindowPoStProofType)
+	if err != nil {
+		return xerrors.Errorf("checking sectors to skip: %w", err)
+	}
+
+	if err := good.ForEach(func(sectorNo uint64) error {
+		for _, sector := range sset {
+			if sector.SectorNumber == abi.SectorNumber(sectorNo) {
+				proofSectors = append(proofSectors, proof.SectorInfo{
+					SectorNumber: sector.SectorNumber,
+					SealedCID:    sector.SealedCID,
+					SealProof:    sector.SealProof,
+				})
+			}
+		}
+		return nil
+	}); err != nil {
+		return xerrors.Errorf("iterating partition sector bitmap: %w", err)
+	}
+
+	sectorslist := ""
+	for _, s := range proofSectors {
+		sectorslist = sectorslist + strconv.Itoa(int(s.SectorNumber)) + ","
+	}
+	log.Infof("WindowsPost: %v %v", len(proofSectors), sectorslist)
+
+	log.Info("WindowsPost finish %v %v", start, end)
+	return sm.Miner.WindowsPost(ctx, proofSectors, "")
+}
+
+func (sm *StorageMinerAPI) DeadlinePost(ctx context.Context, deadline int, random string) error {
+	partitions, err := sm.Full.StateMinerPartitions(ctx, sm.Miner.Address(), uint64(deadline), types.EmptyTSK)
+	if err != nil {
+		return xerrors.Errorf("getting partitions: %w", err)
+	}
+
+	mi, err := sm.Full.StateMinerInfo(context.TODO(), sm.Miner.Address(), types.EmptyTSK)
+	if err != nil {
+		return xerrors.Errorf("getting sector size: %w", err)
+	}
+
+	// Split partitions into batches, so as not to exceed the number of sectors
+	// allowed in a single message
+	partitionBatches, err := batchPartitions(partitions, mi.WindowPoStProofType)
+	if err != nil {
+		return err
+	}
+
+	for batchIdx, batch := range partitionBatches {
+		batchPartitionStartIdx := 0
+		for _, batch := range partitionBatches[:batchIdx] {
+			batchPartitionStartIdx += len(batch)
+		}
+
+		skipCount := uint64(0)
+		postSkipped := bitfield.New()
+
+		var sinfos []proof2.SectorInfo
+		for ii, partition := range batch {
+			c1, _ := partition.LiveSectors.Count()
+			c2, _ := partition.FaultySectors.Count()
+			c3, _ := partition.ActiveSectors.Count()
+			c4, _ := partition.AllSectors.Count()
+			c5, _ := partition.RecoveringSectors.Count()
+
+			log.Infof("WindowsPost1 %v: %v %v %v %v %v", ii, c1, c2, c3, c4, c5)
+			// TODO: Can do this in parallel
+			toProve := partition.AllSectors
+			good, err := sm.checkSectors(ctx, toProve, mi.WindowPoStProofType)
+			if err != nil {
+				return xerrors.Errorf("checking sectors to skip: %w", err)
+			}
+
+			good, err = bitfield.SubtractBitField(good, postSkipped)
+			if err != nil {
+				return xerrors.Errorf("toProve - postSkipped: %w", err)
+			}
+
+			skipped, err := bitfield.SubtractBitField(toProve, good)
+			if err != nil {
+				return xerrors.Errorf("toProve - good: %w", err)
+			}
+
+			sc, err := skipped.Count()
+			if err != nil {
+				return xerrors.Errorf("getting skipped sector count: %w", err)
+			}
+
+			skipCount += sc
+
+			cn, _ := partition.AllSectors.Count()
+			ssi, err := sm.sectorsForProof(ctx, good, partition.AllSectors)
+			if err != nil {
+				return xerrors.Errorf("getting sorted sector info: %w", err)
+			}
+
+			if len(ssi) == 0 {
+				continue
+			}
+
+			sectorslist := ""
+			for _, s := range ssi {
+				sectorslist = sectorslist + strconv.Itoa(int(s.SectorNumber)) + ","
+			}
+			log.Infof("WindowsPost2 %v : %v %v %v", ii, len(ssi), cn, sectorslist)
+
+			sinfos = append(sinfos, ssi...)
+		}
+
+		if len(sinfos) == 0 {
+			// nothing to prove for this batch
+			return nil
+		}
+
+		sectorslist := ""
+		for _, s := range sinfos {
+			sectorslist = sectorslist + strconv.Itoa(int(s.SectorNumber)) + ","
+		}
+		log.Infof("WindowsPost3 %v: %v %v", deadline, len(sinfos), sectorslist)
+		return sm.Miner.WindowsPost(ctx, sinfos, random)
+	}
+
+	return nil
+}
+
+func (sm *StorageMinerAPI) WinningPost(ctx context.Context, number int) error {
+	head, err := sm.Full.ChainHead(ctx)
+	if err != nil {
+		return err
+	}
+
+	sset, err := sm.Full.StateMinerSectors(ctx, sm.Miner.Address(), nil, head.Key())
+	if err != nil {
+		return err
+	}
+
+	list, err := sm.SectorsList(ctx)
+	if err != nil {
+		return err
+	}
+
+	var proofSectors []proof2.SectorInfo
+	n := 0
+	for _, s := range list {
+		st, err := sm.SectorsStatus(ctx, s, true)
+		if err != nil {
+			continue
+		}
+
+		if n >= number {
+			continue
+		}
+
+		if st.State != "Proving" {
+			continue
+		}
+
+		n++
+
+		for _, sector := range sset {
+			if sector.SectorNumber == s {
+				substitute := proof.SectorInfo{
+					SectorNumber: sector.SectorNumber,
+					SealedCID:    sector.SealedCID,
+					SealProof:    sector.SealProof,
+				}
+				proofSectors = append(proofSectors, substitute)
+				log.Debug("WinningPost ", s)
+			}
+		}
+	}
+
+	return sm.Miner.WinningPost(ctx, proofSectors, number)
+}
 func (sm *StorageMinerAPI) SectorRemove(ctx context.Context, id abi.SectorNumber) error {
 	return sm.Miner.RemoveSector(ctx, id)
 }

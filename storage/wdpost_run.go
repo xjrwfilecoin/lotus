@@ -104,6 +104,7 @@ func (s *WindowPoStScheduler) runGeneratePoST(
 		log.Errorf("runPost failed: %+v", err)
 		return nil, err
 	}
+	log.Info("runPost finish ", deadline)
 
 	if len(posts) == 0 {
 		s.recordProofsEvent(nil, cid.Undef)
@@ -134,6 +135,7 @@ func (s *WindowPoStScheduler) startSubmitPoST(
 				}
 			})
 		}
+		log.Info("runSubmitPoST :", err)
 		completeSubmitPoST(err)
 	}()
 
@@ -421,6 +423,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 		// late to declare them for this deadline
 		declDeadline := (di.Index + 2) % di.WPoStPeriodDeadlines
 
+		log.Infof("pre runPost %v %v", di, declDeadline)
 		partitions, err := s.api.StateMinerPartitions(context.TODO(), s.actor, declDeadline, ts.Key())
 		if err != nil {
 			log.Errorf("getting partitions: %v", err)
@@ -503,6 +506,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("runPost %v", di)
 
 	// Generate proofs in batches
 	posts := make([]miner.SubmitWindowedPoStParams, 0, len(partitionBatches))
@@ -664,6 +668,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 
 			skipCount += uint64(len(ps))
 			for _, sector := range ps {
+				log.Info("windowspost skip ", sector.Number)
 				postSkipped.Set(uint64(sector.Number))
 			}
 		}
@@ -794,6 +799,7 @@ func (s *WindowPoStScheduler) submitPost(ctx context.Context, proof *miner.Submi
 		}
 
 		if rec.Receipt.ExitCode == 0 {
+			log.Infof("Submitting window post %s success", sm.Cid())
 			return
 		}
 

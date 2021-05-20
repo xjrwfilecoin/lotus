@@ -56,8 +56,10 @@ func (ch *changeHandler) update(ctx context.Context, revert *types.TipSet, advan
 	}
 
 	if !di.PeriodStarted() {
+		log.Info("update abort ", di)
 		return nil // not proving anything yet
 	}
+	log.Info("update ", di)
 
 	hc := &headChange{
 		ctx:     ctx,
@@ -221,22 +223,27 @@ func (p *proveHandler) processHeadChange(ctx context.Context, newTS *types.TipSe
 
 	// Only generate one proof at a time
 	if p.current != nil {
+		log.Info("runpost current ", di)
 		return
 	}
 
 	// If the proof for the current post window has been generated, check the
 	// next post window
 	_, complete := p.posts.get(di)
+	log.Infof("runpost get1 %v %v", di, complete)
 	for complete {
 		di = nextDeadline(di)
 		_, complete = p.posts.get(di)
+		log.Infof("runpost get2 %v %v", di, complete)
 	}
 
 	// Check if the chain is above the Challenge height for the post window
 	if newTS.Height() < di.Challenge+ChallengeConfidence {
+		log.Infof("runpost cancel %v %v", di, newTS.Height())
 		return
 	}
 
+	log.Info("runpost start ", di)
 	p.current = &currentPost{di: di}
 	curr := p.current
 	p.current.abort = p.api.startGeneratePoST(ctx, newTS, di, func(posts []miner.SubmitWindowedPoStParams, err error) {
@@ -266,6 +273,7 @@ func (p *proveHandler) processPostResult(res *postResult) {
 
 	// Add the proofs to the cache
 	p.posts.add(di, res.posts)
+	log.Info("runpost processPostResult ", di)
 }
 
 type submitResult struct {
@@ -442,6 +450,7 @@ func (s *submitHandler) processHeadChangeForPW(ctx context.Context, revert *type
 // processPostReady is called when a proof generation completes
 func (s *submitHandler) processPostReady(pi *postInfo) {
 	pw, ok := s.postWindows[pi.di.Open]
+	log.Infof("processPostReady %v %v", pi, ok)
 	if ok {
 		s.submitIfReady(s.currentCtx, s.currentTS, pw)
 	}
@@ -452,27 +461,32 @@ func (s *submitHandler) processPostReady(pi *postInfo) {
 func (s *submitHandler) submitIfReady(ctx context.Context, advance *types.TipSet, pw *postWindow) {
 	// If the window has expired, there's nothing more to do.
 	if advance.Height() >= pw.di.Close {
+		log.Infof("submitIfReady close %v %v", advance.Height(), pw.di.Close)
 		return
 	}
 
 	// Check if we're already submitting, or already completed submit
 	if pw.submitState != SubmitStateStart {
+		log.Infof("submitIfReady state %v", pw.submitState)
 		return
 	}
 
 	// Check if we've reached the confidence height to submit
 	if advance.Height() < pw.di.Open+SubmitConfidence {
+		log.Infof("submitIfReady submit %v %v", advance.Height(), pw.di.Open)
 		return
 	}
 
 	// Check if the proofs have been generated for this deadline
 	posts, ok := s.posts.get(pw.di)
 	if !ok {
+		log.Info("submitIfReady not ok")
 		return
 	}
 
 	// If there was nothing to prove, move straight to the complete state
 	if len(posts) == 0 {
+		log.Info("submitIfReady complete")
 		pw.submitState = SubmitStateComplete
 		return
 	}

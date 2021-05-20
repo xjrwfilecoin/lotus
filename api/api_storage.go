@@ -92,6 +92,21 @@ type StorageMiner interface {
 	SectorTerminatePending(ctx context.Context) ([]abi.SectorID, error)  //perm:admin
 	SectorMarkForUpgrade(ctx context.Context, id abi.SectorNumber) error //perm:admin
 
+	SetMaxPreCommitGasFee(context.Context, string) error
+	GetMaxPreCommitGasFee(context.Context) (string, error)
+	SetMaxCommitGasFee(context.Context, string) error
+	GetMaxCommitGasFee(context.Context) (string, error)
+	SetGasFee(context.Context, string) error
+	GetGasFee(context.Context) (string, error)
+
+	WindowsPost(context.Context, int, int) error
+	DeadlinePost(context.Context, int, string) error
+	WinningPost(context.Context, int) error
+
+	RefreshConf(context.Context) (string, error)
+	StorageList(ctx context.Context) (map[stores.ID][]stores.Decl, error)
+	StorageLocal(ctx context.Context) (map[stores.ID]string, error)
+	StorageStat(ctx context.Context, id stores.ID) (fsutil.FsStat, error)
 	// WorkerConnect tells the node to connect to workers RPC
 	WorkerConnect(context.Context, string) error                              //perm:admin retry:true
 	WorkerStats(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) //perm:admin
