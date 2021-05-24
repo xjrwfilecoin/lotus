@@ -104,9 +104,6 @@ type StorageMiner interface {
 	WinningPost(context.Context, int) error
 
 	RefreshConf(context.Context) (string, error)
-	StorageList(ctx context.Context) (map[stores.ID][]stores.Decl, error)
-	StorageLocal(ctx context.Context) (map[stores.ID]string, error)
-	StorageStat(ctx context.Context, id stores.ID) (fsutil.FsStat, error)
 	// WorkerConnect tells the node to connect to workers RPC
 	WorkerConnect(context.Context, string) error                              //perm:admin retry:true
 	WorkerStats(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) //perm:admin
@@ -130,8 +127,9 @@ type StorageMiner interface {
 	SealingAbort(ctx context.Context, call storiface.CallID) error           //perm:admin
 
 	//stores.SectorIndex
-	StorageAttach(context.Context, stores.StorageInfo, fsutil.FsStat) error                                                                                             //perm:admin
-	StorageInfo(context.Context, stores.ID) (stores.StorageInfo, error)                                                                                                 //perm:admin
+	StorageAttach(context.Context, stores.StorageInfo, fsutil.FsStat) error //perm:admin
+	StorageInfo(context.Context, stores.ID) (stores.StorageInfo, error)     //perm:admin
+	StorageFsi(stores.ID) (fsutil.FsStat, error)
 	StorageReportHealth(context.Context, stores.ID, stores.HealthReport) error                                                                                          //perm:admin
 	StorageDeclareSector(ctx context.Context, storageID stores.ID, s abi.SectorID, ft storiface.SectorFileType, primary bool) error                                     //perm:admin
 	StorageDropSector(ctx context.Context, storageID stores.ID, s abi.SectorID, ft storiface.SectorFileType) error                                                      //perm:admin

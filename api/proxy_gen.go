@@ -655,6 +655,28 @@ type StorageMinerStruct struct {
 
 		SectorMarkForUpgrade func(p0 context.Context, p1 abi.SectorNumber) error `perm:"admin"`
 
+		SetMaxPreCommitGasFee func(context.Context, string) error `perm:"admin"`
+
+		GetMaxPreCommitGasFee func(context.Context) (string, error) `perm:"admin"`
+
+		SetMaxCommitGasFee func(context.Context, string) error `perm:"admin"`
+
+		GetMaxCommitGasFee func(context.Context) (string, error) `perm:"admin"`
+
+		SetGasFee func(context.Context, string) error `perm:"admin"`
+
+		GetGasFee func(context.Context) (string, error) `perm:"admin"`
+
+		WindowsPost func(context.Context, int, int) error `perm:"admin"`
+
+		DeadlinePost func(context.Context, int, string) error `perm:"admin"`
+
+		WinningPost func(context.Context, int) error `perm:"admin"`
+
+		RefreshConf func(context.Context) (string, error) `perm:"admin"`
+
+		StorageFsi func(stores.ID) (fsutil.FsStat, error) `perm:"admin"`
+
 		SectorRemove func(p0 context.Context, p1 abi.SectorNumber) error `perm:"admin"`
 
 		SectorSetExpectedSealDuration func(p0 context.Context, p1 time.Duration) error `perm:"write"`
@@ -751,6 +773,10 @@ type WorkerStruct struct {
 		FinalizeSector func(p0 context.Context, p1 storage.SectorRef, p2 []storage.Range) (storiface.CallID, error) `perm:"admin"`
 
 		Info func(p0 context.Context) (storiface.WorkerInfo, error) `perm:"admin"`
+
+		GetPara func(ctx context.Context) (storiface.WorkerPara, error) `perm:"admin"`
+
+		SetSectorState func(ctx context.Context, sector abi.SectorNumber, state string) `perm:"admin"`
 
 		MoveStorage func(p0 context.Context, p1 storage.SectorRef, p2 storiface.SectorFileType) (storiface.CallID, error) `perm:"admin"`
 
@@ -3187,6 +3213,86 @@ func (s *StorageMinerStub) SectorsSummary(p0 context.Context) (map[SectorState]i
 	return *new(map[SectorState]int), xerrors.New("method not supported")
 }
 
+func (c *StorageMinerStruct) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return c.Internal.SetMaxPreCommitGasFee(ctx, maxPreCommit)
+}
+
+func (s *StorageMinerStub) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return c.Internal.GetMaxPreCommitGasFee(ctx)
+}
+
+func (c *StorageMinerStub) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return *new(string), xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) SetMaxCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return c.Internal.SetMaxCommitGasFee(ctx, maxPreCommit)
+}
+
+func (c *StorageMinerStub) SetMaxCommitGasFee(ctx context.Context, maxPreCommit string) error {
+	return xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return c.Internal.GetMaxCommitGasFee(ctx)
+}
+
+func (c *StorageMinerStub) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return *new(string), xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) SetGasFee(ctx context.Context, gas string) error {
+	return c.Internal.SetGasFee(ctx, gas)
+}
+
+func (c *StorageMinerStub) SetGasFee(ctx context.Context, gas string) error {
+	return xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) GetGasFee(ctx context.Context) (string, error) {
+	return c.Internal.GetGasFee(ctx)
+}
+
+func (c *StorageMinerStub) GetGasFee(ctx context.Context) (string, error) {
+	return *new(string), xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) RefreshConf(ctx context.Context) (string, error) {
+	return c.Internal.RefreshConf(ctx)
+}
+
+func (c *StorageMinerStub) RefreshConf(ctx context.Context) (string, error) {
+	return *new(string), xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) WindowsPost(ctx context.Context, start int, end int) error {
+	return c.Internal.WindowsPost(ctx, start, end)
+}
+
+func (c *StorageMinerStub) WindowsPost(ctx context.Context, start int, end int) error {
+	return xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) DeadlinePost(ctx context.Context, deadline int, random string) error {
+	return c.Internal.DeadlinePost(ctx, deadline, random)
+}
+
+func (c *StorageMinerStub) DeadlinePost(ctx context.Context, deadline int, random string) error {
+	return xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) WinningPost(ctx context.Context, number int) error {
+	return c.Internal.WinningPost(ctx, number)
+}
+
+func (c *StorageMinerStub) WinningPost(ctx context.Context, number int) error {
+	return xerrors.New("method not supported")
+}
+
 func (s *StorageMinerStruct) SectorsUpdate(p0 context.Context, p1 abi.SectorNumber, p2 SectorState) error {
 	return s.Internal.SectorsUpdate(p0, p1, p2)
 }
@@ -3249,6 +3355,14 @@ func (s *StorageMinerStruct) StorageInfo(p0 context.Context, p1 stores.ID) (stor
 
 func (s *StorageMinerStub) StorageInfo(p0 context.Context, p1 stores.ID) (stores.StorageInfo, error) {
 	return *new(stores.StorageInfo), xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStub) StorageFsi(id stores.ID) (fsutil.FsStat, error) {
+	return *new(fsutil.FsStat), xerrors.New("method not supported")
+}
+
+func (c *StorageMinerStruct) StorageFsi(id stores.ID) (fsutil.FsStat, error) {
+	return c.Internal.StorageFsi(id)
 }
 
 func (s *StorageMinerStruct) StorageList(p0 context.Context) (map[stores.ID][]stores.Decl, error) {
@@ -3559,8 +3673,24 @@ func (s *WorkerStruct) Version(p0 context.Context) (Version, error) {
 	return s.Internal.Version(p0)
 }
 
+func (w *WorkerStruct) GetPara(ctx context.Context) (storiface.WorkerPara, error) {
+	return w.Internal.GetPara(ctx)
+}
+
+func (s *WorkerStub) GetPara(ctx context.Context) (storiface.WorkerPara, error) {
+	return *new(storiface.WorkerPara), xerrors.New("method not supported")
+}
+
 func (s *WorkerStub) Version(p0 context.Context) (Version, error) {
 	return *new(Version), xerrors.New("method not supported")
+}
+
+func (w *WorkerStruct) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
+	w.Internal.SetSectorState(ctx, sector, state)
+}
+
+func (s *WorkerStub) SetSectorState(ctx context.Context, sector abi.SectorNumber, state string) {
+
 }
 
 func (s *WorkerStruct) WaitQuiet(p0 context.Context) error {

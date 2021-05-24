@@ -17,6 +17,7 @@ import (
 
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/chain/actors"
+	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
 	"github.com/filecoin-project/lotus/chain/actors/policy"
 )
@@ -192,7 +193,7 @@ func (m *Sealing) handlePreCommit1(ctx statemachine.Context, sector SectorInfo) 
 		return ctx.Send(SectorOldTicket{}) // go get new ticket
 	}
 
-	if height-sector.TicketEpoch-policy.SealRandomnessLookback > builtin0.EpochsInDay/2 {
+	if height-sector.TicketEpoch-policy.SealRandomnessLookback > builtin.EpochsInDay/2 {
 		log.Infof("handlePreCommit1 ErrExpiredTicket %v %v %v", sector.SectorNumber, height, sector.TicketEpoch)
 		return ctx.Send(SectorTicketExpired{xerrors.Errorf("p1 ticket expired error, removing sector: %v", sector)})
 	}

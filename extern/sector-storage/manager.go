@@ -92,8 +92,8 @@ type Manager struct {
 	// used when we get an early return and there's no callToWork mapping
 	callRes map[storiface.CallID]chan result
 
-	results map[WorkID]result
-	waitRes map[WorkID]chan struct{}
+	results  map[WorkID]result
+	waitRes  map[WorkID]chan struct{}
 	autoDone chan struct{}
 }
 
@@ -143,7 +143,7 @@ func New(ctx context.Context, ls stores.LocalStorage, si stores.SectorIndex, sc 
 		mapStatus:  make(map[abi.SectorNumber]struct{}),
 		mapP2Tasks: make(map[string]map[abi.SectorID]struct{}),
 		mapChan:    make(map[abi.SectorID]chan struct{}),
-		sched: newScheduler(),
+		sched:      newScheduler(),
 
 		Prover: prover,
 
@@ -288,7 +288,7 @@ func (m *Manager) tryReadUnsealedPiece(ctx context.Context, sink io.Writer, sect
 		}
 	} else {
 		log.Debugf("did not find unsealed sector %d", sector.ID)
-		selector = newAllocSelector(m.index, storiface.FTUnsealed, storiface.PathSealing)
+		selector = newAllocSelector(m.index, sector.ID, storiface.FTUnsealed, storiface.PathSealing)
 	}
 	return
 }
