@@ -32,6 +32,7 @@ type Worker interface {
 	TaskTypes(context.Context) (map[sealtasks.TaskType]struct{}, error) //perm:admin
 	Paths(context.Context) ([]stores.StoragePath, error)                //perm:admin
 	Info(context.Context) (storiface.WorkerInfo, error)                 //perm:admin
+	GetPara(ctx context.Context) (storiface.WorkerPara, error)
 
 	// storiface.WorkerCalls
 	AddPiece(ctx context.Context, sector storage.SectorRef, pieceSizes []abi.UnpaddedPieceSize, newPieceSize abi.UnpaddedPieceSize, pieceData storage.Data) (storiface.CallID, error)                    //perm:admin

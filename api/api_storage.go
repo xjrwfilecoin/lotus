@@ -103,6 +103,18 @@ type StorageMiner interface {
 	// SectorCommitPending returns a list of pending Commit sectors to be sent in the next aggregate message
 	SectorCommitPending(ctx context.Context) ([]abi.SectorID, error) //perm:admin
 
+	SetMaxPreCommitGasFee(context.Context, string) error
+	GetMaxPreCommitGasFee(context.Context) (string, error)
+	SetMaxCommitGasFee(context.Context, string) error
+	GetMaxCommitGasFee(context.Context) (string, error)
+	SetGasFee(context.Context, string) error
+	GetGasFee(context.Context) (string, error)
+
+	WindowsPost(context.Context, int, int) error
+	DeadlinePost(context.Context, int, string) error
+	WinningPost(context.Context, int) error
+
+	RefreshConf(context.Context) (string, error)
 	// WorkerConnect tells the node to connect to workers RPC
 	WorkerConnect(context.Context, string) error                              //perm:admin retry:true
 	WorkerStats(context.Context) (map[uuid.UUID]storiface.WorkerStats, error) //perm:admin
@@ -128,6 +140,7 @@ type StorageMiner interface {
 	//stores.SectorIndex
 	StorageAttach(context.Context, stores.StorageInfo, fsutil.FsStat) error                                                                                             //perm:admin
 	StorageInfo(context.Context, stores.ID) (stores.StorageInfo, error)                                                                                                 //perm:admin
+	StorageFsi(stores.ID) (fsutil.FsStat, error)                                                                                                                        //perm:admin
 	StorageReportHealth(context.Context, stores.ID, stores.HealthReport) error                                                                                          //perm:admin
 	StorageDeclareSector(ctx context.Context, storageID stores.ID, s abi.SectorID, ft storiface.SectorFileType, primary bool) error                                     //perm:admin
 	StorageDropSector(ctx context.Context, storageID stores.ID, s abi.SectorID, ft storiface.SectorFileType) error                                                      //perm:admin
