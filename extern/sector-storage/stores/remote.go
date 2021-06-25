@@ -13,6 +13,7 @@ import (
 	gopath "path"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
@@ -137,9 +138,20 @@ func (r *Remote) AcquireSector(ctx context.Context, s storage.SectorRef, existin
 		dest := storiface.PathByType(apaths, fileType)
 		storageID := storiface.PathByType(ids, fileType)
 
-		url, err := r.acquireFromRemote(ctx, s.ID, fileType, dest)
-		if err != nil {
-			return storiface.SectorPaths{}, storiface.SectorPaths{}, err
+		if _, err := os.Stat(dest); err != nil || existing != storiface.FTSealed|storiface.FTCache {
+			log.Infof("not exist dest %v %v %v", dest, existing, err)
+			url, err := r.acquireFromRemote(ctx, s.ID, fileType, dest)
+			if err != nil {
+				return storiface.SectorPaths{}, storiface.SectorPaths{}, err
+			}
+
+			if op == storiface.AcquireMove {
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+				}
+			}
+		} else {
+			log.Infof("exist dest %v %v", dest, existing)
 		}
 
 		storiface.SetPathByType(&paths, fileType, dest)
@@ -149,15 +161,70 @@ func (r *Remote) AcquireSector(ctx context.Context, s storage.SectorRef, existin
 			log.Warnf("declaring sector %v in %s failed: %+v", s, storageID, err)
 			continue
 		}
+	}
 
-		if op == storiface.AcquireMove {
-			if err := r.deleteFromRemote(ctx, url); err != nil {
-				log.Warnf("deleting sector %v from %s (delete %s): %+v", s, storageID, url, err)
+	return paths, stores, nil
+}
+
+func (r *Remote) FetchRemoveRemote(ctx context.Context, s abi.SectorID, typ storiface.SectorFileType) error {
+	si, err := r.index.StorageFindSector(ctx, s, typ, 0, false)
+	if err != nil {
+		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", s, typ, err)
+	}
+
+	log.Infof("FetchRemoveRemote %v %v", s, si)
+	var merr error
+	for _, info := range si {
+		log.Infof("urls  = %v", info.URLs)
+		for _, url := range info.URLs {
+			log.Infof("url  = %v", url)
+			if !strings.Contains(url, getLocalIP()) {
+				dest := ""
+				if typ == storiface.FTSealed {
+					dest = filepath.Join(os.Getenv("WORKER_PATH"), "sealed")
+				} else if typ == storiface.FTCache {
+					dest = filepath.Join(os.Getenv("WORKER_PATH"), "cache")
+				} else {
+					return xerrors.Errorf(" %v not exist type", s)
+				}
+				dest = filepath.Join(dest, storiface.SectorName(s))
+
+				if _, err := os.Stat(dest); err != nil || (err == nil && typ == storiface.FTCache && !JudgeCacheComplete(dest)) {
+					tempDest, err := tempFetchDest(dest, true)
+					if err != nil {
+						return err
+					}
+
+					if err := os.RemoveAll(dest); err != nil {
+						return xerrors.Errorf("removing dest: %w", err)
+					}
+					log.Infof("Remove dest: %v", dest)
+
+					err = r.fetch(ctx, url, tempDest)
+					if err != nil {
+						merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
+						continue
+					}
+
+					if err := move(tempDest, dest); err != nil {
+						return xerrors.Errorf("fetch move error (storage %s) %s -> %s: %w", info.ID, tempDest, dest, err)
+					}
+
+					if err := WriteTXT(dest); err != nil {
+						log.Warnf("WriteTXT %s.txt failed : err", dest, err)
+					}
+				}
+
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("remove %s: %+v", url, err)
+					continue
+				}
+				return nil
 			}
 		}
 	}
 
-	return paths, stores, nil
+	return nil
 }
 
 func tempFetchDest(spath string, create bool) (string, error) {
@@ -204,6 +271,24 @@ func (r *Remote) acquireFromRemote(ctx context.Context, s abi.SectorID, fileType
 			if err != nil {
 				merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
 				continue
+			}
+
+			if fileType == storiface.FTSealed {
+				if fi, err := os.Stat(tempDest); err != nil {
+					log.Errorf("Stat error: %v", tempDest)
+					continue
+				} else {
+					if sealedSize != 0 && fi.Size() != sealedSize {
+						log.Infof("retry fetch %v %v %v %v", s, fi.Size(), sealedSize, tempDest)
+						err = r.fetch(ctx, url, tempDest)
+						if err != nil {
+							merr = multierror.Append(merr, xerrors.Errorf("fetch error %s (storage %s) -> %s: %w", url, info.ID, tempDest, err))
+							continue
+						}
+					} else {
+						log.Infof("skip fetch %v %v %v %v", s, fi.Size(), sealedSize, tempDest)
+					}
+				}
 			}
 
 			if err := move(tempDest, dest); err != nil {
@@ -301,6 +386,32 @@ func (r *Remote) MoveStorage(ctx context.Context, s storage.SectorRef, types sto
 	}
 
 	return r.local.MoveStorage(ctx, s, types)
+}
+
+func (r *Remote) RemoveRemote(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {
+	if bits.OnesCount(uint(typ)) != 1 {
+		return xerrors.New("delete expects one file type")
+	}
+
+	si, err := r.index.StorageFindSector(ctx, sid, typ, 0, false)
+	if err != nil {
+		return xerrors.Errorf("finding existing sector %d(t:%d) failed: %w", sid, typ, err)
+	}
+
+	for _, info := range si {
+		for _, url := range info.URLs {
+			log.Info("RemoveRemote ", url)
+			if !strings.Contains(url, getLocalIP()) {
+				if err := r.deleteFromRemote(ctx, url); err != nil {
+					log.Warnf("remove %s: %+v", url, err)
+					continue
+				}
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *Remote) Remove(ctx context.Context, sid abi.SectorID, typ storiface.SectorFileType, force bool) error {

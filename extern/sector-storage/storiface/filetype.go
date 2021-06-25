@@ -57,18 +57,19 @@ func (t SectorFileType) Has(singleType SectorFileType) bool {
 
 func (t SectorFileType) SealSpaceUse(ssize abi.SectorSize) (uint64, error) {
 	var need uint64
-	for _, pathType := range PathTypes {
-		if !t.Has(pathType) {
-			continue
-		}
-
-		oh, ok := FSOverheadSeal[pathType]
-		if !ok {
-			return 0, xerrors.Errorf("no seal overhead info for %s", pathType)
-		}
-
-		need += uint64(oh) * uint64(ssize) / FSOverheadDen
-	}
+	//for _, pathType := range PathTypes {
+	//	if !t.Has(pathType) {
+	//		continue
+	//	}
+	//
+	//	oh, ok := FSOverheadSeal[pathType]
+	//	if !ok {
+	//		return 0, xerrors.Errorf("no seal overhead info for %s", pathType)
+	//	}
+	//
+	//	need += uint64(oh) * uint64(ssize) / FSOverheadDen
+	//}
+	need = 161 * uint64(ssize) / FSOverheadDen
 
 	return need, nil
 }

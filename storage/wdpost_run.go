@@ -669,6 +669,7 @@ func (s *WindowPoStScheduler) runPost(ctx context.Context, di dline.Info, ts *ty
 
 			skipCount += uint64(len(ps))
 			for _, sector := range ps {
+				log.Info("windowspost skip ", sector.Number)
 				postSkipped.Set(uint64(sector.Number))
 			}
 		}
@@ -804,6 +805,7 @@ func (s *WindowPoStScheduler) submitPost(ctx context.Context, proof *miner.Submi
 		}
 
 		if rec.Receipt.ExitCode == 0 {
+			log.Infof("Submitting window post %s success", sm.Cid())
 			return
 		}
 

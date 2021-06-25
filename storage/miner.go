@@ -180,6 +180,11 @@ func (m *Miner) Stop(ctx context.Context) error {
 	return m.sealing.Stop(ctx)
 }
 
+func (m *Miner) SetFull(ctx context.Context, full api.FullNode) error {
+	m.sealing.Full = full
+	return nil
+}
+
 func (m *Miner) runPreflightChecks(ctx context.Context) error {
 	mi, err := m.api.StateMinerInfo(ctx, m.maddr, types.EmptyTSK)
 	if err != nil {

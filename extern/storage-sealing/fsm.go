@@ -65,6 +65,7 @@ var fsmPlanners = map[SectorState]func(events []statemachine.Event, state *Secto
 		on(SectorDealsExpired{}, DealsExpired),
 		on(SectorInvalidDealIDs{}, RecoverDealIDs),
 		on(SectorOldTicket{}, GetTicket),
+		on(SectorTicketExpired{}, Removing),
 	),
 	PreCommit2: planOne(
 		on(SectorPreCommit2{}, PreCommitting),
@@ -79,6 +80,7 @@ var fsmPlanners = map[SectorState]func(events []statemachine.Event, state *Secto
 		on(SectorPreCommitLanded{}, WaitSeed),
 		on(SectorDealsExpired{}, DealsExpired),
 		on(SectorInvalidDealIDs{}, RecoverDealIDs),
+		on(SectorTicketExpired{}, Removing),
 	),
 	SubmitPreCommitBatch: planOne(
 		on(SectorPreCommitBatchSent{}, PreCommitBatchWait),
@@ -150,10 +152,12 @@ var fsmPlanners = map[SectorState]func(events []statemachine.Event, state *Secto
 		on(SectorPreCommitLanded{}, WaitSeed),
 		on(SectorDealsExpired{}, DealsExpired),
 		on(SectorInvalidDealIDs{}, RecoverDealIDs),
+		on(SectorTicketExpired{}, Removing),
 	),
 	ComputeProofFailed: planOne(
 		on(SectorRetryComputeProof{}, Committing),
 		on(SectorSealPreCommit1Failed{}, SealPreCommit1Failed),
+		on(SectorTicketExpired{}, Removing),
 	),
 	CommitFinalizeFailed: planOne(
 		on(SectorRetryFinalize{}, CommitFinalizeFailed),
@@ -540,6 +544,8 @@ func (m *Sealing) restartSectors(ctx context.Context) error {
 }
 
 func (m *Sealing) ForceSectorState(ctx context.Context, id abi.SectorNumber, state SectorState) error {
+	m.sealer.SetSectorState(ctx, id, string(state))
+
 	m.startupWait.Wait()
 	return m.sectors.Send(id, SectorForceState{state})
 }

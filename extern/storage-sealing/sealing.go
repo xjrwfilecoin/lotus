@@ -79,10 +79,10 @@ type SectorStateNotifee func(before, after SectorInfo)
 type AddrSel func(ctx context.Context, mi miner.MinerInfo, use api.AddrUse, goodFunds, minFunds abi.TokenAmount) (address.Address, abi.TokenAmount, error)
 
 type Sealing struct {
-	api    SealingAPI
-	feeCfg config.MinerFeeConfig
-	events Events
-
+	api         SealingAPI
+	feeCfg      config.MinerFeeConfig
+	events      Events
+	Full        api.FullNode
 	startupWait sync.WaitGroup
 
 	maddr address.Address
@@ -178,6 +178,37 @@ func (m *Sealing) Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (m *Sealing) SetMaxPreCommitGasFee(ctx context.Context, maxPreCommit types.FIL) error {
+	m.feeCfg.MaxPreCommitGasFee = maxPreCommit
+	return nil
+}
+
+func (m *Sealing) GetMaxPreCommitGasFee(ctx context.Context) (string, error) {
+	return m.feeCfg.MaxPreCommitGasFee.String(), nil
+}
+
+func (m *Sealing) SetMaxCommitGasFee(ctx context.Context, maxCommit types.FIL) error {
+	m.feeCfg.MaxCommitGasFee = maxCommit
+	return nil
+}
+
+func (m *Sealing) GetMaxCommitGasFee(ctx context.Context) (string, error) {
+	return m.feeCfg.MaxCommitGasFee.String(), nil
+}
+
+func (m *Sealing) SetGasFee(ctx context.Context, gas types.FIL) error {
+	m.feeCfg.GasFee = types.FIL(big.Div(abi.TokenAmount(gas), types.NewInt(1e9)))
+	return nil
+}
+
+func (m *Sealing) GetGasFee(ctx context.Context) (string, error) {
+	return types.FIL(m.feeCfg.GasFee).Short(), nil
+}
+
+func (m *Sealing) RefreshConf(ctx context.Context) (string, error) {
+	return m.sealer.RefreshConf(ctx)
 }
 
 func (m *Sealing) Stop(ctx context.Context) error {
