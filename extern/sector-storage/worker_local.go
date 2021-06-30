@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"path/filepath"
 	"reflect"
 	"runtime"
 	"sync"
@@ -351,7 +350,7 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 	}
 
 	log.Infof("in SealPreCommit2 %v", sector.ID)
-
+/*
 	if p1p2State == 0 {
 		dest := filepath.Join(filepath.Join(os.Getenv("WORKER_PATH"), "cache"), storiface.SectorName(sector.ID))
 
@@ -373,7 +372,7 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 			log.Errorf("FetchRemoveRemote Cache :%w", err)
 		}
 	}
-
+*/
 	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
 		return sb.SealPreCommit2(ctx, sector, phase1Out)
 	})

@@ -107,8 +107,8 @@ func (m *Miner) WinningPost(ctx context.Context, sectorInfo []proof2.SectorInfo,
 		return err
 	}
 
-	m.sealer.GenerateWinningPoSt(ctx, abi.ActorID(mid), sectorInfo, abi.PoStRandomness{0, 9, 2, 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 45, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9, 7})
-	return nil
+	_, err = m.sealer.GenerateWinningPoSt(ctx, abi.ActorID(mid), sectorInfo, abi.PoStRandomness{0, 9, 2, 7, 6, 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 45, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 9, 7})
+	return err
 }
 
 func (m *Miner) RemoveSector(ctx context.Context, id abi.SectorNumber) error {

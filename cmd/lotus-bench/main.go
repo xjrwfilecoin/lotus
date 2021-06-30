@@ -174,6 +174,11 @@ var sealBenchCmd = &cli.Command{
 			Usage: "num run in parallel",
 			Value: 1,
 		},
+		&cli.IntFlag{
+			Name:  "seal-interval",
+			Usage: "delay time between multi sectors to seal task, default 10 (minute) interval",
+			Value: 10,
+		},
 	},
 	Action: func(c *cli.Context) error {
 		if c.Bool("no-gpu") {
@@ -269,7 +274,8 @@ var sealBenchCmd = &cli.Command{
 				PreCommit2: 1,
 				Commit:     1,
 			}
-			sealTimings, sealedSectors, err = runSeals(sb, sbfs, sectorNumber, parCfg, mid, sectorSize, []byte(c.String("ticket-preimage")), c.String("save-commit2-input"), skipc2, c.Bool("skip-unseal"))
+			delayTime := c.Int("seal-interval")
+			sealTimings, sealedSectors, err = runSeals(sb, sbfs, sectorNumber, delayTime, parCfg, mid, sectorSize, []byte(c.String("ticket-preimage")), c.String("save-commit2-input"), skipc2, c.Bool("skip-unseal"))
 			if err != nil {
 				return xerrors.Errorf("failed to run seals: %w", err)
 			}
@@ -502,7 +508,7 @@ type ParCfg struct {
 	Commit     int
 }
 
-func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par ParCfg, mid abi.ActorID, sectorSize abi.SectorSize, ticketPreimage []byte, saveC2inp string, skipc2, skipunseal bool) ([]SealingResult, []saproof2.SectorInfo, error) {
+func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, delay int, par ParCfg, mid abi.ActorID, sectorSize abi.SectorSize, ticketPreimage []byte, saveC2inp string, skipc2, skipunseal bool) ([]SealingResult, []saproof2.SectorInfo, error) {
 	var pieces []abi.PieceInfo
 	sealTimings := make([]SealingResult, numSectors)
 	sealedSectors := make([]saproof2.SectorInfo, numSectors)
@@ -535,6 +541,9 @@ func runSeals(sb *ffiwrapper.Sealer, sbfs *basicfs.Provider, numSectors int, par
 		pieces = append(pieces, pi)
 
 		sealTimings[i].AddPiece = time.Since(start)
+
+		time.Sleep(time.Minute * time.Duration(delay))
+		log.Infof("add piece %d of %d, time = %s", i, abi.SectorNumber(numSectors), time.Now())
 	}
 
 	sectorsPerWorker := numSectors / par.PreCommit1
