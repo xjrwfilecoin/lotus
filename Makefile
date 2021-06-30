@@ -66,19 +66,19 @@ deps: $(BUILD_DEPS)
 build-devnets: build lotus-seed lotus-shed lotus-wallet lotus-gateway
 .PHONY: build-devnets
 
-debug: GOFLAGS+=-tags=debug
+debug: GOFLAGS+=-tags=debug -gcflags "-N -l"
 debug: build-devnets
 
-2k: GOFLAGS+=-tags=2k
+2k: GOFLAGS+=-tags=2k -gcflags "-N -l"
 2k: build-devnets
 
-calibnet: GOFLAGS+=-tags=calibnet
+calibnet: GOFLAGS+=-tags=calibnet -gcflags "-N -l"
 calibnet: build-devnets
 
-nerpanet: GOFLAGS+=-tags=nerpanet
+nerpanet: GOFLAGS+=-tags=nerpanet -gcflags "-N -l"
 nerpanet: build-devnets
 
-butterflynet: GOFLAGS+=-tags=butterflynet
+butterflynet: GOFLAGS+=-tags=butterflynet -gcflags "-N -l"
 butterflynet: build-devnets
 
 lotus: $(BUILD_DEPS)
@@ -116,7 +116,7 @@ lotus-gateway: $(BUILD_DEPS)
 .PHONY: lotus-gateway
 BINS+=lotus-gateway
 
-build: lotus lotus-miner lotus-worker
+build: lotus lotus-miner lotus-worker lotus-bench
 	@[[ $$(type -P "lotus") ]] && echo "Caution: you have \
 an existing lotus binary in your PATH. This may cause problems if you don't run 'sudo make install'" || true
 
