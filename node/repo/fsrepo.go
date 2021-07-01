@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/BurntSushi/toml"
+
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/namespace"
-	badger "github.com/ipfs/go-ds-badger2"
 	fslock "github.com/ipfs/go-fs-lock"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mitchellh/go-homedir"
@@ -20,17 +22,23 @@ import (
 	"github.com/multiformats/go-multiaddr"
 	"golang.org/x/xerrors"
 
+	"github.com/filecoin-project/lotus/blockstore"
+	badgerbs "github.com/filecoin-project/lotus/blockstore/badger"
+	"github.com/filecoin-project/lotus/extern/sector-storage/fsutil"
+	"github.com/filecoin-project/lotus/extern/sector-storage/stores"
+
 	"github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/node/config"
 )
 
 const (
-	fsAPI       = "api"
-	fsAPIToken  = "token"
-	fsConfig    = "config.toml"
-	fsDatastore = "datastore"
-	fsLock      = "repo.lock"
-	fsKeystore  = "keystore"
+	fsAPI           = "api"
+	fsAPIToken      = "token"
+	fsConfig        = "config.toml"
+	fsStorageConfig = "storage.json"
+	fsDatastore     = "datastore"
+	fsLock          = "repo.lock"
+	fsKeystore      = "keystore"
 )
 
 type RepoType int
@@ -39,6 +47,8 @@ const (
 	_                 = iota // Default is invalid
 	FullNode RepoType = iota
 	StorageMiner
+	Worker
+	Wallet
 )
 
 func defConfForType(t RepoType) interface{} {
@@ -47,6 +57,10 @@ func defConfForType(t RepoType) interface{} {
 		return config.DefaultFullNode()
 	case StorageMiner:
 		return config.DefaultStorageMiner()
+	case Worker:
+		return &struct{}{}
+	case Wallet:
+		return &struct{}{}
 	default:
 		panic(fmt.Sprintf("unknown RepoType(%d)", int(t)))
 	}
@@ -58,8 +72,8 @@ var ErrRepoExists = xerrors.New("repo exists")
 
 // FsRepo is struct for repo, use NewFS to create
 type FsRepo struct {
-	path     string
-	repoType RepoType
+	path       string
+	configPath string
 }
 
 var _ Repo = &FsRepo{}
@@ -72,8 +86,13 @@ func NewFS(path string) (*FsRepo, error) {
 	}
 
 	return &FsRepo{
-		path: path,
+		path:       path,
+		configPath: filepath.Join(path, fsConfig),
 	}, nil
+}
+
+func (fsr *FsRepo) SetConfigPath(cfgPath string) {
+	fsr.configPath = cfgPath
 }
 
 func (fsr *FsRepo) Exists() (bool, error) {
@@ -81,6 +100,12 @@ func (fsr *FsRepo) Exists() (bool, error) {
 	notexist := os.IsNotExist(err)
 	if notexist {
 		err = nil
+
+		_, err = os.Stat(filepath.Join(fsr.path, fsKeystore))
+		notexist = os.IsNotExist(err)
+		if notexist {
+			err = nil
+		}
 	}
 	return !notexist, err
 }
@@ -95,7 +120,7 @@ func (fsr *FsRepo) Init(t RepoType) error {
 	}
 
 	log.Infof("Initializing repo at '%s'", fsr.path)
-	err = os.Mkdir(fsr.path, 0755) //nolint: gosec
+	err = os.MkdirAll(fsr.path, 0755) //nolint: gosec
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -109,9 +134,7 @@ func (fsr *FsRepo) Init(t RepoType) error {
 }
 
 func (fsr *FsRepo) initConfig(t RepoType) error {
-	cfgP := filepath.Join(fsr.path, fsConfig)
-
-	_, err := os.Stat(cfgP)
+	_, err := os.Stat(fsr.configPath)
 	if err == nil {
 		// exists
 		return nil
@@ -119,7 +142,7 @@ func (fsr *FsRepo) initConfig(t RepoType) error {
 		return err
 	}
 
-	c, err := os.Create(cfgP)
+	c, err := os.Create(fsr.configPath)
 	if err != nil {
 		return err
 	}
@@ -186,7 +209,12 @@ func (fsr *FsRepo) APIToken() ([]byte, error) {
 	}
 	defer f.Close() //nolint: errcheck // Read only op
 
-	return ioutil.ReadAll(f)
+	tb, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.TrimSpace(tb), nil
 }
 
 // Lock acquires exclusive lock on this repo
@@ -204,20 +232,48 @@ func (fsr *FsRepo) Lock(repoType RepoType) (LockedRepo, error) {
 		return nil, xerrors.Errorf("could not lock the repo: %w", err)
 	}
 	return &fsLockedRepo{
-		path:     fsr.path,
-		repoType: repoType,
-		closer:   closer,
+		path:       fsr.path,
+		configPath: fsr.configPath,
+		repoType:   repoType,
+		closer:     closer,
 	}, nil
 }
 
-type fsLockedRepo struct {
-	path     string
-	repoType RepoType
-	closer   io.Closer
+// Like Lock, except datastores will work in read-only mode
+func (fsr *FsRepo) LockRO(repoType RepoType) (LockedRepo, error) {
+	lr, err := fsr.Lock(repoType)
+	if err != nil {
+		return nil, err
+	}
 
-	ds     datastore.Batching
+	lr.(*fsLockedRepo).readonly = true
+	return lr, nil
+}
+
+type fsLockedRepo struct {
+	path       string
+	configPath string
+	repoType   RepoType
+	closer     io.Closer
+	readonly   bool
+
+	ds     map[string]datastore.Batching
 	dsErr  error
 	dsOnce sync.Once
+
+	bs     blockstore.Blockstore
+	bsErr  error
+	bsOnce sync.Once
+	ssPath string
+	ssErr  error
+	ssOnce sync.Once
+
+	storageLk sync.Mutex
+	configLk  sync.Mutex
+}
+
+func (fsr *fsLockedRepo) Readonly() bool {
+	return fsr.readonly
 }
 
 func (fsr *fsLockedRepo) Path() string {
@@ -231,14 +287,70 @@ func (fsr *fsLockedRepo) Close() error {
 		return xerrors.Errorf("could not remove API file: %w", err)
 	}
 	if fsr.ds != nil {
-		if err := fsr.ds.Close(); err != nil {
-			return xerrors.Errorf("could not close datastore: %w", err)
+		for _, ds := range fsr.ds {
+			if err := ds.Close(); err != nil {
+				return xerrors.Errorf("could not close datastore: %w", err)
+			}
+		}
+	}
+
+	// type assertion will return ok=false if fsr.bs is nil altogether.
+	if c, ok := fsr.bs.(io.Closer); ok && c != nil {
+		if err := c.Close(); err != nil {
+			return xerrors.Errorf("could not close blockstore: %w", err)
 		}
 	}
 
 	err = fsr.closer.Close()
 	fsr.closer = nil
 	return err
+}
+
+// Blockstore returns a blockstore for the provided data domain.
+func (fsr *fsLockedRepo) Blockstore(ctx context.Context, domain BlockstoreDomain) (blockstore.Blockstore, error) {
+	if domain != UniversalBlockstore {
+		return nil, ErrInvalidBlockstoreDomain
+	}
+
+	fsr.bsOnce.Do(func() {
+		path := fsr.join(filepath.Join(fsDatastore, "chain"))
+		readonly := fsr.readonly
+
+		if err := os.MkdirAll(path, 0755); err != nil {
+			fsr.bsErr = err
+			return
+		}
+
+		opts, err := BadgerBlockstoreOptions(domain, path, readonly)
+		if err != nil {
+			fsr.bsErr = err
+			return
+		}
+
+		bs, err := badgerbs.Open(opts)
+		if err != nil {
+			fsr.bsErr = err
+			return
+		}
+		fsr.bs = blockstore.WrapIDStore(bs)
+	})
+
+	return fsr.bs, fsr.bsErr
+}
+
+func (fsr *fsLockedRepo) SplitstorePath() (string, error) {
+	fsr.ssOnce.Do(func() {
+		path := fsr.join(filepath.Join(fsDatastore, "splitstore"))
+
+		if err := os.MkdirAll(path, 0755); err != nil {
+			fsr.ssErr = err
+			return
+		}
+
+		fsr.ssPath = path
+	})
+
+	return fsr.ssPath, fsr.ssErr
 }
 
 // join joins path elements with fsr.path
@@ -253,27 +365,90 @@ func (fsr *fsLockedRepo) stillValid() error {
 	return nil
 }
 
-func (fsr *fsLockedRepo) Datastore(ns string) (datastore.Batching, error) {
-	fsr.dsOnce.Do(func() {
-		opts := badger.DefaultOptions
-		opts.Truncate = true
+func (fsr *fsLockedRepo) Config() (interface{}, error) {
+	fsr.configLk.Lock()
+	defer fsr.configLk.Unlock()
 
-		fsr.ds, fsr.dsErr = badger.NewDatastore(fsr.join(fsDatastore), &opts)
-		/*if fsr.dsErr == nil {
-			fsr.ds = datastore.NewLogDatastore(fsr.ds, "fsrepo")
-		}*/
-	})
-	if fsr.dsErr != nil {
-		return nil, fsr.dsErr
-	}
-	return namespace.Wrap(fsr.ds, datastore.NewKey(ns)), nil
+	return fsr.loadConfigFromDisk()
 }
 
-func (fsr *fsLockedRepo) Config() (interface{}, error) {
+func (fsr *fsLockedRepo) loadConfigFromDisk() (interface{}, error) {
+	return config.FromFile(fsr.configPath, defConfForType(fsr.repoType))
+}
+
+func (fsr *fsLockedRepo) SetConfig(c func(interface{})) error {
 	if err := fsr.stillValid(); err != nil {
-		return nil, err
+		return err
 	}
-	return config.FromFile(fsr.join(fsConfig), defConfForType(fsr.repoType))
+
+	fsr.configLk.Lock()
+	defer fsr.configLk.Unlock()
+
+	cfg, err := fsr.loadConfigFromDisk()
+	if err != nil {
+		return err
+	}
+
+	// mutate in-memory representation of config
+	c(cfg)
+
+	// buffer into which we write TOML bytes
+	buf := new(bytes.Buffer)
+
+	// encode now-mutated config as TOML and write to buffer
+	err = toml.NewEncoder(buf).Encode(cfg)
+	if err != nil {
+		return err
+	}
+
+	// write buffer of TOML bytes to config file
+	err = ioutil.WriteFile(fsr.configPath, buf.Bytes(), 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (fsr *fsLockedRepo) GetStorage() (stores.StorageConfig, error) {
+	fsr.storageLk.Lock()
+	defer fsr.storageLk.Unlock()
+
+	return fsr.getStorage(nil)
+}
+
+func (fsr *fsLockedRepo) getStorage(def *stores.StorageConfig) (stores.StorageConfig, error) {
+	c, err := config.StorageFromFile(fsr.join(fsStorageConfig), def)
+	if err != nil {
+		return stores.StorageConfig{}, err
+	}
+	return *c, nil
+}
+
+func (fsr *fsLockedRepo) SetStorage(c func(*stores.StorageConfig)) error {
+	fsr.storageLk.Lock()
+	defer fsr.storageLk.Unlock()
+
+	sc, err := fsr.getStorage(&stores.StorageConfig{})
+	if err != nil {
+		return xerrors.Errorf("get storage: %w", err)
+	}
+
+	c(&sc)
+
+	return config.WriteStorageFile(fsr.join(fsStorageConfig), sc)
+}
+
+func (fsr *fsLockedRepo) Stat(path string) (fsutil.FsStat, error) {
+	return fsutil.Statfs(path)
+}
+
+func (fsr *fsLockedRepo) DiskUsage(path string) (int64, error) {
+	si, err := fsutil.FileSize(path)
+	if err != nil {
+		return 0, err
+	}
+	return si.OnDisk, nil
 }
 
 func (fsr *fsLockedRepo) SetAPIEndpoint(ma multiaddr.Multiaddr) error {
@@ -311,6 +486,7 @@ func (fsr *fsLockedRepo) List() ([]string, error) {
 	if err != nil {
 		return nil, xerrors.Errorf("opening dir to list keystore: %w", err)
 	}
+	defer dir.Close() //nolint:errcheck
 	files, err := dir.Readdir(-1)
 	if err != nil {
 		return nil, xerrors.Errorf("reading keystore dir: %w", err)
@@ -369,17 +545,31 @@ func (fsr *fsLockedRepo) Get(name string) (types.KeyInfo, error) {
 	return res, nil
 }
 
+const KTrashPrefix = "trash-"
+
 // Put saves key info under given name
 func (fsr *fsLockedRepo) Put(name string, info types.KeyInfo) error {
+	return fsr.put(name, info, 0)
+}
+
+func (fsr *fsLockedRepo) put(rawName string, info types.KeyInfo, retries int) error {
 	if err := fsr.stillValid(); err != nil {
 		return err
+	}
+
+	name := rawName
+	if retries > 0 {
+		name = fmt.Sprintf("%s-%d", rawName, retries)
 	}
 
 	encName := base32.RawStdEncoding.EncodeToString([]byte(name))
 	keyPath := fsr.join(fsKeystore, encName)
 
 	_, err := os.Stat(keyPath)
-	if err == nil {
+	if err == nil && strings.HasPrefix(name, KTrashPrefix) {
+		// retry writing the trash-prefixed file with a number suffix
+		return fsr.put(rawName, info, retries+1)
+	} else if err == nil {
 		return xerrors.Errorf("checking key before put '%s': %w", name, types.ErrKeyExists)
 	} else if !os.IsNotExist(err) {
 		return xerrors.Errorf("checking key before put '%s': %w", name, err)

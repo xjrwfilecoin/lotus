@@ -1,395 +1,32 @@
 package node_test
 
 import (
-	"bytes"
-	"context"
-	"crypto/rand"
-	"io/ioutil"
-	"net/http/httptest"
-	"path/filepath"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/filecoin-project/go-address"
-	sectorbuilder "github.com/filecoin-project/go-sectorbuilder"
-	"github.com/filecoin-project/lotus/build"
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/namespace"
-	badger "github.com/ipfs/go-ds-badger2"
-	logging "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
-	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
-	"github.com/stretchr/testify/require"
-
-	"github.com/filecoin-project/lotus/api"
-	"github.com/filecoin-project/lotus/api/client"
+	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api/test"
-	"github.com/filecoin-project/lotus/chain/actors"
-	"github.com/filecoin-project/lotus/chain/gen"
-	"github.com/filecoin-project/lotus/chain/types"
-	"github.com/filecoin-project/lotus/cmd/lotus-seed/seed"
-	"github.com/filecoin-project/lotus/genesis"
-	"github.com/filecoin-project/lotus/lib/jsonrpc"
-	"github.com/filecoin-project/lotus/miner"
-	"github.com/filecoin-project/lotus/node"
-	"github.com/filecoin-project/lotus/node/impl"
-	"github.com/filecoin-project/lotus/node/modules"
-	modtest "github.com/filecoin-project/lotus/node/modules/testing"
-	"github.com/filecoin-project/lotus/node/repo"
-	"github.com/filecoin-project/lotus/storage/sbmock"
+	"github.com/filecoin-project/lotus/chain/actors/policy"
+	"github.com/filecoin-project/lotus/lib/lotuslog"
+	builder "github.com/filecoin-project/lotus/node/test"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 func init() {
 	_ = logging.SetLogLevel("*", "INFO")
 
-	build.SectorSizes = []uint64{1024}
-	build.MinimumMinerPower = 1024
-}
-
-func testStorageNode(ctx context.Context, t *testing.T, waddr address.Address, act address.Address, pk crypto.PrivKey, tnd test.TestNode, mn mocknet.Mocknet, opts node.Option) test.TestStorageNode {
-	r := repo.NewMemory(nil)
-
-	lr, err := r.Lock(repo.StorageMiner)
-	require.NoError(t, err)
-
-	ks, err := lr.KeyStore()
-	require.NoError(t, err)
-
-	kbytes, err := pk.Bytes()
-	require.NoError(t, err)
-
-	err = ks.Put("libp2p-host", types.KeyInfo{
-		Type:       "libp2p-host",
-		PrivateKey: kbytes,
-	})
-	require.NoError(t, err)
-
-	ds, err := lr.Datastore("/metadata")
-	require.NoError(t, err)
-	err = ds.Put(datastore.NewKey("miner-address"), act.Bytes())
-	require.NoError(t, err)
-
-	err = lr.Close()
-	require.NoError(t, err)
-
-	peerid, err := peer.IDFromPrivateKey(pk)
-	require.NoError(t, err)
-
-	enc, err := actors.SerializeParams(&actors.UpdatePeerIDParams{PeerID: peerid})
-	require.NoError(t, err)
-
-	msg := &types.Message{
-		To:       act,
-		From:     waddr,
-		Method:   actors.MAMethods.UpdatePeerID,
-		Params:   enc,
-		Value:    types.NewInt(0),
-		GasPrice: types.NewInt(0),
-		GasLimit: types.NewInt(1000000),
-	}
-
-	_, err = tnd.MpoolPushMessage(ctx, msg)
-	require.NoError(t, err)
-
-	// start node
-	var minerapi api.StorageMiner
-
-	mineBlock := make(chan struct{})
-	// TODO: use stop
-	_, err = node.New(ctx,
-		node.StorageMiner(&minerapi),
-		node.Online(),
-		node.Repo(r),
-		node.Test(),
-
-		node.MockHost(mn),
-
-		node.Override(new(api.FullNode), tnd),
-		node.Override(new(*miner.Miner), miner.NewTestMiner(mineBlock, act)),
-
-		opts,
-	)
-	if err != nil {
-		t.Fatalf("failed to construct node: %v", err)
-	}
-
-	/*// Bootstrap with full node
-	remoteAddrs, err := tnd.NetAddrsListen(ctx)
-	require.NoError(t, err)
-
-	err = minerapi.NetConnect(ctx, remoteAddrs)
-	require.NoError(t, err)*/
-	mineOne := func(ctx context.Context) error {
-		select {
-		case mineBlock <- struct{}{}:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
-	return test.TestStorageNode{StorageMiner: minerapi, MineOne: mineOne}
-}
-
-func builder(t *testing.T, nFull int, storage []int) ([]test.TestNode, []test.TestStorageNode) {
-	ctx := context.Background()
-	mn := mocknet.New(ctx)
-
-	fulls := make([]test.TestNode, nFull)
-	storers := make([]test.TestStorageNode, len(storage))
-
-	pk, _, err := crypto.GenerateEd25519Key(rand.Reader)
-	require.NoError(t, err)
-
-	minerPid, err := peer.IDFromPrivateKey(pk)
-	require.NoError(t, err)
-
-	var genbuf bytes.Buffer
-
-	if len(storage) > 1 {
-		panic("need more peer IDs")
-	}
-	// PRESEAL SECTION, TRY TO REPLACE WITH BETTER IN THE FUTURE
-	// TODO: would be great if there was a better way to fake the preseals
-	gmc := &gen.GenMinerCfg{
-		PeerIDs:  []peer.ID{minerPid}, // TODO: if we have more miners, need more peer IDs
-		PreSeals: map[string]genesis.GenesisMiner{},
-	}
-
-	var presealDirs []string
-	for i := 0; i < len(storage); i++ {
-		maddr, err := address.NewIDAddress(300 + uint64(i))
-		if err != nil {
-			t.Fatal(err)
-		}
-		tdir, err := ioutil.TempDir("", "preseal-memgen")
-		if err != nil {
-			t.Fatal(err)
-		}
-		genm, err := seed.PreSeal(maddr, 1024, 0, 1, tdir, []byte("make genesis mem random"))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		presealDirs = append(presealDirs, tdir)
-		gmc.MinerAddrs = append(gmc.MinerAddrs, maddr)
-		gmc.PreSeals[maddr.String()] = *genm
-	}
-
-	// END PRESEAL SECTION
-
-	for i := 0; i < nFull; i++ {
-		var genesis node.Option
-		if i == 0 {
-			genesis = node.Override(new(modules.Genesis), modtest.MakeGenesisMem(&genbuf, gmc))
-		} else {
-			genesis = node.Override(new(modules.Genesis), modules.LoadGenesis(genbuf.Bytes()))
-		}
-
-		var err error
-		// TODO: Don't ignore stop
-		_, err = node.New(ctx,
-			node.FullAPI(&fulls[i].FullNode),
-			node.Online(),
-			node.Repo(repo.NewMemory(nil)),
-			node.MockHost(mn),
-			node.Test(),
-
-			genesis,
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-	}
-
-	for i, full := range storage {
-		// TODO: support non-bootstrap miners
-		if i != 0 {
-			t.Fatal("only one storage node supported")
-		}
-		if full != 0 {
-			t.Fatal("storage nodes only supported on the first full node")
-		}
-
-		f := fulls[full]
-
-		genMiner := gmc.MinerAddrs[i]
-		wa := gmc.PreSeals[genMiner.String()].Worker
-
-		storers[i] = testStorageNode(ctx, t, wa, genMiner, pk, f, mn, node.Options())
-
-		sma := storers[i].StorageMiner.(*impl.StorageMinerAPI)
-
-		psd := presealDirs[i]
-		mds, err := badger.NewDatastore(filepath.Join(psd, "badger"), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		osb, err := sectorbuilder.New(&sectorbuilder.Config{
-			SectorSize:    1024,
-			WorkerThreads: 2,
-			Miner:         genMiner,
-			Paths:         sectorbuilder.SimplePath(psd),
-		}, namespace.Wrap(mds, datastore.NewKey("/sectorbuilder")))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if err := sma.SectorBuilder.(*sectorbuilder.SectorBuilder).ImportFrom(osb, false); err != nil {
-			t.Fatal(err)
-		}
-
-	}
-
-	if err := mn.LinkAll(); err != nil {
-		t.Fatal(err)
-	}
-
-	return fulls, storers
-}
-
-func mockSbBuilder(t *testing.T, nFull int, storage []int) ([]test.TestNode, []test.TestStorageNode) {
-	ctx := context.Background()
-	mn := mocknet.New(ctx)
-
-	fulls := make([]test.TestNode, nFull)
-	storers := make([]test.TestStorageNode, len(storage))
-
-	pk, _, err := crypto.GenerateEd25519Key(rand.Reader)
-	require.NoError(t, err)
-
-	minerPid, err := peer.IDFromPrivateKey(pk)
-	require.NoError(t, err)
-
-	var genbuf bytes.Buffer
-
-	if len(storage) > 1 {
-		panic("need more peer IDs")
-	}
-	// PRESEAL SECTION, TRY TO REPLACE WITH BETTER IN THE FUTURE
-	// TODO: would be great if there was a better way to fake the preseals
-	gmc := &gen.GenMinerCfg{
-		PeerIDs:  []peer.ID{minerPid}, // TODO: if we have more miners, need more peer IDs
-		PreSeals: map[string]genesis.GenesisMiner{},
-	}
-
-	var presealDirs []string
-	for i := 0; i < len(storage); i++ {
-		maddr, err := address.NewIDAddress(300 + uint64(i))
-		if err != nil {
-			t.Fatal(err)
-		}
-		tdir, err := ioutil.TempDir("", "preseal-memgen")
-		if err != nil {
-			t.Fatal(err)
-		}
-		genm, err := sbmock.PreSeal(1024, maddr, 1)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		presealDirs = append(presealDirs, tdir)
-		gmc.MinerAddrs = append(gmc.MinerAddrs, maddr)
-		gmc.PreSeals[maddr.String()] = *genm
-	}
-
-	// END PRESEAL SECTION
-
-	for i := 0; i < nFull; i++ {
-		var genesis node.Option
-		if i == 0 {
-			genesis = node.Override(new(modules.Genesis), modtest.MakeGenesisMem(&genbuf, gmc))
-		} else {
-			genesis = node.Override(new(modules.Genesis), modules.LoadGenesis(genbuf.Bytes()))
-		}
-
-		var err error
-		// TODO: Don't ignore stop
-		_, err = node.New(ctx,
-			node.FullAPI(&fulls[i].FullNode),
-			node.Online(),
-			node.Repo(repo.NewMemory(nil)),
-			node.MockHost(mn),
-			node.Test(),
-
-			node.Override(new(sectorbuilder.Verifier), sbmock.MockVerifier),
-
-			genesis,
-		)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-	}
-
-	for i, full := range storage {
-		// TODO: support non-bootstrap miners
-		if i != 0 {
-			t.Fatal("only one storage node supported")
-		}
-		if full != 0 {
-			t.Fatal("storage nodes only supported on the first full node")
-		}
-
-		f := fulls[full]
-
-		genMiner := gmc.MinerAddrs[i]
-		wa := gmc.PreSeals[genMiner.String()].Worker
-
-		storers[i] = testStorageNode(ctx, t, wa, genMiner, pk, f, mn, node.Options(
-			node.Override(new(sectorbuilder.Interface), sbmock.NewMockSectorBuilder(5, build.SectorSizes[0])),
-		))
-	}
-
-	if err := mn.LinkAll(); err != nil {
-		t.Fatal(err)
-	}
-
-	return fulls, storers
+	policy.SetConsensusMinerMinPower(abi.NewStoragePower(2048))
+	policy.SetSupportedProofTypes(abi.RegisteredSealProof_StackedDrg2KiBV1)
+	policy.SetMinVerifiedDealSize(abi.NewStoragePower(256))
 }
 
 func TestAPI(t *testing.T) {
-	test.TestApis(t, builder)
-}
-
-func rpcBuilder(t *testing.T, nFull int, storage []int) ([]test.TestNode, []test.TestStorageNode) {
-	fullApis, storaApis := builder(t, nFull, storage)
-	fulls := make([]test.TestNode, nFull)
-	storers := make([]test.TestStorageNode, len(storage))
-
-	for i, a := range fullApis {
-		rpcServer := jsonrpc.NewServer()
-		rpcServer.Register("Filecoin", a)
-		testServ := httptest.NewServer(rpcServer) //  todo: close
-
-		var err error
-		fulls[i].FullNode, _, err = client.NewFullNodeRPC("ws://"+testServ.Listener.Addr().String(), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	for i, a := range storaApis {
-		rpcServer := jsonrpc.NewServer()
-		rpcServer.Register("Filecoin", a)
-		testServ := httptest.NewServer(rpcServer) //  todo: close
-
-		var err error
-		storers[i].StorageMiner, _, err = client.NewStorageMinerRPC("ws://"+testServ.Listener.Addr().String(), nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		storers[i].MineOne = a.MineOne
-	}
-
-	return fulls, storers
+	test.TestApis(t, builder.Builder)
 }
 
 func TestAPIRPC(t *testing.T) {
-	test.TestApis(t, rpcBuilder)
+	test.TestApis(t, builder.RPCBuilder)
 }
 
 func TestAPIDealFlow(t *testing.T) {
@@ -399,12 +36,271 @@ func TestAPIDealFlow(t *testing.T) {
 	logging.SetLogLevel("sub", "ERROR")
 	logging.SetLogLevel("storageminer", "ERROR")
 
-	test.TestDealFlow(t, mockSbBuilder, 10*time.Millisecond)
+	blockTime := 10 * time.Millisecond
+
+	// For these tests where the block time is artificially short, just use
+	// a deal start epoch that is guaranteed to be far enough in the future
+	// so that the deal starts sealing in time
+	dealStartEpoch := abi.ChainEpoch(2 << 12)
+
+	t.Run("TestDealFlow", func(t *testing.T) {
+		test.TestDealFlow(t, builder.MockSbBuilder, blockTime, false, false, dealStartEpoch)
+	})
+	t.Run("WithExportedCAR", func(t *testing.T) {
+		test.TestDealFlow(t, builder.MockSbBuilder, blockTime, true, false, dealStartEpoch)
+	})
+	t.Run("TestDoubleDealFlow", func(t *testing.T) {
+		test.TestDoubleDealFlow(t, builder.MockSbBuilder, blockTime, dealStartEpoch)
+	})
+	t.Run("TestFastRetrievalDealFlow", func(t *testing.T) {
+		test.TestFastRetrievalDealFlow(t, builder.MockSbBuilder, blockTime, dealStartEpoch)
+	})
+	t.Run("TestPublishDealsBatching", func(t *testing.T) {
+		test.TestPublishDealsBatching(t, builder.MockSbBuilder, blockTime, dealStartEpoch)
+	})
+	t.Run("TestBatchDealInput", func(t *testing.T) {
+		test.TestBatchDealInput(t, builder.MockSbBuilder, blockTime, dealStartEpoch)
+	})
+}
+
+func TestBatchDealInput(t *testing.T) {
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+	logging.SetLogLevel("sectors", "DEBUG")
+
+	blockTime := 10 * time.Millisecond
+
+	// For these tests where the block time is artificially short, just use
+	// a deal start epoch that is guaranteed to be far enough in the future
+	// so that the deal starts sealing in time
+	dealStartEpoch := abi.ChainEpoch(2 << 12)
+
+	test.TestBatchDealInput(t, builder.MockSbBuilder, blockTime, dealStartEpoch)
 }
 
 func TestAPIDealFlowReal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode")
 	}
-	test.TestDealFlow(t, builder, time.Second)
+	lotuslog.SetupLogLevels()
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	// TODO: just set this globally?
+	oldDelay := policy.GetPreCommitChallengeDelay()
+	policy.SetPreCommitChallengeDelay(5)
+	t.Cleanup(func() {
+		policy.SetPreCommitChallengeDelay(oldDelay)
+	})
+
+	t.Run("basic", func(t *testing.T) {
+		test.TestDealFlow(t, builder.Builder, time.Second, false, false, 0)
+	})
+
+	t.Run("fast-retrieval", func(t *testing.T) {
+		test.TestDealFlow(t, builder.Builder, time.Second, false, true, 0)
+	})
+
+	t.Run("retrieval-second", func(t *testing.T) {
+		test.TestSecondDealRetrieval(t, builder.Builder, time.Second)
+	})
+}
+
+func TestDealMining(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode")
+	}
+
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestDealMining(t, builder.MockSbBuilder, 50*time.Millisecond, false)
+}
+
+func TestSDRUpgrade(t *testing.T) {
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	oldDelay := policy.GetPreCommitChallengeDelay()
+	policy.SetPreCommitChallengeDelay(5)
+	t.Cleanup(func() {
+		policy.SetPreCommitChallengeDelay(oldDelay)
+	})
+
+	test.TestSDRUpgrade(t, builder.MockSbBuilder, 50*time.Millisecond)
+}
+
+func TestPledgeSectors(t *testing.T) {
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	t.Run("1", func(t *testing.T) {
+		test.TestPledgeSector(t, builder.MockSbBuilder, 50*time.Millisecond, 1)
+	})
+
+	t.Run("100", func(t *testing.T) {
+		test.TestPledgeSector(t, builder.MockSbBuilder, 50*time.Millisecond, 100)
+	})
+
+	t.Run("1000", func(t *testing.T) {
+		if testing.Short() { // takes ~16s
+			t.Skip("skipping test in short mode")
+		}
+
+		test.TestPledgeSector(t, builder.MockSbBuilder, 50*time.Millisecond, 1000)
+	})
+}
+
+func TestPledgeBatching(t *testing.T) {
+	t.Run("100", func(t *testing.T) {
+		test.TestPledgeBatching(t, builder.MockSbBuilder, 50*time.Millisecond, 100)
+	})
+	t.Run("100-before-nv13", func(t *testing.T) {
+		test.TestPledgeBeforeNv13(t, builder.MockSbBuilder, 50*time.Millisecond, 100)
+	})
+}
+
+func TestTapeFix(t *testing.T) {
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestTapeFix(t, builder.MockSbBuilder, 2*time.Millisecond)
+}
+
+func TestWindowedPost(t *testing.T) {
+	if os.Getenv("LOTUS_TEST_WINDOW_POST") != "1" {
+		t.Skip("this takes a few minutes, set LOTUS_TEST_WINDOW_POST=1 to run")
+	}
+
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("gen", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestWindowPost(t, builder.MockSbBuilder, 2*time.Millisecond, 10)
+}
+
+func TestTerminate(t *testing.T) {
+	if os.Getenv("LOTUS_TEST_WINDOW_POST") != "1" {
+		t.Skip("this takes a few minutes, set LOTUS_TEST_WINDOW_POST=1 to run")
+	}
+
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestTerminate(t, builder.MockSbBuilder, 2*time.Millisecond)
+}
+
+func TestCCUpgrade(t *testing.T) {
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestCCUpgrade(t, builder.MockSbBuilder, 5*time.Millisecond)
+}
+
+func TestPaymentChannels(t *testing.T) {
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("pubsub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestPaymentChannels(t, builder.MockSbBuilder, 5*time.Millisecond)
+}
+
+func TestWindowPostDispute(t *testing.T) {
+	if os.Getenv("LOTUS_TEST_WINDOW_POST") != "1" {
+		t.Skip("this takes a few minutes, set LOTUS_TEST_WINDOW_POST=1 to run")
+	}
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("gen", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestWindowPostDispute(t, builder.MockSbBuilder, 2*time.Millisecond)
+}
+
+func TestWindowPostDisputeFails(t *testing.T) {
+	if os.Getenv("LOTUS_TEST_WINDOW_POST") != "1" {
+		t.Skip("this takes a few minutes, set LOTUS_TEST_WINDOW_POST=1 to run")
+	}
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("gen", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestWindowPostDisputeFails(t, builder.MockSbBuilder, 2*time.Millisecond)
+}
+
+func TestWindowPostBaseFeeNoBurn(t *testing.T) {
+	if os.Getenv("LOTUS_TEST_WINDOW_POST") != "1" {
+		t.Skip("this takes a few minutes, set LOTUS_TEST_WINDOW_POST=1 to run")
+	}
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("gen", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestWindowPostBaseFeeNoBurn(t, builder.MockSbBuilder, 2*time.Millisecond)
+}
+
+func TestWindowPostBaseFeeBurn(t *testing.T) {
+	if os.Getenv("LOTUS_TEST_WINDOW_POST") != "1" {
+		t.Skip("this takes a few minutes, set LOTUS_TEST_WINDOW_POST=1 to run")
+	}
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("gen", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "ERROR")
+
+	test.TestWindowPostBaseFeeBurn(t, builder.MockSbBuilder, 2*time.Millisecond)
+}
+
+func TestDeadlineToggling(t *testing.T) {
+	if os.Getenv("LOTUS_TEST_DEADLINE_TOGGLING") != "1" {
+		t.Skip("this takes a few minutes, set LOTUS_TEST_DEADLINE_TOGGLING=1 to run")
+	}
+	logging.SetLogLevel("miner", "ERROR")
+	logging.SetLogLevel("gen", "ERROR")
+	logging.SetLogLevel("chainstore", "ERROR")
+	logging.SetLogLevel("chain", "ERROR")
+	logging.SetLogLevel("sub", "ERROR")
+	logging.SetLogLevel("storageminer", "FATAL")
+
+	test.TestDeadlineToggling(t, builder.MockSbBuilder, 2*time.Millisecond)
 }

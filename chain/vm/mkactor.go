@@ -3,22 +3,33 @@ package vm
 import (
 	"context"
 
+	"github.com/filecoin-project/go-state-types/network"
+
+	"github.com/filecoin-project/lotus/build"
+
+	"github.com/filecoin-project/go-state-types/big"
+	"github.com/filecoin-project/go-state-types/exitcode"
+	"github.com/filecoin-project/lotus/chain/actors"
+
 	"github.com/ipfs/go-cid"
-	dstore "github.com/ipfs/go-datastore"
-	hamt "github.com/ipfs/go-hamt-ipld"
-	bstore "github.com/ipfs/go-ipfs-blockstore"
+	cbor "github.com/ipfs/go-ipld-cbor"
+
+	builtin0 "github.com/filecoin-project/specs-actors/actors/builtin"
+	builtin2 "github.com/filecoin-project/specs-actors/v2/actors/builtin"
+	builtin3 "github.com/filecoin-project/specs-actors/v3/actors/builtin"
+	builtin4 "github.com/filecoin-project/specs-actors/v4/actors/builtin"
+	builtin5 "github.com/filecoin-project/specs-actors/v5/actors/builtin"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/lotus/chain/actors"
 	"github.com/filecoin-project/lotus/chain/actors/aerrors"
-	"github.com/filecoin-project/lotus/chain/state"
+	"github.com/filecoin-project/lotus/chain/actors/builtin"
+	"github.com/filecoin-project/lotus/chain/actors/builtin/account"
 	"github.com/filecoin-project/lotus/chain/types"
 )
 
 func init() {
-	bs := bstore.NewBlockstore(dstore.NewMapDatastore())
-	cst := hamt.CSTFromBstore(bs)
-	emptyobject, err := cst.Put(context.TODO(), map[string]string{})
+	cst := cbor.NewMemCborStore()
+	emptyobject, err := cst.Put(context.TODO(), []struct{}{})
 	if err != nil {
 		panic(err)
 	}
@@ -28,58 +39,83 @@ func init() {
 
 var EmptyObjectCid cid.Cid
 
-func TryCreateAccountActor(st *state.StateTree, addr address.Address) (*types.Actor, aerrors.ActorError) {
-	act, err := makeActor(st, addr)
+// TryCreateAccountActor creates account actors from only BLS/SECP256K1 addresses.
+func TryCreateAccountActor(rt *Runtime, addr address.Address) (*types.Actor, address.Address, aerrors.ActorError) {
+	if err := rt.chargeGasSafe(PricelistByEpoch(rt.height).OnCreateActor()); err != nil {
+		return nil, address.Undef, err
+	}
+
+	if addr == build.ZeroAddress && rt.NetworkVersion() >= network.Version10 {
+		return nil, address.Undef, aerrors.New(exitcode.ErrIllegalArgument, "cannot create the zero bls actor")
+	}
+
+	addrID, err := rt.state.RegisterNewAddress(addr)
 	if err != nil {
-		return nil, err
+		return nil, address.Undef, aerrors.Escalate(err, "registering actor address")
 	}
 
-	if _, err := st.RegisterNewAddress(addr, act); err != nil {
-		return nil, aerrors.Escalate(err, "registering actor address")
+	act, aerr := makeActor(actors.VersionForNetwork(rt.NetworkVersion()), addr)
+	if aerr != nil {
+		return nil, address.Undef, aerr
 	}
 
-	return act, nil
+	if err := rt.state.SetActor(addrID, act); err != nil {
+		return nil, address.Undef, aerrors.Escalate(err, "creating new actor failed")
+	}
+
+	p, err := actors.SerializeParams(&addr)
+	if err != nil {
+		return nil, address.Undef, aerrors.Escalate(err, "couldn't serialize params for actor construction")
+	}
+	// call constructor on account
+
+	_, aerr = rt.internalSend(builtin.SystemActorAddr, addrID, account.Methods.Constructor, big.Zero(), p)
+	if aerr != nil {
+		return nil, address.Undef, aerrors.Wrap(aerr, "failed to invoke account constructor")
+	}
+
+	act, err = rt.state.GetActor(addrID)
+	if err != nil {
+		return nil, address.Undef, aerrors.Escalate(err, "loading newly created actor failed")
+	}
+	return act, addrID, nil
 }
 
-func makeActor(st *state.StateTree, addr address.Address) (*types.Actor, aerrors.ActorError) {
+func makeActor(ver actors.Version, addr address.Address) (*types.Actor, aerrors.ActorError) {
 	switch addr.Protocol() {
-	case address.BLS:
-		return NewBLSAccountActor(st, addr)
-	case address.SECP256K1:
-		return NewSecp256k1AccountActor(st, addr)
+	case address.BLS, address.SECP256K1:
+		return newAccountActor(ver), nil
 	case address.ID:
-		return nil, aerrors.Newf(1, "no actor with given ID: %s", addr)
+		return nil, aerrors.Newf(exitcode.SysErrInvalidReceiver, "no actor with given ID: %s", addr)
 	case address.Actor:
-		return nil, aerrors.Newf(1, "no such actor: %s", addr)
+		return nil, aerrors.Newf(exitcode.SysErrInvalidReceiver, "no such actor: %s", addr)
 	default:
-		return nil, aerrors.Newf(1, "address has unsupported protocol: %d", addr.Protocol())
+		return nil, aerrors.Newf(exitcode.SysErrInvalidReceiver, "address has unsupported protocol: %d", addr.Protocol())
 	}
 }
 
-func NewBLSAccountActor(st *state.StateTree, addr address.Address) (*types.Actor, aerrors.ActorError) {
-	var acstate actors.AccountActorState
-	acstate.Address = addr
-
-	c, err := st.Store.Put(context.TODO(), &acstate)
-	if err != nil {
-		return nil, aerrors.Escalate(err, "serializing account actor state")
+func newAccountActor(ver actors.Version) *types.Actor {
+	// TODO: ActorsUpgrade use a global actor registry?
+	var code cid.Cid
+	switch ver {
+	case actors.Version0:
+		code = builtin0.AccountActorCodeID
+	case actors.Version2:
+		code = builtin2.AccountActorCodeID
+	case actors.Version3:
+		code = builtin3.AccountActorCodeID
+	case actors.Version4:
+		code = builtin4.AccountActorCodeID
+	case actors.Version5:
+		code = builtin5.AccountActorCodeID
+	default:
+		panic("unsupported actors version")
 	}
-
 	nact := &types.Actor{
-		Code:    actors.AccountCodeCid,
-		Balance: types.NewInt(0),
-		Head:    c,
-	}
-
-	return nact, nil
-}
-
-func NewSecp256k1AccountActor(st *state.StateTree, addr address.Address) (*types.Actor, aerrors.ActorError) {
-	nact := &types.Actor{
-		Code:    actors.AccountCodeCid,
+		Code:    code,
 		Balance: types.NewInt(0),
 		Head:    EmptyObjectCid,
 	}
 
-	return nact, nil
+	return nact
 }

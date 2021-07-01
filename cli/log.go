@@ -3,24 +3,24 @@ package cli
 import (
 	"fmt"
 
+	"github.com/urfave/cli/v2"
 	"golang.org/x/xerrors"
-	"gopkg.in/urfave/cli.v2"
 )
 
-var logCmd = &cli.Command{
+var LogCmd = &cli.Command{
 	Name:  "log",
 	Usage: "Manage logging",
 	Subcommands: []*cli.Command{
-		logList,
-		logSetLevel,
+		LogList,
+		LogSetLevel,
 	},
 }
 
-var logList = &cli.Command{
+var LogList = &cli.Command{
 	Name:  "list",
 	Usage: "List log systems",
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetFullNodeAPI(cctx)
+		api, closer, err := GetAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -41,15 +41,15 @@ var logList = &cli.Command{
 	},
 }
 
-var logSetLevel = &cli.Command{
+var LogSetLevel = &cli.Command{
 	Name:      "set-level",
 	Usage:     "Set log level",
-	ArgsUsage: "<level>",
+	ArgsUsage: "[level]",
 	Description: `Set the log level for logging systems:
 
    The system flag can be specified multiple times.
 
-   eg) log set-level --system chain --system blocksync debug
+   eg) log set-level --system chain --system chainxchg debug
 
    Available Levels:
    debug
@@ -60,7 +60,8 @@ var logSetLevel = &cli.Command{
    Environment Variables:
    GOLOG_LOG_LEVEL - Default log level for all log systems
    GOLOG_LOG_FMT   - Change output log format (json, nocolor)
-   GOLOG_FILE      - Write logs to file in addition to stderr
+   GOLOG_FILE      - Write logs to file
+   GOLOG_OUTPUT    - Specify whether to output to file, stderr, stdout or a combination, i.e. file+stderr
 `,
 	Flags: []cli.Flag{
 		&cli.StringSliceFlag{
@@ -70,7 +71,7 @@ var logSetLevel = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		api, closer, err := GetFullNodeAPI(cctx)
+		api, closer, err := GetAPI(cctx)
 		if err != nil {
 			return err
 		}
@@ -92,7 +93,7 @@ var logSetLevel = &cli.Command{
 
 		for _, system := range systems {
 			if err := api.LogSetLevel(ctx, system, cctx.Args().First()); err != nil {
-				return xerrors.Errorf("setting log level on %s: %w", system, err)
+				return xerrors.Errorf("setting log level on %s: %v", system, err)
 			}
 		}
 
