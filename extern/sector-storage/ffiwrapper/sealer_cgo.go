@@ -654,7 +654,7 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 	if err != nil {
 		return nil, xerrors.Errorf("acquire sector paths: %w", err)
 	}
-	defer done()
+	done()
 	output, err := ffi.SealCommitPhase1(
 		sector.ProofType,
 		cids.Sealed,
@@ -682,7 +682,7 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 	if err != nil {
 		return nil, xerrors.Errorf("acquiring sector cache path: %w", err)
 	}
-	defer doneCache()
+	doneCache()
 
 	log.Infof("ClearCache %v", pathsCache.Cache)
 	ffi.ClearCache(uint64(ssize), pathsCache.Cache)
