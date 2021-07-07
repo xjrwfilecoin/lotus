@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"github.com/polydawn/refmt/cbor"
 	"io"
 	"io/ioutil"
 	"math/bits"

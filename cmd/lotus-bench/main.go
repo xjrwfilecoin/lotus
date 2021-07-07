@@ -177,7 +177,7 @@ var sealBenchCmd = &cli.Command{
 		&cli.IntFlag{
 			Name:  "seal-interval",
 			Usage: "delay time between multi sectors to seal task, default 10 (minute) interval",
-			Value: 10,
+			Value: 0,
 		},
 	},
 	Action: func(c *cli.Context) error {

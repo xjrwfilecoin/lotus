@@ -2,7 +2,6 @@ package sectorstorage
 
 import (
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"sync"
@@ -27,8 +26,6 @@ import (
 
 var log = logging.Logger("advmgr")
 
-var ErrNoWorkers = errors.New("no suitable workers found")
-
 type URLs []string
 
 type Worker interface {
@@ -37,7 +34,7 @@ type Worker interface {
 	TaskTypes(context.Context) (map[sealtasks.TaskType]struct{}, error)
 
 	GetPara(ctx context.Context) (storiface.WorkerPara, error)
-	// Returns paths accessible to the worker
+	// Paths Returns paths accessible to the worker
 	Paths(context.Context) ([]stores.StoragePath, error)
 
 	Info(context.Context) (storiface.WorkerInfo, error)

@@ -182,7 +182,11 @@ var runCmd = &cli.Command{
 				fmt.Println("worker server", "open file fail", err)
 				return
 			}
-			syscall.Dup2(int(logFile.Fd()), int(os.Stderr.Fd()))
+			err = syscall.Dup2(int(logFile.Fd()), int(os.Stderr.Fd()))
+			if nil != err {
+				fmt.Println("init logger file error, ", err)
+				return
+			}
 
 			if err := recover(); err != nil {
 				fmt.Println("recover msg: ", err)
@@ -447,6 +451,7 @@ var runCmd = &cli.Command{
 
 		go func() {
 			<-ctx.Done()
+			log.Warnf("Shutting down with information: %v", ctx.Err())
 			log.Warn("Shutting down...")
 			if err := srv.Shutdown(context.TODO()); err != nil {
 				log.Errorf("shutting down RPC server failed: %s", err)
