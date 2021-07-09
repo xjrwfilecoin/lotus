@@ -338,7 +338,7 @@ func (l *LocalWorker) SealPreCommit1(ctx context.Context, sector storage.SectorR
 		if err != nil {
 			return nil, err
 		}
-
+              time.Sleep(8*time.Minute);
 		return sb.SealPreCommit1(ctx, sector, ticket, pieces)
 	})
 }
@@ -374,6 +374,7 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 	}
 */
 	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+            	time.Sleep(2*time.Minute);
 		return sb.SealPreCommit2(ctx, sector, phase1Out)
 	})
 }
