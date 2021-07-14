@@ -294,6 +294,7 @@ func ReqContext(cctx *cli.Context) context.Context {
 		done()
 	}()
 	// delete syscall.SIGHUP, temporary solve the worker exit with hangup problem
+	signal.Ignore(syscall.SIGHUP)
 	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 
 	return ctx
