@@ -814,7 +814,7 @@ func (m *Manager) autoAddTask(ctx context.Context) {
 
 func (m *Manager) startTimer(ctx context.Context, interval int) {
 	go func() {
-		ticker := time.NewTicker(time.Duration(interval) * time.Minute)
+		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
